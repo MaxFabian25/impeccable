@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Radius Reset Regression</title>
+  <style>
+    :root { --brand: #3b82f6; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 24px; background: #f8fafc; }
+    .stack { display: grid; gap: 24px; max-width: 720px; margin: 0 auto; }
+    .card {
+      background: white;
+      padding: 16px;
+      border-top: 4px solid var(--brand);
+      border-radius: 8px;
+    }
+    .square {
+      border-radius: 0;
+    }
+    h3 { margin: 0 0 6px; font-size: 18px; color: #0f172a; }
+    p { margin: 0; color: #475569; }
+  </style>
+</head>
+<body>
+  <div class="stack">
+    <div class="card square">
+      <h3>Square border card</h3>
+      <p>A later class clears the earlier rounded border radius.</p>
+    </div>
+  </div>
+</body>
+</html>

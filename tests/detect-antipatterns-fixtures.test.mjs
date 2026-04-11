@@ -160,6 +160,15 @@ describe('detectHtml — jsdom fixtures', () => {
     );
   });
 
+  it('radius-reset: later border-radius: 0 overrides suppress rounded border accents', async () => {
+    const f = await detectHtml(path.join(FIXTURES, 'radius-reset.html'));
+    const borderAccent = f.filter(r => r.antipattern === 'border-accent-on-rounded');
+    assert.equal(
+      borderAccent.length, 0,
+      `expected 0 border-accent-on-rounded after radius reset, got ${borderAccent.length}: ${borderAccent.map(r => r.snippet).join('; ')}`
+    );
+  });
+
   it('typography-should-flag: detects all three issues', async () => {
     const f = await detectHtml(path.join(FIXTURES, 'typography-should-flag.html'));
     assert.ok(f.some(r => r.antipattern === 'overused-font'));

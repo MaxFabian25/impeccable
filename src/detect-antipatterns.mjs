@@ -1286,7 +1286,7 @@ function checkElementBorders(tag, style, overrides) {
       colors[s] = overrides[s].color;
     }
   }
-  const radius = parseFloat(style.borderRadius) || parseFloat(overrides?.radius) || 0;
+  const radius = resolveRadius(style.borderRadius, overrides?.radius);
   return checkBorders(tag, widths, colors, radius);
 }
 
@@ -1343,7 +1343,7 @@ function checkElementIconTile(el, tag, window, styleOverrides) {
     siblingBgColor: parseRgb(sibStyle.backgroundColor),
     siblingBgImage: sibStyle.backgroundImage || '',
     siblingBorderWidth: parseFloat(sibStyle.borderTopWidth) || 0,
-    siblingBorderRadius: parseFloat(sibStyle.borderRadius) || parseFloat(siblingOverride?.radius) || 0,
+    siblingBorderRadius: resolveRadius(sibStyle.borderRadius, siblingOverride?.radius),
     hasIconChild: !!iconChild || hasInlineEmojiIcon,
     iconChildWidth: iconWidth,
   });
@@ -2468,6 +2468,16 @@ function normalizeColorForCheck(value) {
   return v;
 }
 
+function resolveRadius(styleRadius, overrideRadius) {
+  const computedRadius = parseFloat(styleRadius);
+  if (!Number.isNaN(computedRadius)) return computedRadius;
+
+  const fallbackRadius = parseFloat(overrideRadius);
+  if (!Number.isNaN(fallbackRadius)) return fallbackRadius;
+
+  return 0;
+}
+
 function buildStyleOverrideMap(document, window) {
   const map = new Map();
   const rootStyle = window.getComputedStyle(document.documentElement);
@@ -2498,13 +2508,16 @@ function buildStyleOverrideMap(document, window) {
       style.borderTopRightRadius,
       style.borderBottomRightRadius,
       style.borderBottomLeftRadius,
-    ].filter(Boolean);
-    let chosen = '';
-    let maxRadius = 0;
+    ].filter(value => value !== undefined && value !== null && value !== '');
+    if (candidates.length === 0) return null;
+
+    let chosen = candidates[0].trim();
+    let maxRadius = Number.isNaN(parseFloat(chosen)) ? -Infinity : parseFloat(chosen);
     for (const value of candidates) {
-      const radius = parseFloat(value);
+      const normalized = value.trim();
+      const radius = parseFloat(normalized);
       if (!Number.isNaN(radius) && radius > maxRadius) {
-        chosen = value.trim();
+        chosen = normalized;
         maxRadius = radius;
       }
     }
@@ -2571,7 +2584,7 @@ function buildStyleOverrideMap(document, window) {
         if (!perSide[side]) perSide[side] = { width: 0, color: normalizeColorForCheck(resolved) };
       }
 
-      if (Object.keys(perSide).length === 0 && !radius) continue;
+      if (Object.keys(perSide).length === 0 && radius == null) continue;
 
       let matched;
       try { matched = document.querySelectorAll(rule.selectorText); }
@@ -2584,9 +2597,11 @@ function buildStyleOverrideMap(document, window) {
           // cascade for equal-specificity rules and is good enough for the
           // uncontested var()-dropped sides we're trying to recover.
           Object.assign(existing, perSide);
-          if (radius) existing.radius = radius;
+          if (radius != null) existing.radius = radius;
         } else {
-          map.set(el, radius ? { ...perSide, radius } : { ...perSide });
+          const entry = { ...perSide };
+          if (radius != null) entry.radius = radius;
+          map.set(el, entry);
         }
       }
     }
