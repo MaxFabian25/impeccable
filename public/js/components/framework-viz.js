@@ -4,7 +4,13 @@
  * Hover tooltips show description and relationships inline.
  */
 
-import { commandCategories, commandRelationships, betaCommands } from '../data.js';
+import {
+	commandCategories,
+	commandRelationships,
+	commandCategoryLabels,
+	commandCategoryOrder,
+	betaCommands,
+} from '../data.js';
 
 const categoryColors = {
 	create: { bg: 'var(--cat-create-bg)', border: 'var(--cat-create-border)', text: 'var(--cat-create-text)' },
@@ -15,18 +21,8 @@ const categoryColors = {
 	system: { bg: 'var(--cat-system-bg)', border: 'var(--cat-system-border)', text: 'var(--cat-system-text)' }
 };
 
-const categoryLabels = {
-	create: 'Create',
-	evaluate: 'Evaluate',
-	refine: 'Refine',
-	simplify: 'Simplify',
-	harden: 'Harden',
-	system: 'System'
-};
-
 const commandSymbols = {
 	'shape': 'Sh',
-	'impeccable craft': 'Ic',
 	'impeccable': 'Im',
 	'overdrive': 'Od',
 	'critique': 'Cr',
@@ -43,27 +39,28 @@ const commandSymbols = {
 	'adapt': 'Ad',
 	'polish': 'Po',
 	'optimize': 'Op',
-	'harden': 'Ha',
-	'impeccable teach': 'It',
-	'impeccable extract': 'Ie'
+	'harden': 'Ha'
 };
 
 const commandNumbers = {
-	'shape': 0,
-	'impeccable craft': 1, 'impeccable': 2, 'overdrive': 3,
-	'critique': 4, 'audit': 5,
-	'typeset': 6, 'layout': 7, 'colorize': 8, 'animate': 9,
-	'delight': 10, 'bolder': 11, 'quieter': 12,
-	'distill': 13, 'clarify': 14, 'adapt': 15,
-	'polish': 16, 'optimize': 17, 'harden': 18,
-	'impeccable teach': 19, 'impeccable extract': 20
-};
-
-// Map sub-commands to their display label and scroll target
-const commandDisplay = {
-	'impeccable craft': { label: '/impeccable craft', scrollTo: 'impeccable' },
-	'impeccable teach': { label: '/impeccable teach', scrollTo: 'impeccable' },
-	'impeccable extract': { label: '/impeccable extract', scrollTo: 'impeccable' },
+	'impeccable': 1,
+	'shape': 2,
+	'audit': 3,
+	'critique': 4,
+	'typeset': 5,
+	'layout': 6,
+	'colorize': 7,
+	'animate': 8,
+	'delight': 9,
+	'bolder': 10,
+	'quieter': 11,
+	'overdrive': 12,
+	'distill': 13,
+	'clarify': 14,
+	'adapt': 15,
+	'polish': 16,
+	'optimize': 17,
+	'harden': 18
 };
 
 export class PeriodicTable {
@@ -96,8 +93,6 @@ export class PeriodicTable {
 			groups[cat].push(cmd);
 		});
 
-		const categoryOrder = ['create', 'evaluate', 'refine', 'simplify', 'harden', 'system'];
-
 		const grid = document.createElement('div');
 		grid.style.cssText = `
 			display: grid;
@@ -106,7 +101,7 @@ export class PeriodicTable {
 			flex: 1;
 		`;
 
-		categoryOrder.forEach(cat => {
+		commandCategoryOrder.forEach(cat => {
 			const commands = groups[cat];
 			if (!commands) return;
 			const group = this.createCategoryGroup(cat, commands);
@@ -132,9 +127,9 @@ export class PeriodicTable {
 
 		// Build relationships line
 		let relParts = [];
-		if (pairs.length > 0) relParts.push(`pairs with ${pairs.map(p => '/' + p).join(', ')}`);
-		if (combinesWith.length > 0) relParts.push(`+ ${combinesWith.map(p => '/' + p).join(', ')}`);
-		if (leadsTo.length > 0) relParts.push(`then ${leadsTo.map(p => '/' + p).join(', ')}`);
+		if (pairs.length > 0) relParts.push(`pairs with ${pairs.map(p => '$' + p).join(', ')}`);
+		if (combinesWith.length > 0) relParts.push(`+ ${combinesWith.map(p => '$' + p).join(', ')}`);
+		if (leadsTo.length > 0) relParts.push(`then ${leadsTo.map(p => '$' + p).join(', ')}`);
 
 		// Strip category prefix from flow for cleaner display
 		const flow = (rel.flow || '').replace(/^[^:]+:\s*/, '');
@@ -201,7 +196,7 @@ export class PeriodicTable {
 			color: ${colors.text};
 			padding-left: 2px;
 		`;
-		label.textContent = categoryLabels[category];
+		label.textContent = commandCategoryLabels[category];
 		group.appendChild(label);
 
 		const row = document.createElement('div');
@@ -218,11 +213,10 @@ export class PeriodicTable {
 
 	createElement(cmd, category) {
 		const colors = categoryColors[category];
-		const display = commandDisplay[cmd];
 
 		const el = document.createElement('button');
 		el.type = 'button';
-		el.setAttribute('aria-label', `/${cmd} command - ${categoryLabels[category]}`);
+		el.setAttribute('aria-label', `$${cmd} command - ${commandCategoryLabels[category]}`);
 		el.style.cssText = `
 			width: 56px;
 			height: 64px;
@@ -270,16 +264,16 @@ export class PeriodicTable {
 		const name = document.createElement('div');
 		name.style.cssText = `
 			font-family: var(--font-mono);
-			font-size: ${display ? '6.5px' : '8px'};
+			font-size: 8px;
 			color: ${colors.text};
 			opacity: 0.7;
 			margin-top: 3px;
 			text-align: center;
 			max-width: 52px;
 			line-height: 1.3;
-			${display ? '' : 'white-space: nowrap;'}
+			white-space: nowrap;
 		`;
-		name.textContent = display ? display.label : `/${cmd}`;
+		name.textContent = `$${cmd}`;
 		el.appendChild(name);
 
 		// Beta badge
@@ -331,7 +325,7 @@ export class PeriodicTable {
 
 		el.addEventListener('click', () => {
 			activate();
-			const scrollTarget = display ? display.scrollTo : cmd;
+			const scrollTarget = cmd;
 
 			// Navigate the fisheye scroller to this command
 			const fisheyeList = document.getElementById('fisheye-list');

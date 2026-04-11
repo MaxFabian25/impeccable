@@ -1,17 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * Build System for Cross-Provider Design Skills
+ * Build system for the Codex-only skill distribution.
  *
- * Transforms source skills into provider-specific formats:
- * - Cursor: .cursor/skills/
- * - Claude Code: .claude/skills/
- * - Gemini: .gemini/skills/
- * - Codex: .codex/skills/
- * - Agents: .agents/skills/ (VS Code Copilot + Antigravity)
+ * Produces:
+ * - `dist/codex/.codex/skills/`
+ * - `dist/codex-prefixed/.codex/skills/`
+ * - matching ZIP bundles for direct download/installation
  *
- * Also assembles a universal ZIP containing all providers,
- * and builds Tailwind CSS for production deployment.
+ * The website and download API read from those generated outputs.
  */
 
 import path from 'path';
@@ -60,8 +57,7 @@ function generateCounts(rootDir, skills, buildDir) {
     'README.md',
     'NOTICE.md',
     'AGENTS.md',
-    '.claude-plugin/plugin.json',
-    '.claude-plugin/marketplace.json',
+    '.codex-plugin/plugin.json',
   ];
 
   let errors = 0;
@@ -288,6 +284,7 @@ async function buildStaticSite(extraEntrypoints = []) {
   const outdir = path.join(ROOT_DIR, 'build');
 
   console.log(`📦 Building static site with Bun (${entrypoints.length} HTML entries)...`);
+  fs.rmSync(outdir, { recursive: true, force: true });
 
   try {
     const result = await Bun.build({
@@ -369,52 +366,39 @@ async function buildStaticSite(extraEntrypoints = []) {
 }
 
 /**
- * Assemble universal directory from all provider outputs
+ * Prepare a visible bundle README and optional Codex plugin metadata
+ * inside each generated Codex distribution directory.
  */
-function assembleUniversal(distDir, suffix = '') {
-  const universalDir = path.join(distDir, `universal${suffix}`);
+function prepareCodexBundle(distDir, outputName, { prefixed = false } = {}) {
+  const bundleDir = path.join(distDir, outputName);
+  if (!fs.existsSync(bundleDir)) return;
 
-  // Clean and recreate
-  if (fs.existsSync(universalDir)) {
-    fs.rmSync(universalDir, { recursive: true, force: true });
-  }
+  const prefixNote = prefixed
+    ? '\nSkills in this bundle are prefixed with i- (for example `$i-audit`) to avoid command name conflicts.\n'
+    : '';
 
-  const providerConfigs = Object.values(PROVIDERS);
-
-  for (const { provider, configDir } of providerConfigs) {
-    const src = path.join(distDir, `${provider}${suffix}`, configDir);
-    const dest = path.join(universalDir, configDir);
-    if (fs.existsSync(src)) {
-      copyDirSync(src, dest);
-    }
-  }
-
-  // Add a visible README so macOS users don't see an empty folder
-  // (all provider dirs are dotfiles, hidden by default in Finder)
-  const prefixNote = suffix ? '\nSkills in this bundle are prefixed with i- (e.g. /i-audit) to avoid conflicts.\n' : '';
-  fs.writeFileSync(path.join(universalDir, 'README.txt'),
-`Impeccable — Design fluency for AI harnesses
+  fs.writeFileSync(
+    path.join(bundleDir, 'README.txt'),
+`Impeccable for Codex CLI
 https://impeccable.style
 ${prefixNote}
-This folder contains skills for all supported tools:
+This bundle contains:
 
-  .cursor/    → Cursor
-  .claude/    → Claude Code
-  .gemini/    → Gemini CLI
-  .codex/     → Codex CLI
-  .agents/    → VS Code Copilot, Antigravity
-  .kiro/      → Kiro
-  .opencode/  → OpenCode
-  .pi/        → Pi
-  .trae-cn/   → Trae China
-  .trae/      → Trae International
+  .codex/         → project-local Codex skills
+  .codex-plugin/  → Codex plugin manifest
 
-To install, copy the relevant folder(s) into your project root.
-These are hidden folders (dotfiles) — press Cmd+Shift+. in Finder to see them.
-`);
+Install by extracting this bundle into your project root.
+These are hidden folders (dotfiles) — press Cmd+Shift+. in Finder to show them.
+`
+  );
 
-  const label = suffix ? ' (prefixed)' : '';
-  console.log(`✓ Assembled universal${label} directory (${providerConfigs.length} providers)`);
+  const pluginManifestPath = path.join(ROOT_DIR, '.codex-plugin');
+  if (fs.existsSync(pluginManifestPath)) {
+    copyDirSync(pluginManifestPath, path.join(bundleDir, '.codex-plugin'));
+  }
+
+  const label = prefixed ? ' (prefixed)' : '';
+  console.log(`✓ Prepared codex bundle${label}`);
 }
 
 /**
@@ -528,7 +512,6 @@ function generateCFConfig(buildDir) {
 /api/commands /_data/api/commands.json 200
 /api/patterns /_data/api/patterns.json 200
 /api/command-source/:id /_data/api/command-source/:id.json 200
-/gallery /visual-mode#try-it-live 301
 `;
   fs.writeFileSync(path.join(buildDir, '_redirects'), redirects);
 
@@ -548,7 +531,7 @@ function generateCFConfig(buildDir) {
  * Main build process
  */
 async function build() {
-  console.log('🔨 Building cross-provider design skills...\n');
+  console.log('🔨 Building Codex CLI design skills...\n');
 
   // Pre-generate sub-pages (skills, anti-patterns, tutorials) from source
   console.log('📝 Generating sub-pages...');
@@ -588,22 +571,20 @@ async function build() {
   const userInvocableCount = skills.filter(s => s.userInvocable).length;
   console.log(`📖 Read ${skills.length} skills (${userInvocableCount} user-invocable) and ${patterns.patterns.length + patterns.antipatterns.length} pattern categories\n`);
 
-  // Read skills version from plugin.json
-  const pluginJson = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, '.claude-plugin/plugin.json'), 'utf-8'));
-  const skillsVersion = pluginJson.version;
+  const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf-8'));
+  const skillsVersion = packageJson.version;
 
-  // Transform for each provider (unprefixed + prefixed)
+  // Transform for the Codex provider (unprefixed + prefixed)
   for (const config of Object.values(PROVIDERS)) {
     const transform = createTransformer(config);
     transform(skills, DIST_DIR, { skillsVersion });
     transform(skills, DIST_DIR, { prefix: 'i-', outputSuffix: '-prefixed', skillsVersion });
   }
 
-  // Assemble universal directory (unprefixed and prefixed)
-  assembleUniversal(DIST_DIR);
-  assembleUniversal(DIST_DIR, '-prefixed');
+  prepareCodexBundle(DIST_DIR, 'codex');
+  prepareCodexBundle(DIST_DIR, 'codex-prefixed', { prefixed: true });
 
-  // Create ZIP bundles (individual + universal)
+  // Create ZIP bundles for the default and prefixed Codex distributions
   await createAllZips(DIST_DIR);
 
   // Generate static API data and Cloudflare Pages config
@@ -611,17 +592,14 @@ async function build() {
   copyDistToBuild(DIST_DIR, buildDir);
   generateCFConfig(buildDir);
 
-  // Copy all provider outputs to project root for local testing
-  const syncConfigs = Object.values(PROVIDERS);
+  // Copy Codex output to the repo root for local testing.
+  const syncConfig = PROVIDERS.codex;
+  const skillsSrc = path.join(DIST_DIR, syncConfig.provider, syncConfig.configDir, 'skills');
+  const skillsDest = path.join(ROOT_DIR, syncConfig.configDir, 'skills');
 
-  for (const { provider, configDir } of syncConfigs) {
-    const skillsSrc = path.join(DIST_DIR, provider, configDir, 'skills');
-    const skillsDest = path.join(ROOT_DIR, configDir, 'skills');
-
-    if (fs.existsSync(skillsSrc)) {
-      if (fs.existsSync(skillsDest)) fs.rmSync(skillsDest, { recursive: true });
-      copyDirSync(skillsSrc, skillsDest);
-    }
+  if (fs.existsSync(skillsSrc)) {
+    if (fs.existsSync(skillsDest)) fs.rmSync(skillsDest, { recursive: true });
+    copyDirSync(skillsSrc, skillsDest);
   }
 
   // Remove deprecated skill stubs from local harness dirs. They exist
@@ -631,14 +609,12 @@ async function build() {
     'frontend-design', 'teach-impeccable',
     'arrange', 'normalize', 'onboard', 'extract',
   ];
-  for (const { configDir } of syncConfigs) {
-    for (const name of deprecatedLocalSkills) {
-      const p = path.join(ROOT_DIR, configDir, 'skills', name);
-      if (fs.existsSync(p)) fs.rmSync(p, { recursive: true, force: true });
-    }
+  for (const name of deprecatedLocalSkills) {
+    const p = path.join(ROOT_DIR, syncConfig.configDir, 'skills', name);
+    if (fs.existsSync(p)) fs.rmSync(p, { recursive: true, force: true });
   }
 
-  console.log(`📋 Synced skills to: ${syncConfigs.map(p => p.configDir).join(', ')}`);
+  console.log(`📋 Synced skills to: ${syncConfig.configDir}`);
 
 
   // Generate authoritative counts and validate references

@@ -1,15 +1,25 @@
 /**
  * `impeccable skills` subcommand
  *
- * Usage:
- *   impeccable skills help      Show all available skills and commands
- *   impeccable skills install   Install skills via npx skills add
- *   impeccable skills update    Update skills to latest version
+ * Codex-only contract:
+ * - installs project-local skills into `.codex/skills`
+ * - downloads Codex bundles from impeccable.style
+ * - optionally prefixes command names after install/update
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, statSync, lstatSync, symlinkSync, readlinkSync, unlinkSync, mkdirSync, writeFileSync, rmSync, renameSync, createWriteStream, realpathSync } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  mkdirSync,
+  writeFileSync,
+  rmSync,
+  renameSync,
+  createWriteStream,
+} from 'node:fs';
+import { join, dirname } from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { get } from 'node:https';
@@ -17,431 +27,478 @@ import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const PACKAGE_ROOT = join(__dirname, '..', '..');
 const API_BASE = 'https://impeccable.style';
 
-// Provider folder names in project roots
-const PROVIDER_DIRS = ['.claude', '.cursor', '.gemini', '.codex', '.agents', '.kiro', '.opencode', '.pi', '.trae', '.trae-cn'];
+export const SKILLS_DIR_NAME = '.codex';
+export const SKILLS_DIR_RELATIVE = `${SKILLS_DIR_NAME}/skills`;
+const PLUGIN_DIR_RELATIVE = '.codex-plugin';
+const DEFAULT_PREFIX = 'i-';
+const SAFE_PREFIX_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*-$/i;
+const RETIRED_MANAGED_SKILL_NAMES = [
+  'frontend-design',
+  'teach-impeccable',
+  'arrange',
+  'normalize',
+  'onboard',
+  'extract',
+];
 
 function ask(question) {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise(r => rl.question(question, ans => { rl.close(); r(ans.trim().toLowerCase()); }));
+  return new Promise((resolve) => rl.question(question, (answer) => {
+    rl.close();
+    resolve(answer.trim().toLowerCase());
+  }));
 }
 
-// ─── skills help ──────────────────────────────────────────────────────────────
+function assertValidPrefix(prefix) {
+  if (!prefix) return;
 
-async function showHelp() {
-  let commands;
+  if (!SAFE_PREFIX_PATTERN.test(prefix)) {
+    throw new Error(
+      'Prefix must contain only letters, numbers, and hyphens, and must end with a hyphen (for example "i-").'
+    );
+  }
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getSkillsDir(root) {
+  return join(root, SKILLS_DIR_RELATIVE);
+}
+
+function getPluginDir(root) {
+  return join(root, PLUGIN_DIR_RELATIVE);
+}
+
+function isSkillDir(skillsDir, name) {
+  const full = join(skillsDir, name);
   try {
-    const res = await fetch(`${API_BASE}/api/commands`);
-    commands = await res.json();
+    return statSync(full).isDirectory() && existsSync(join(full, 'SKILL.md'));
   } catch {
-    console.error('Could not fetch command list from impeccable.style. Check your network connection.');
-    process.exit(1);
-  }
-
-  const pad = (s, n) => s + ' '.repeat(Math.max(0, n - s.length));
-
-  console.log('\n  Impeccable Skills & Commands\n');
-  console.log('  Install:  npx impeccable skills install');
-  console.log('  Update:   npx impeccable skills update');
-  console.log('  Docs:     https://impeccable.style/cheatsheet\n');
-  console.log(`  ${pad('Command', 22)} Description`);
-  console.log(`  ${'-'.repeat(22)} ${'-'.repeat(52)}`);
-
-  for (const cmd of commands.sort((a, b) => a.id.localeCompare(b.id))) {
-    // Trim description to fit terminal
-    const desc = cmd.description.length > 72
-      ? cmd.description.substring(0, 69) + '...'
-      : cmd.description;
-    console.log(`  ${pad('/' + cmd.id, 22)} ${desc}`);
-  }
-  console.log(`\n  ${commands.length} commands available. Run /<command> in your AI harness.\n`);
-}
-
-// ─── version helpers ─────────────────────────────────────────────────────────
-
-/**
- * Read the skills version from the impeccable SKILL.md frontmatter.
- */
-function getSkillsVersion(root) {
-  for (const d of PROVIDER_DIRS) {
-    const skillMd = join(root, d, 'skills', 'impeccable', 'SKILL.md');
-    if (!existsSync(skillMd)) continue;
-    const content = readFileSync(skillMd, 'utf-8');
-    const match = content.match(/^version:\s*(.+)$/m);
-    if (match) return match[1].trim().replace(/^["']|["']$/g, '');
-  }
-  return null;
-}
-
-/**
- * Hash all SKILL.md files in a directory tree for comparison.
- * Returns a sorted string of "name:hash" pairs.
- */
-function hashSkillsDir(skillsDir) {
-  if (!existsSync(skillsDir)) return '';
-  const entries = [];
-  for (const name of readdirSync(skillsDir).sort()) {
-    const skillMd = join(skillsDir, name, 'SKILL.md');
-    if (!existsSync(skillMd)) continue;
-    const hash = createHash('sha256').update(readFileSync(skillMd)).digest('hex').slice(0, 12);
-    entries.push(`${name}:${hash}`);
-  }
-  return entries.join(',');
-}
-
-/**
- * Download the universal bundle to a temp dir and return its path.
- * Caller is responsible for cleanup.
- */
-async function downloadAndExtractBundle() {
-  const tmpZip = join(tmpdir(), `impeccable-update-${Date.now()}.zip`);
-  const tmpDir = join(tmpdir(), `impeccable-update-${Date.now()}`);
-  await downloadFile(`${API_BASE}/api/download/bundle/universal`, tmpZip);
-  mkdirSync(tmpDir, { recursive: true });
-  execSync(`unzip -qo "${tmpZip}" -d "${tmpDir}"`, { encoding: 'utf8' });
-  rmSync(tmpZip, { force: true });
-  return tmpDir;
-}
-
-/**
- * Normalize a SKILL.md's content for comparison by stripping
- * provider-specific paths. Different install methods (npx skills add
- * vs our bundle) resolve {{scripts_path}} to different provider dirs
- * (e.g. .agents vs .claude), so we strip those differences.
- */
-function normalizeForHash(content) {
-  return content
-    .replace(/\.(claude|cursor|agents|gemini|codex|kiro|opencode|pi|trae|trae-cn|rovodev)\/skills\//g, '.PROVIDER/skills/')
-    .replace(/^version:\s*.+$/m, 'version: NORMALIZED');
-}
-
-/**
- * Deduplicate providers by resolved path. When .claude/skills is a
- * symlink to ../.agents/skills, both resolve to the same directory.
- * Returns an array of { provider, localSkillsDir } with one entry
- * per unique real path. The first provider that maps to a real path
- * wins (so the bundle uses that provider's build).
- */
-function deduplicateProviders(root, providers) {
-  const seen = new Map(); // realPath -> { provider, localSkillsDir }
-  for (const provider of providers) {
-    const skillsDir = join(root, provider, 'skills');
-    if (!existsSync(skillsDir)) continue;
-    const real = realpathSync(skillsDir);
-    if (!seen.has(real)) {
-      seen.set(real, { provider, localSkillsDir: skillsDir });
-    }
-  }
-  return [...seen.values()];
-}
-
-/**
- * Compare local skills against a downloaded bundle.
- * Only checks skills that exist in the bundle (ignores user's custom
- * skills that aren't part of impeccable). Deduplicates providers that
- * share the same real path (symlinks). Normalizes provider-specific
- * paths and version fields before comparing.
- * Returns true if every bundle skill matches the local copy.
- */
-function isUpToDate(root, providers, bundleDir) {
-  const unique = deduplicateProviders(root, providers);
-  if (unique.length === 0) return false;
-
-  for (const { provider, localSkillsDir } of unique) {
-    const bundleSkillsDir = join(bundleDir, provider, 'skills');
-    if (!existsSync(bundleSkillsDir)) continue;
-
-    for (const name of readdirSync(bundleSkillsDir)) {
-      const bundleMd = join(bundleSkillsDir, name, 'SKILL.md');
-      const localMd = join(localSkillsDir, name, 'SKILL.md');
-      if (!existsSync(bundleMd)) continue;
-      if (!existsSync(localMd)) return false;
-
-      const bundleHash = createHash('sha256').update(normalizeForHash(readFileSync(bundleMd, 'utf-8'))).digest('hex');
-      const localHash = createHash('sha256').update(normalizeForHash(readFileSync(localMd, 'utf-8'))).digest('hex');
-      if (bundleHash !== localHash) return false;
-    }
-  }
-  return true;
-}
-
-// ─── skills check ────────────────────────────────────────────────────────────
-
-async function check() {
-  const root = findProjectRoot();
-  const installed = isAlreadyInstalled(root);
-
-  if (!installed) {
-    console.log('Impeccable is not installed in this project.');
-    console.log('Run `npx impeccable skills install` to install.');
-    process.exit(0);
-  }
-
-  const providers = findInstalledProviders(root);
-
-  console.log('Checking for updates...\n');
-  try {
-    const bundleDir = await downloadAndExtractBundle();
-    const upToDate = isUpToDate(root, providers, bundleDir);
-    rmSync(bundleDir, { recursive: true, force: true });
-
-    if (upToDate) {
-      const v = getSkillsVersion(root);
-      console.log(`Skills are up to date${v ? ` (v${v})` : ''}.`);
-    } else {
-      console.log('Updates available.');
-      console.log('Run `npx impeccable skills update` to update.');
-    }
-  } catch (e) {
-    console.error(`Could not check for updates: ${e.message}`);
-    process.exit(1);
+    return false;
   }
 }
 
-// ─── skills install ───────────────────────────────────────────────────────────
-
-// Check if impeccable skills are already present in any provider folder
-function isAlreadyInstalled(root) {
-  for (const d of PROVIDER_DIRS) {
-    const skillsDir = join(root, d, 'skills');
-    if (!existsSync(skillsDir)) continue;
-    try {
-      const entries = readdirSync(skillsDir);
-      // Look for 'impeccable' skill (or prefixed variant, or legacy 'teach-impeccable')
-      if (entries.some(e =>
-        e === 'impeccable' || e.endsWith('-impeccable') ||
-        e === 'teach-impeccable' || e.endsWith('-teach-impeccable')
-      )) {
-        return d;
-      }
-    } catch {}
-  }
-  return null;
-}
-
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function getSkillNames(skillsDir) {
+  if (!existsSync(skillsDir)) return [];
+  return readdirSync(skillsDir).filter((name) => isSkillDir(skillsDir, name)).sort();
 }
 
 function prefixSkillContent(content, prefix, allSkillNames) {
-  // Prefix the name in frontmatter
   let result = content.replace(/^name:\s*(.+)$/m, (_, name) => `name: ${prefix}${name.trim()}`);
+  const sortedNames = [...allSkillNames].sort((a, b) => b.length - a.length);
 
-  // Prefix cross-references: /skillname -> /prefix-skillname
-  const sorted = [...allSkillNames].sort((a, b) => b.length - a.length);
-  for (const name of sorted) {
-    // Command invocations: /skillname
+  for (const name of sortedNames) {
+    const prefixedName = `${prefix}${name}`;
+    const scriptsPath = `${SKILLS_DIR_RELATIVE}/${name}/scripts`;
+    const prefixedScriptsPath = `${SKILLS_DIR_RELATIVE}/${prefixedName}/scripts`;
+
+    result = result.replace(new RegExp(escapeRegex(scriptsPath), 'g'), prefixedScriptsPath);
     result = result.replace(
-      new RegExp(`/(?=${escapeRegex(name)}(?:[^a-zA-Z0-9_-]|$))`, 'g'),
-      `/${prefix}`
+      new RegExp(`\\$(?=${escapeRegex(name)}(?:[^a-zA-Z0-9_-]|$))`, 'g'),
+      `$${prefix}`
     );
-    // Prose references: "the skillname skill"
     result = result.replace(
       new RegExp(`(the) ${escapeRegex(name)} skill`, 'gi'),
       (_, article) => `${article} ${prefix}${name} skill`
     );
   }
+
   return result;
 }
 
-function isSkillDir(skillsDir, name) {
-  // Skill entries can be real directories or symlinks to directories (npx skills uses symlinks)
-  const full = join(skillsDir, name);
-  try {
-    return statSync(full).isDirectory() && existsSync(join(full, 'SKILL.md'));
-  } catch { return false; }
+function unprefixSkillContent(content, prefix, prefixedSkillNames) {
+  let result = content.replace(new RegExp(`^name:\\s*${escapeRegex(prefix)}`, 'm'), 'name: ');
+  const sortedNames = [...prefixedSkillNames].sort((a, b) => b.length - a.length);
+
+  for (const prefixedName of sortedNames) {
+    const unprefixedName = prefixedName.slice(prefix.length);
+    const prefixedScriptsPath = `${SKILLS_DIR_RELATIVE}/${prefixedName}/scripts`;
+    const scriptsPath = `${SKILLS_DIR_RELATIVE}/${unprefixedName}/scripts`;
+
+    result = result.replace(new RegExp(escapeRegex(prefixedScriptsPath), 'g'), scriptsPath);
+    result = result.replace(
+      new RegExp(`\\$${escapeRegex(prefixedName)}(?=[^a-zA-Z0-9_-]|$)`, 'g'),
+      `$${unprefixedName}`
+    );
+    result = result.replace(
+      new RegExp(`(the) ${escapeRegex(prefixedName)} skill`, 'gi'),
+      `$1 ${unprefixedName} skill`
+    );
+  }
+
+  return result;
 }
 
-function isRealSkillDir(skillsDir, name) {
-  // Only real directories, not symlinks -- renaming the real dir renames the symlink targets too
-  const full = join(skillsDir, name);
-  try {
-    const lstat = lstatSync(full);
-    return lstat.isDirectory() && !lstat.isSymbolicLink() && existsSync(join(full, 'SKILL.md'));
-  } catch { return false; }
-}
-
-function renameSkillsWithPrefix(root, prefix) {
-  // First pass: collect all skill names across all providers (use first provider found)
-  let allSkillNames = [];
-  for (const d of PROVIDER_DIRS) {
-    const skillsDir = join(root, d, 'skills');
-    if (!existsSync(skillsDir)) continue;
-    const entries = readdirSync(skillsDir);
-    allSkillNames = entries.filter(name => isSkillDir(skillsDir, name));
-    if (allSkillNames.length > 0) break;
-  }
-
-  // Second pass: rename real dirs and update their content
-  let count = 0;
-  for (const d of PROVIDER_DIRS) {
-    const skillsDir = join(root, d, 'skills');
-    if (!existsSync(skillsDir)) continue;
-    try {
-      const entries = readdirSync(skillsDir);
-      for (const name of entries) {
-        if (name.startsWith(prefix)) continue;
-        if (!isRealSkillDir(skillsDir, name)) continue;
-
-        const src = join(skillsDir, name);
-        const dest = join(skillsDir, prefix + name);
-
-        renameSync(src, dest);
-
-        // Prefix frontmatter name + all cross-references in SKILL.md
-        let content = readFileSync(join(dest, 'SKILL.md'), 'utf8');
-        content = prefixSkillContent(content, prefix, allSkillNames);
-        writeFileSync(join(dest, 'SKILL.md'), content);
-        count++;
-      }
-    } catch {}
-  }
-
-  // Third pass: fix symlinks that now point to renamed targets (npx skills uses these)
-  for (const d of PROVIDER_DIRS) {
-    const skillsDir = join(root, d, 'skills');
-    if (!existsSync(skillsDir)) continue;
-    try {
-      const entries = readdirSync(skillsDir);
-      for (const name of entries) {
-        if (name.startsWith(prefix)) continue;
-        const full = join(skillsDir, name);
-        try {
-          if (!lstatSync(full).isSymbolicLink()) continue;
-          const target = readlinkSync(full);
-          const newTarget = target.replace(new RegExp(`/${escapeRegex(name)}$`), `/${prefix}${name}`);
-          unlinkSync(full);
-          symlinkSync(newTarget, join(skillsDir, prefix + name));
-        } catch {}
-      }
-    } catch {}
-  }
-
-  return count;
-}
-
-async function install(flags) {
-  const force = flags.includes('--force');
-  const yes = flags.includes('-y') || flags.includes('--yes');
-  const prefixFlag = flags.find(f => f.startsWith('--prefix='));
-  const root = findProjectRoot();
-  const existing = isAlreadyInstalled(root);
-
-  if (existing && !force) {
-    console.log(`Impeccable skills are already installed (found in ${existing}/).`);
-    console.log('Run with --force to reinstall.\n');
-    process.exit(0);
-  }
-
-  console.log('Installing impeccable skills via npx skills...\n');
-  try {
-    execSync(`npx skills add pbakaus/impeccable${yes ? ' -y' : ''}`, { stdio: 'inherit' });
-  } catch (e) {
-    process.exit(e.status ?? 1);
-  }
-
-  // Ask about prefixing (skip in CI mode unless --prefix= is set)
-  let prefix = '';
-  if (prefixFlag) {
-    prefix = prefixFlag.split('=')[1] || 'i-';
-  } else if (!yes) {
-    console.log();
-    const wantPrefix = await ask('Prefix commands to avoid conflicts? e.g. /i-audit instead of /audit (y/N) ');
-    if (wantPrefix === 'y' || wantPrefix === 'yes') {
-      const custom = await ask('Prefix (default: i-): ');
-      prefix = custom || 'i-';
-    }
-  }
+function normalizeForHash(content, prefix = '') {
+  let normalized = content.replace(/^version:\s*.+$/m, 'version: NORMALIZED');
 
   if (prefix) {
-    const count = renameSkillsWithPrefix(root, prefix);
-    if (count > 0) {
-      console.log(`\nRenamed ${count} skills with "${prefix}" prefix.`);
-      console.log(`Commands are now available as /${prefix}<command> (e.g. /${prefix}audit).`);
-    }
+    normalized = normalized
+      .replace(new RegExp(`^name:\\s*${escapeRegex(prefix)}`, 'm'), 'name: ')
+      .replace(new RegExp(`\\$${escapeRegex(prefix)}`, 'g'), '$')
+      .replace(new RegExp(`(the) ${escapeRegex(prefix)}`, 'gi'), '$1 ');
   }
 
-  // Clean up deprecated skills from previous versions
-  try {
-    const { cleanup } = await import('../../source/skills/impeccable/scripts/cleanup-deprecated.mjs');
-    const result = cleanup(root);
-    const total = result.deletedPaths.length + result.removedLockEntries.length;
-    if (total > 0) {
-      console.log(`Cleaned up ${total} deprecated skill(s) from previous versions.`);
-    }
-  } catch {
-    // Cleanup script not available -- skip
-  }
-
-  console.log(`\nDone! Run /${prefix}impeccable teach in your AI harness to set up design context.\n`);
+  return normalized;
 }
 
-/** Detect prefix by looking for the 'impeccable' skill (or legacy 'teach-impeccable') */
-function detectPrefix(root) {
-  for (const d of PROVIDER_DIRS) {
-    const skillsDir = join(root, d, 'skills');
-    if (!existsSync(skillsDir)) continue;
-    for (const name of readdirSync(skillsDir)) {
-      if (name === 'impeccable') return '';
-      if (name.endsWith('-impeccable') && name !== 'teach-impeccable') return name.slice(0, -'impeccable'.length);
-      // Legacy fallback
-      if (name === 'teach-impeccable') return '';
-      if (name.endsWith('-teach-impeccable')) return name.slice(0, -'teach-impeccable'.length);
+function hashContent(content, prefix = '') {
+  return createHash('sha256')
+    .update(normalizeForHash(content, prefix))
+    .digest('hex');
+}
+
+function copyDirSync(src, dest) {
+  mkdirSync(dest, { recursive: true });
+  for (const entry of readdirSync(src, { withFileTypes: true })) {
+    const sourcePath = join(src, entry.name);
+    const destPath = join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(sourcePath, destPath);
+    } else {
+      writeFileSync(destPath, readFileSync(sourcePath));
     }
   }
+}
+
+function downloadFile(url, dest) {
+  return new Promise((resolve, reject) => {
+    const file = createWriteStream(dest);
+    get(url, (response) => {
+      if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        get(response.headers.location, (redirected) => {
+          redirected.pipe(file);
+          file.on('finish', () => {
+            file.close();
+            resolve();
+          });
+        }).on('error', reject);
+        return;
+      }
+
+      if (response.statusCode !== 200) {
+        reject(new Error(`HTTP ${response.statusCode}`));
+        return;
+      }
+
+      response.pipe(file);
+      file.on('finish', () => {
+        file.close();
+        resolve();
+      });
+    }).on('error', reject);
+  });
+}
+
+function getBundleSkillNames(bundleRoot) {
+  return getSkillNames(join(bundleRoot, SKILLS_DIR_RELATIVE));
+}
+
+function removeManagedSkillDirs(root, managedSkillNames) {
+  const skillsDir = getSkillsDir(root);
+  if (!existsSync(skillsDir) || managedSkillNames.length === 0) return;
+  if (!isAlreadyInstalled(root)) return;
+
+  const existingPrefix = detectPrefix(root);
+  const candidates = new Set();
+  const removableNames = [...new Set([...managedSkillNames, ...RETIRED_MANAGED_SKILL_NAMES])];
+
+  for (const skillName of removableNames) {
+    if (existingPrefix) {
+      candidates.add(`${existingPrefix}${skillName}`);
+    } else {
+      candidates.add(skillName);
+    }
+  }
+
+  for (const candidate of candidates) {
+    const candidateDir = join(skillsDir, candidate);
+    if (isSkillDir(skillsDir, candidate)) {
+      rmSync(candidateDir, { recursive: true, force: true });
+    }
+  }
+}
+
+function listRelativeFiles(dir, baseDir = dir) {
+  if (!existsSync(dir)) return [];
+
+  const files = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listRelativeFiles(fullPath, baseDir));
+    } else {
+      files.push(fullPath.slice(baseDir.length + 1));
+    }
+  }
+  return files.sort();
+}
+
+function hashFileExact(filePath) {
+  return createHash('sha256')
+    .update(readFileSync(filePath))
+    .digest('hex');
+}
+
+function readJsonFile(filePath) {
+  return JSON.parse(readFileSync(filePath, 'utf8'));
+}
+
+function hasRetiredManagedSkills(root) {
+  const skillsDir = getSkillsDir(root);
+  if (!existsSync(skillsDir)) return false;
+
+  const prefixes = [''];
+  const activePrefix = detectPrefix(root);
+  if (activePrefix) prefixes.push(activePrefix);
+
+  return RETIRED_MANAGED_SKILL_NAMES.some((skillName) => prefixes.some((prefix) => (
+    isSkillDir(skillsDir, `${prefix}${skillName}`)
+  )));
+}
+
+function assertPluginManifestIsCompatible(localPluginDir, bundlePluginDir) {
+  const localManifestPath = join(localPluginDir, 'plugin.json');
+  const bundleManifestPath = join(bundlePluginDir, 'plugin.json');
+
+  if (!existsSync(localManifestPath) || !existsSync(bundleManifestPath)) {
+    return;
+  }
+
+  const localManifest = readJsonFile(localManifestPath);
+  const bundleManifest = readJsonFile(bundleManifestPath);
+  const localRepository = typeof localManifest.repository === 'string'
+    ? localManifest.repository
+    : localManifest.repository?.url;
+  const bundleRepository = typeof bundleManifest.repository === 'string'
+    ? bundleManifest.repository
+    : bundleManifest.repository?.url;
+
+  const samePlugin = localManifest.name === bundleManifest.name
+    || (localRepository && bundleRepository && localRepository === bundleRepository);
+
+  if (!samePlugin) {
+    throw new Error(
+      'Found an existing .codex-plugin/plugin.json for another Codex plugin. Merge or remove it before installing Impeccable.'
+    );
+  }
+}
+
+function isBundleDirSubsetUpToDate(localDir, bundleDir) {
+  if (!existsSync(bundleDir)) return true;
+  if (!existsSync(localDir)) return false;
+
+  for (const relativePath of listRelativeFiles(bundleDir)) {
+    const bundlePath = join(bundleDir, relativePath);
+    const localPath = join(localDir, relativePath);
+    if (!existsSync(localPath)) return false;
+    if (hashFileExact(localPath) !== hashFileExact(bundlePath)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function isSkillDirUpToDate(localSkillDir, bundleSkillDir, prefix = '') {
+  if (!existsSync(localSkillDir) || !existsSync(bundleSkillDir)) return false;
+
+  const localFiles = listRelativeFiles(localSkillDir);
+  const bundleFiles = listRelativeFiles(bundleSkillDir);
+  if (localFiles.length !== bundleFiles.length) return false;
+  if (localFiles.some((file, index) => file !== bundleFiles[index])) return false;
+
+  for (const relativePath of bundleFiles) {
+    const localPath = join(localSkillDir, relativePath);
+    const bundlePath = join(bundleSkillDir, relativePath);
+
+    if (relativePath === 'SKILL.md') {
+      const localContent = readFileSync(localPath, 'utf8');
+      const bundleContent = readFileSync(bundlePath, 'utf8');
+      if (hashContent(localContent, prefix) !== hashContent(bundleContent)) {
+        return false;
+      }
+      continue;
+    }
+
+    if (hashFileExact(localPath) !== hashFileExact(bundlePath)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+async function downloadAndExtractBundle(bundleName = 'codex') {
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const zipPath = join(tmpdir(), `impeccable-${bundleName}-${stamp}.zip`);
+  const extractDir = join(tmpdir(), `impeccable-${bundleName}-${stamp}`);
+  await downloadFile(`${API_BASE}/api/download/bundle/${bundleName}`, zipPath);
+  mkdirSync(extractDir, { recursive: true });
+  execSync(`unzip -qo "${zipPath}" -d "${extractDir}"`, { encoding: 'utf8' });
+  rmSync(zipPath, { force: true });
+  return extractDir;
+}
+
+export function installBundleIntoRoot(root, bundleDir, prefix = '') {
+  assertValidPrefix(prefix);
+
+  const bundleSkillsDir = join(bundleDir, SKILLS_DIR_RELATIVE);
+  const localSkillsDir = getSkillsDir(root);
+  const bundlePluginDir = join(bundleDir, PLUGIN_DIR_RELATIVE);
+  const localPluginDir = getPluginDir(root);
+  const bundleSkillNames = getBundleSkillNames(bundleDir);
+
+  if (existsSync(bundlePluginDir)) {
+    assertPluginManifestIsCompatible(localPluginDir, bundlePluginDir);
+  }
+
+  mkdirSync(localSkillsDir, { recursive: true });
+  removeManagedSkillDirs(root, bundleSkillNames);
+  for (const skillName of bundleSkillNames) {
+    const targetName = prefix ? `${prefix}${skillName}` : skillName;
+    const targetDir = join(localSkillsDir, targetName);
+    if (existsSync(targetDir)) {
+      throw new Error(
+        `Found an existing custom skill at ${SKILLS_DIR_RELATIVE}/${targetName}. Rename it or use a different prefix before installing Impeccable.`
+      );
+    }
+
+    copyDirSync(join(bundleSkillsDir, skillName), targetDir);
+
+    if (prefix) {
+      const skillPath = join(targetDir, 'SKILL.md');
+      const content = readFileSync(skillPath, 'utf8');
+      writeFileSync(skillPath, prefixSkillContent(content, prefix, bundleSkillNames));
+    }
+  }
+
+  if (existsSync(bundlePluginDir)) {
+    mkdirSync(localPluginDir, { recursive: true });
+    copyDirSync(bundlePluginDir, localPluginDir);
+  }
+
+  return bundleSkillNames.length;
+}
+
+function hasLocalBundle() {
+  return existsSync(join(PACKAGE_ROOT, SKILLS_DIR_RELATIVE));
+}
+
+export function isAlreadyInstalled(root) {
+  const skillsDir = getSkillsDir(root);
+  if (!existsSync(skillsDir)) return null;
+
+  const entries = readdirSync(skillsDir);
+  if (entries.some((entry) => entry === 'impeccable' || entry.endsWith('-impeccable'))) {
+    return SKILLS_DIR_NAME;
+  }
+
+  return null;
+}
+
+export function detectPrefix(root) {
+  const skillsDir = getSkillsDir(root);
+  if (!existsSync(skillsDir)) return '';
+
+  for (const name of readdirSync(skillsDir)) {
+    if (name === 'impeccable') return '';
+    if (name.endsWith('-impeccable')) return name.slice(0, -'impeccable'.length);
+  }
+
   return '';
 }
 
-/** Undo prefixing: rename folders back and strip prefix from SKILL.md content */
-function undoPrefix(root, prefix) {
-  if (!prefix) return;
-  // Collect the unprefixed names (strip our prefix)
-  let allPrefixedNames = [];
-  for (const d of PROVIDER_DIRS) {
-    const skillsDir = join(root, d, 'skills');
-    if (!existsSync(skillsDir)) continue;
-    allPrefixedNames = readdirSync(skillsDir).filter(n => n.startsWith(prefix) && isRealSkillDir(skillsDir, n));
-    if (allPrefixedNames.length > 0) break;
-  }
-  const unprefixedNames = allPrefixedNames.map(n => n.slice(prefix.length));
+export function renameSkillsWithPrefix(root, prefix, managedSkillNames = null) {
+  if (!prefix) return 0;
+  assertValidPrefix(prefix);
 
-  for (const d of PROVIDER_DIRS) {
-    const skillsDir = join(root, d, 'skills');
-    if (!existsSync(skillsDir)) continue;
-    for (const name of readdirSync(skillsDir)) {
-      if (!name.startsWith(prefix)) continue;
-      const unprefixed = name.slice(prefix.length);
-      const src = join(skillsDir, name);
-      const dest = join(skillsDir, unprefixed);
+  const skillsDir = getSkillsDir(root);
+  const allSkillNames = managedSkillNames ? [...managedSkillNames] : getSkillNames(skillsDir);
+  let renamedCount = 0;
 
-      if (lstatSync(src).isSymbolicLink()) {
-        const target = readlinkSync(src);
-        const newTarget = target.replace(`/${name}`, `/${unprefixed}`);
-        unlinkSync(src);
-        symlinkSync(newTarget, dest);
-      } else {
-        renameSync(src, dest);
-        // Strip prefix from SKILL.md content
-        const skillMd = join(dest, 'SKILL.md');
-        if (existsSync(skillMd)) {
-          let content = readFileSync(skillMd, 'utf8');
-          // Reverse the prefixing: replace prefixed names with unprefixed
-          content = content.replace(new RegExp(`^name:\\s*${escapeRegex(prefix)}`, 'm'), 'name: ');
-          const sorted = [...allPrefixedNames].sort((a, b) => b.length - a.length);
-          for (const pName of sorted) {
-            const uName = pName.slice(prefix.length);
-            content = content.replace(new RegExp(`/${escapeRegex(pName)}(?=[^a-zA-Z0-9_-]|$)`, 'g'), `/${uName}`);
-            content = content.replace(new RegExp(`(the) ${escapeRegex(pName)} skill`, 'gi'), `$1 ${uName} skill`);
-          }
-          writeFileSync(skillMd, content);
-        }
-      }
+  for (const name of allSkillNames) {
+    if (name.startsWith(prefix)) continue;
+    if (!isSkillDir(skillsDir, name)) continue;
+
+    const src = join(skillsDir, name);
+    const dest = join(skillsDir, `${prefix}${name}`);
+    if (existsSync(dest)) {
+      throw new Error(`Cannot prefix ${name}: ${prefix}${name} already exists in ${SKILLS_DIR_RELATIVE}.`);
     }
+    renameSync(src, dest);
+
+    const skillPath = join(dest, 'SKILL.md');
+    const content = readFileSync(skillPath, 'utf8');
+    writeFileSync(skillPath, prefixSkillContent(content, prefix, allSkillNames));
+    renamedCount++;
+  }
+
+  return renamedCount;
+}
+
+export function undoPrefix(root, prefix, managedSkillNames = null) {
+  if (!prefix) return;
+  assertValidPrefix(prefix);
+
+  const skillsDir = getSkillsDir(root);
+  const prefixedNames = managedSkillNames
+    ? managedSkillNames
+        .map((name) => `${prefix}${name}`)
+        .filter((name) => isSkillDir(skillsDir, name))
+    : getSkillNames(skillsDir).filter((name) => name.startsWith(prefix));
+
+  for (const name of prefixedNames) {
+    const src = join(skillsDir, name);
+    const dest = join(skillsDir, name.slice(prefix.length));
+    if (existsSync(dest)) {
+      throw new Error(`Cannot remove prefix from ${name}: ${dest.slice(skillsDir.length + 1)} already exists.`);
+    }
+    renameSync(src, dest);
+
+    const skillPath = join(dest, 'SKILL.md');
+    const content = readFileSync(skillPath, 'utf8');
+    writeFileSync(skillPath, unprefixSkillContent(content, prefix, prefixedNames));
   }
 }
 
-// ─── skills update ────────────────────────────────────────────────────────────
+export function isUpToDate(root, bundleDir) {
+  const localSkillsDir = getSkillsDir(root);
+  const bundleSkillsDir = join(bundleDir, SKILLS_DIR_RELATIVE);
+  const localPluginDir = getPluginDir(root);
+  const bundlePluginDir = join(bundleDir, PLUGIN_DIR_RELATIVE);
+  const prefix = detectPrefix(root);
+  const bundleSkillNames = getBundleSkillNames(bundleDir);
+
+  if (!existsSync(localSkillsDir) || bundleSkillNames.length === 0) return false;
+  if (hasRetiredManagedSkills(root)) return false;
+
+  for (const bundleName of bundleSkillNames) {
+    const localName = prefix ? `${prefix}${bundleName}` : bundleName;
+    if (!isSkillDirUpToDate(
+      join(localSkillsDir, localName),
+      join(bundleSkillsDir, bundleName),
+      prefix
+    )) {
+      return false;
+    }
+  }
+
+  return isBundleDirSubsetUpToDate(localPluginDir, bundlePluginDir);
+}
+
+function getSkillsVersion(root) {
+  const skillPath = join(getSkillsDir(root), `${detectPrefix(root)}impeccable`, 'SKILL.md');
+  if (!existsSync(skillPath)) return null;
+  const content = readFileSync(skillPath, 'utf8');
+  const match = content.match(/^version:\s*(.+)$/m);
+  return match ? match[1].trim().replace(/^["']|["']$/g, '') : null;
+}
 
 function findProjectRoot() {
   let dir = process.cwd();
@@ -452,196 +509,184 @@ function findProjectRoot() {
   return process.cwd();
 }
 
-function findInstalledProviders(root) {
-  const found = [];
-  for (const d of PROVIDER_DIRS) {
-    const skillsDir = join(root, d, 'skills');
-    if (!existsSync(skillsDir)) continue;
-    try {
-      const entries = readdirSync(skillsDir);
-      if (entries.some(name => isSkillDir(skillsDir, name))) found.push(d);
-    } catch {}
-  }
-  return found;
-}
-
-function getModifiedSkillFiles(root, providerDirs) {
-  // Use git to check if any skill files have local modifications
-  const modified = [];
+async function showHelp() {
+  let commands;
   try {
-    const status = execSync('git status --porcelain', { cwd: root, encoding: 'utf8' });
-    for (const line of status.split('\n')) {
-      if (!line.trim()) continue;
-      const file = line.substring(3);
-      for (const d of providerDirs) {
-        if (file.startsWith(`${d}/skills/`)) {
-          const flag = line.substring(0, 2).trim();
-          modified.push({ file, flag });
-        }
-      }
-    }
+    const response = await fetch(`${API_BASE}/api/commands`);
+    commands = await response.json();
   } catch {
-    // Not a git repo or git not available
+    console.error('Could not fetch command list from impeccable.style. Check your network connection.');
+    process.exit(1);
   }
-  return modified;
+
+  const pad = (value, width) => value + ' '.repeat(Math.max(0, width - value.length));
+
+  console.log('\n  Impeccable for Codex CLI\n');
+  console.log('  Install:  npx impeccable skills install');
+  console.log('  Update:   npx impeccable skills update');
+  console.log('  Docs:     https://impeccable.style/cheatsheet\n');
+  console.log(`  ${pad('Command', 22)} Description`);
+  console.log(`  ${'-'.repeat(22)} ${'-'.repeat(52)}`);
+
+  for (const command of commands.sort((a, b) => a.id.localeCompare(b.id))) {
+    const description = command.description.length > 72
+      ? `${command.description.slice(0, 69)}...`
+      : command.description;
+    console.log(`  ${pad(`$${command.id}`, 22)} ${description}`);
+  }
+
+  console.log(`\n  ${commands.length} commands available. Run $<command> in Codex CLI.\n`);
 }
 
-function downloadFile(url, dest) {
-  return new Promise((resolve, reject) => {
-    const file = createWriteStream(dest);
-    get(url, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        // Follow redirect
-        get(res.headers.location, (res2) => {
-          res2.pipe(file);
-          file.on('finish', () => { file.close(); resolve(); });
-        }).on('error', reject);
-        return;
-      }
-      if (res.statusCode !== 200) {
-        reject(new Error(`HTTP ${res.statusCode}`));
-        return;
-      }
-      res.pipe(file);
-      file.on('finish', () => { file.close(); resolve(); });
-    }).on('error', reject);
-  });
+async function check() {
+  const root = findProjectRoot();
+
+  if (!isAlreadyInstalled(root)) {
+    console.log('Impeccable is not installed in this project.');
+    console.log('Run `npx impeccable skills install` to install.');
+    process.exit(0);
+  }
+
+  console.log('Checking for updates...\n');
+
+  let bundleDir;
+  try {
+    bundleDir = await downloadAndExtractBundle('codex');
+    const upToDate = isUpToDate(root, bundleDir);
+    rmSync(bundleDir, { recursive: true, force: true });
+
+    if (upToDate) {
+      const version = getSkillsVersion(root);
+      console.log(`Skills are up to date${version ? ` (v${version})` : ''}.`);
+      return;
+    }
+
+    console.log('Updates available.');
+    console.log('Run `npx impeccable skills update` to update.');
+  } catch (error) {
+    if (bundleDir) rmSync(bundleDir, { recursive: true, force: true });
+    console.error(`Could not check for updates: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+async function install(flags) {
+  const root = findProjectRoot();
+  const force = flags.includes('--force');
+  const yes = flags.includes('-y') || flags.includes('--yes');
+  const prefixFlag = flags.find((flag) => flag.startsWith('--prefix='));
+  const existing = isAlreadyInstalled(root);
+
+  if (existing && !force) {
+    console.log(`Impeccable skills are already installed (found in ${existing}/).`);
+    console.log('Run with --force to reinstall.\n');
+    process.exit(0);
+  }
+
+  let prefix = '';
+  if (prefixFlag) {
+    prefix = prefixFlag.split('=')[1] || DEFAULT_PREFIX;
+  } else if (!yes) {
+    const wantsPrefix = await ask(`Prefix commands to avoid conflicts? e.g. $${DEFAULT_PREFIX}audit (y/N) `);
+    if (wantsPrefix === 'y' || wantsPrefix === 'yes') {
+      const customPrefix = await ask(`Prefix (default: ${DEFAULT_PREFIX}): `);
+      prefix = customPrefix || DEFAULT_PREFIX;
+    }
+  }
+  console.log('Installing Codex bundle...\n');
+
+  let bundleDir;
+  let bundleSkillNames = [];
+  try {
+    assertValidPrefix(prefix);
+
+    if (hasLocalBundle()) {
+      bundleSkillNames = getBundleSkillNames(PACKAGE_ROOT);
+      installBundleIntoRoot(root, PACKAGE_ROOT, prefix);
+    } else {
+      bundleDir = await downloadAndExtractBundle('codex');
+      bundleSkillNames = getBundleSkillNames(bundleDir);
+      installBundleIntoRoot(root, bundleDir, prefix);
+      rmSync(bundleDir, { recursive: true, force: true });
+    }
+
+    if (prefix && bundleSkillNames.length > 0) {
+      console.log(`Installed ${bundleSkillNames.length} skills with "${prefix}" prefix.`);
+      console.log(`Commands are now available as $${prefix}<command> (for example $${prefix}audit).`);
+    }
+
+    console.log(`\nDone! Run $${prefix}impeccable teach in Codex CLI to set up design context.\n`);
+  } catch (error) {
+    if (bundleDir) rmSync(bundleDir, { recursive: true, force: true });
+    console.error(`Install failed: ${error.message}`);
+    process.exit(1);
+  }
 }
 
 async function update(flags = []) {
+  const root = findProjectRoot();
   const yes = flags.includes('-y') || flags.includes('--yes');
 
-  // Clean up deprecated skills from previous versions.
-  try {
-    const { cleanup } = await import('../../source/skills/impeccable/scripts/cleanup-deprecated.mjs');
-    const root = findProjectRoot();
-    const result = cleanup(root);
-    const total = result.deletedPaths.length + result.removedLockEntries.length;
-    if (total > 0) {
-      console.log(`Cleaned up ${total} deprecated skill(s) from previous versions.\n`);
-    }
-  } catch {
-    // Cleanup script not available (e.g. running from npm package) -- skip
-  }
-
-  // Download the latest skills directly from impeccable.style.
-  // We skip `npx skills update` because it has a known upstream bug
-  // (vercel-labs/skills#775) where it can't find the lock file.
-  const root = findProjectRoot();
-  const providers = findInstalledProviders(root);
-
-  if (providers.length === 0) {
-    console.log('No impeccable skill folders found in this project.');
+  if (!isAlreadyInstalled(root)) {
+    console.log('No impeccable skills found in this project.');
     console.log('Run `npx impeccable skills install` to install first.');
     process.exit(1);
   }
 
   console.log('Checking for updates...');
 
-  let tmpDir;
+  let bundleDir;
   try {
-    tmpDir = await downloadAndExtractBundle();
-  } catch (e) {
-    console.error(`Download failed: ${e.message}`);
-    process.exit(1);
-  }
+    bundleDir = await downloadAndExtractBundle('codex');
+    const bundleSkillNames = getBundleSkillNames(bundleDir);
 
-  // Compare local vs remote -- skip if already up to date
-  if (isUpToDate(root, providers, tmpDir)) {
-    rmSync(tmpDir, { recursive: true, force: true });
-    const v = getSkillsVersion(root);
-    console.log(`Skills are up to date${v ? ` (v${v})` : ''}. Nothing to do.`);
-    process.exit(0);
-  }
-
-  console.log(`Found skills in: ${providers.join(', ')}`);
-
-  if (!yes) {
-    const ans = await ask(`Update skills in ${providers.length} provider folder(s)? (Y/n) `);
-    if (ans === 'n' || ans === 'no') {
-      rmSync(tmpDir, { recursive: true, force: true });
-      console.log('Aborted.');
-      process.exit(0);
+    if (isUpToDate(root, bundleDir)) {
+      const version = getSkillsVersion(root);
+      rmSync(bundleDir, { recursive: true, force: true });
+      console.log(`Skills are up to date${version ? ` (v${version})` : ''}. Nothing to do.`);
+      return;
     }
-  }
 
-  try {
-
-    // Copy from the bundle to each unique provider folder.
-    // Deduplicate so symlinked dirs (e.g. .claude/skills -> .agents/skills)
-    // are only written once with the correct provider's content.
-    const unique = deduplicateProviders(root, providers);
-    let updated = 0;
-    for (const { provider, localSkillsDir } of unique) {
-      const srcDir = join(tmpDir, provider, 'skills');
-      if (!existsSync(srcDir)) continue;
-
-      const skills = readdirSync(srcDir, { withFileTypes: true });
-      for (const skill of skills) {
-        if (!skill.isDirectory()) continue;
-        const src = join(srcDir, skill.name);
-        const dest = join(localSkillsDir, skill.name);
-        if (existsSync(dest)) rmSync(dest, { recursive: true });
-        copyDirSync(src, dest);
-        updated++;
+    if (!yes) {
+      const answer = await ask('Update Codex skills in this project? (Y/n) ');
+      if (answer === 'n' || answer === 'no') {
+        rmSync(bundleDir, { recursive: true, force: true });
+        console.log('Aborted.');
+        return;
       }
     }
 
-    rmSync(tmpDir, { recursive: true, force: true });
-
-    // Re-apply prefix if detected
     const prefix = detectPrefix(root);
+    installBundleIntoRoot(root, bundleDir, prefix);
+    rmSync(bundleDir, { recursive: true, force: true });
+
     if (prefix) {
-      const count = renameSkillsWithPrefix(root, prefix);
-      if (count > 0) console.log(`Re-applied "${prefix}" prefix to ${count} skills.`);
+      console.log(`Re-applied "${prefix}" prefix to the Codex skills.`);
     }
 
-    // Run cleanup to remove deprecated stubs from the fresh download
-    try {
-      const { cleanup: postCleanup } = await import('../../source/skills/impeccable/scripts/cleanup-deprecated.mjs');
-      postCleanup(root);
-    } catch {
-      // Not available -- skip
-    }
-
-    const v = getSkillsVersion(root);
-    console.log(`Updated ${updated} skill(s)${v ? ` to v${v}` : ''}.`);
+    const version = getSkillsVersion(root);
+    console.log(`Updated Codex skills${version ? ` to v${version}` : ''}.`);
     console.log('Done!\n');
-  } catch (e) {
-    console.error(`Update failed: ${e.message}`);
-    if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
+  } catch (error) {
+    if (bundleDir) rmSync(bundleDir, { recursive: true, force: true });
+    console.error(`Update failed: ${error.message}`);
     process.exit(1);
   }
 }
 
-function copyDirSync(src, dest) {
-  mkdirSync(dest, { recursive: true });
-  for (const entry of readdirSync(src, { withFileTypes: true })) {
-    const s = join(src, entry.name);
-    const d = join(dest, entry.name);
-    if (entry.isDirectory()) {
-      copyDirSync(s, d);
-    } else {
-      writeFileSync(d, readFileSync(s));
-    }
-  }
-}
-
-// ─── Router ───────────────────────────────────────────────────────────────────
-
 export async function run(args) {
-  const sub = args[0];
+  const subcommand = args[0];
 
-  if (!sub || sub === 'help' || sub === '--help' || sub === '-h') {
+  if (!subcommand || subcommand === 'help' || subcommand === '--help' || subcommand === '-h') {
     await showHelp();
-  } else if (sub === 'install') {
+  } else if (subcommand === 'install') {
     await install(args.slice(1));
-  } else if (sub === 'update') {
+  } else if (subcommand === 'update') {
     await update(args.slice(1));
-  } else if (sub === 'check') {
+  } else if (subcommand === 'check') {
     await check();
   } else {
-    console.error(`Unknown skills command: ${sub}`);
+    console.error(`Unknown skills command: ${subcommand}`);
     console.error(`Run 'impeccable skills --help' for available commands.`);
     process.exit(1);
   }

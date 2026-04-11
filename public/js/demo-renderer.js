@@ -31,31 +31,38 @@ export function renderCommandDemo(commandId) {
         <div class="demo-container">
           <div class="demo-viewport" style="padding: var(--spacing-lg); font-size: 13px; line-height: 1.6;">
             <div style="display: flex; flex-direction: column; gap: 16px; color: var(--color-ash);">
-              <div style="font-size: 14px; color: var(--color-text); font-weight: 600;">Three ways to use /impeccable</div>
+              <div style="font-size: 14px; color: var(--color-text); font-weight: 600;">Four ways to use $impeccable</div>
               <div style="display: flex; flex-direction: column; gap: 14px;">
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                   <div style="display: flex; gap: 8px; align-items: baseline;">
-                    <code style="font-size: 12px; color: var(--spread-accent, var(--color-accent)); font-weight: 600; white-space: nowrap;">/impeccable</code>
+                    <code style="font-size: 12px; color: var(--spread-accent, var(--color-accent)); font-weight: 600; white-space: nowrap;">$impeccable</code>
                     <span style="opacity: 0.4; font-size: 11px;">freeform</span>
                   </div>
                   <span style="padding-left: 0; opacity: 0.8;">Use on any task. Loads full design intelligence, anti-patterns, and reference knowledge into the current context.</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                   <div style="display: flex; gap: 8px; align-items: baseline;">
-                    <code style="font-size: 12px; color: var(--spread-accent, var(--color-accent)); font-weight: 600; white-space: nowrap;">/impeccable teach</code>
+                    <code style="font-size: 12px; color: var(--spread-accent, var(--color-accent)); font-weight: 600; white-space: nowrap;">$impeccable teach</code>
                     <span style="opacity: 0.4; font-size: 11px;">one-time setup</span>
                   </div>
                   <span style="padding-left: 0; opacity: 0.8;">Scans your codebase, interviews you about brand and audience, then saves a Design Context that all other commands use automatically.</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                   <div style="display: flex; gap: 8px; align-items: baseline;">
-                    <code style="font-size: 12px; color: var(--spread-accent, var(--color-accent)); font-weight: 600; white-space: nowrap;">/impeccable craft</code>
+                    <code style="font-size: 12px; color: var(--spread-accent, var(--color-accent)); font-weight: 600; white-space: nowrap;">$impeccable craft</code>
                     <span style="opacity: 0.4; font-size: 11px;">build a feature</span>
                   </div>
-                  <span style="padding-left: 0; opacity: 0.8;">Runs /shape to plan UX first, loads the right references, then builds and iterates visually until the result delights.</span>
+                  <span style="padding-left: 0; opacity: 0.8;">Runs $shape to plan UX first, loads the right references, then builds and iterates visually until the result delights.</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: flex; gap: 8px; align-items: baseline;">
+                    <code style="font-size: 12px; color: var(--spread-accent, var(--color-accent)); font-weight: 600; white-space: nowrap;">$impeccable extract</code>
+                    <span style="opacity: 0.4; font-size: 11px;">systematize</span>
+                  </div>
+                  <span style="padding-left: 0; opacity: 0.8;">Finds repeated components, tokens, and patterns, then extracts them into shared design-system primitives once the product surface is mature enough.</span>
                 </div>
               </div>
-              <div style="font-size: 12px; opacity: 0.5; margin-top: 2px; font-style: italic;">Start with <code style="font-size: 11px;">/impeccable teach</code> once per project. Then use the other modes as needed.</div>
+              <div style="font-size: 12px; opacity: 0.5; margin-top: 2px; font-style: italic;">Start with <code style="font-size: 11px;">$impeccable teach</code> once per project. Then use the other modes as needed.</div>
             </div>
           </div>
         </div>
@@ -85,10 +92,10 @@ export function renderCommandDemo(commandId) {
                   <div style="display: flex; gap: 8px; align-items: baseline;">
                     <span style="color: var(--spread-accent, var(--color-accent)); font-weight: 600; font-size: 12px;">3. Handoff</span>
                   </div>
-                  <span style="opacity: 0.8;">The confirmed brief guides <code style="font-size: 11px;">/impeccable craft</code> or any other implementation approach. No code written, just the thinking that makes code good.</span>
+                  <span style="opacity: 0.8;">The confirmed brief guides <code style="font-size: 11px;">$impeccable craft</code> or any other implementation approach. No code written, just the thinking that makes code good.</span>
                 </div>
               </div>
-              <div style="font-size: 12px; opacity: 0.5; margin-top: 2px; font-style: italic;">Use standalone or as the first step of <code style="font-size: 11px;">/impeccable craft</code>.</div>
+              <div style="font-size: 12px; opacity: 0.5; margin-top: 2px; font-style: italic;">Use standalone or as the first step of <code style="font-size: 11px;">$impeccable craft</code>.</div>
             </div>
           </div>
         </div>
@@ -98,7 +105,7 @@ export function renderCommandDemo(commandId) {
       <div class="demo-container">
         <div class="demo-viewport">
           <div style="text-align: center; color: var(--color-ash); font-style: italic; padding: var(--spacing-lg);">
-            Visual demo for /${commandId} coming soon
+            Visual demo for $${commandId} coming soon
           </div>
         </div>
       </div>
@@ -207,6 +214,4 @@ export function setupDemoTabs() {
     });
   });
 }
-
-
 

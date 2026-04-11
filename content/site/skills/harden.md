@@ -4,7 +4,7 @@ tagline: "Make interfaces production-ready. Edge cases, onboarding, i18n, error 
 
 ## When to use it
 
-`/harden` is for the day your interface meets reality. Real user data is messy: names that are 60 characters long, product titles in German, prices in the billions, empty lists, 500 errors, offline modes, right-to-left text. Designs that only work with perfect data are not production-ready.
+`$harden` is for the day your interface meets reality. Real user data is messy: names that are 60 characters long, product titles in German, prices in the billions, empty lists, 500 errors, offline modes, right-to-left text. Designs that only work with perfect data are not production-ready.
 
 Reach for it before launch, before opening to a new market, or any time a bug report starts with "our user had a really long name and".
 
@@ -25,7 +25,7 @@ For each dimension it identifies the failure mode, then applies the concrete fix
 Start with one page and one dimension:
 
 ```
-/harden the user profile page for long names
+$harden the user profile page for long names
 ```
 
 Expected output:
@@ -40,6 +40,6 @@ Run it per-page, not all at once. The first run is the biggest; subsequent runs 
 
 ## Pitfalls
 
-- **Waiting for a bug report.** Harden is preventative. If you find yourself fixing the same class of bug twice, run `/harden` across the feature.
+- **Waiting for a bug report.** Harden is preventative. If you find yourself fixing the same class of bug twice, run `$harden` across the feature.
 - **Treating error and empty states as an afterthought.** Most hardening work is error and empty state UI. Budget time for it, not just a `catch` block.
 - **Skipping i18n because "we are English-only for now".** i18n-safe layouts are still better layouts. Flexible containers, proper text wrapping, generous line-height. None of that hurts English.

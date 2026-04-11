@@ -1,9 +1,7 @@
 /**
- * ZIP Generation Utilities
+ * ZIP generation utilities for the Codex-only distribution.
  *
- * Creates ZIP bundles for each provider's distribution
- * Uses archiver instead of shell `zip` for cross-platform compatibility
- * (Cloudflare Pages build environment may not have zip installed)
+ * Uses archiver instead of shell `zip` for cross-platform compatibility.
  */
 
 import path from 'path';
@@ -51,12 +49,12 @@ export async function createProviderZip(providerDir, distDir, providerName) {
 }
 
 /**
- * Create ZIP files for all providers + universal
+ * Create ZIP files for the default and prefixed Codex bundles.
  * @param {string} distDir - Path to dist directory
  */
 export async function createAllZips(distDir) {
   console.log('\n📦 Creating ZIP bundles...');
 
-  await createProviderZip(path.join(distDir, 'universal'), distDir, 'universal');
-  await createProviderZip(path.join(distDir, 'universal-prefixed'), distDir, 'universal-prefixed');
+  await createProviderZip(path.join(distDir, 'codex'), distDir, 'codex');
+  await createProviderZip(path.join(distDir, 'codex-prefixed'), distDir, 'codex-prefixed');
 }

@@ -315,65 +315,11 @@ export function readPatterns(rootDir) {
  * Provider-specific placeholders
  */
 export const PROVIDER_PLACEHOLDERS = {
-  'claude-code': {
-    model: 'Claude',
-    config_file: 'CLAUDE.md',
-    ask_instruction: 'STOP and call the AskUserQuestion tool to clarify.',
-    command_prefix: '/'
-  },
-  'cursor': {
-    model: 'the model',
-    config_file: '.cursorrules',
-    ask_instruction: 'ask the user directly to clarify what you cannot infer.',
-    command_prefix: '/'
-  },
-  'gemini': {
-    model: 'Gemini',
-    config_file: 'GEMINI.md',
-    ask_instruction: 'ask the user directly to clarify what you cannot infer.',
-    command_prefix: '/'
-  },
   'codex': {
     model: 'GPT',
     config_file: 'AGENTS.md',
     ask_instruction: 'ask the user directly to clarify what you cannot infer.',
     command_prefix: '$'
-  },
-  'agents': {
-    model: 'the model',
-    config_file: '.github/copilot-instructions.md',
-    ask_instruction: 'ask the user directly to clarify what you cannot infer.',
-    command_prefix: '/'
-  },
-  'kiro': {
-    model: 'Claude',
-    config_file: '.kiro/settings.json',
-    ask_instruction: 'ask the user directly to clarify what you cannot infer.',
-    command_prefix: '/'
-  },
-  opencode: {
-    model: 'Claude',
-    config_file: 'AGENTS.md',
-    ask_instruction: 'STOP and call the `question` tool to clarify.',
-    command_prefix: '/'
-  },
-  'pi': {
-    model: 'the model',
-    config_file: 'AGENTS.md',
-    ask_instruction: 'ask the user directly to clarify what you cannot infer.',
-    command_prefix: '/'
-  },
-  'trae': {
-    model: 'the model',
-    config_file: 'RULES.md',
-    ask_instruction: 'ask the user directly to clarify what you cannot infer.',
-    command_prefix: '/'
-  },
-  'rovo-dev': {
-    model: 'Rovo Dev',
-    config_file: 'AGENTS.md',
-    ask_instruction: 'ask the user directly to clarify what you cannot infer.',
-    command_prefix: '/'
   }
 };
 
@@ -427,7 +373,7 @@ const EXCLUDED_FROM_SUGGESTIONS = new Set([
 ]);
 
 export function replacePlaceholders(content, provider, commandNames = [], allSkillNames = []) {
-  const placeholders = PROVIDER_PLACEHOLDERS[provider] || PROVIDER_PLACEHOLDERS['cursor'];
+  const placeholders = PROVIDER_PLACEHOLDERS[provider] || PROVIDER_PLACEHOLDERS.codex;
   const cmdPrefix = placeholders.command_prefix || '/';
   const commandList = commandNames
     .filter(n => !EXCLUDED_FROM_SUGGESTIONS.has(n))

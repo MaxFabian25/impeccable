@@ -4,7 +4,7 @@ tagline: "Small moments of personality that turn functional into memorable."
 
 ## When to use it
 
-`/delight` is for interfaces that work but do not feel like anything. Use it when the core experience is solid and you want to add the small human touches that make people remember it: a considered empty state, a loading message with a point of view, a success animation that feels earned, a microcopy moment that makes someone smile.
+`$delight` is for interfaces that work but do not feel like anything. Use it when the core experience is solid and you want to add the small human touches that make people remember it: a considered empty state, a loading message with a point of view, a success animation that feels earned, a microcopy moment that makes someone smile.
 
 It is a finishing skill. Never the first thing you run on a new build.
 
@@ -18,14 +18,14 @@ The skill hunts for delight opportunities in the places most designers skip:
 4. **Microcopy**: button labels, tooltips, error messages, placeholder text. Tiny copy with taste.
 5. **Easter eggs and secondary states**: things users discover that reward paying attention.
 
-The skill reads the brand tone from `.impeccable.md`. A serious analytics tool gets serious delight (dry, precise, a little clever). A playful consumer app gets more overt personality. It does not force humor where humor is wrong for the audience.
+The skill reads the brand tone from the Design Context in `AGENTS.md`. A serious analytics tool gets serious delight (dry, precise, a little clever). A playful consumer app gets more overt personality. It does not force humor where humor is wrong for the audience.
 
 The rule is: every delight moment must still work perfectly if you delete the delight. Nothing depends on the smile.
 
 ## Try it
 
 ```
-/delight the first-run experience
+$delight the first-run experience
 ```
 
 Expected additions:
@@ -37,6 +37,6 @@ Expected additions:
 
 ## Pitfalls
 
-- **Forcing humor.** Not every brand is playful. If the brand voice in `.impeccable.md` is "clinical and precise", delight adds clever restraint, not jokes.
+- **Forcing humor.** Not every brand is playful. If the brand voice in `AGENTS.md` is "clinical and precise", delight adds clever restraint, not jokes.
 - **Over-decorating.** One moment of delight is memorable. Twenty becomes noise. The skill is conservative on purpose.
 - **Running delight before polish.** Polish fixes what is wrong. Delight adds what is missing. In that order.

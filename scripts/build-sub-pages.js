@@ -35,7 +35,7 @@ function escapeHtml(str) {
 
 /**
  * Render the before/after split-compare demo block for a skill.
- * Returns '' when the skill has no demo data (e.g. /shape).
+ * Returns '' when the skill has no demo data (e.g. $shape).
  */
 function renderSkillDemo(skill) {
   if (!skill.demo) return '';
@@ -124,7 +124,7 @@ ${refBody}
   <div class="skill-detail-hero${hasDemo ? ' skill-detail-hero--has-demo' : ''}">
     <header class="skill-detail-header">
       <p class="skill-detail-eyebrow"><a href="/skills">Skills</a> / ${escapeHtml(categoryLabel)}</p>
-      <h1 class="skill-detail-title"><span class="skill-detail-title-slash">/</span>${escapeHtml(skill.id)}</h1>
+      <h1 class="skill-detail-title"><span class="skill-detail-title-slash">$</span>${escapeHtml(skill.id)}</h1>
       <p class="skill-detail-tagline">${escapeHtml(tagline)}</p>
       ${metaStrip}
     </header>
@@ -136,7 +136,7 @@ ${refBody}
   <section class="skill-source-card">
     <header class="skill-source-card-header">
       <span class="skill-source-card-label">SKILL.md</span>
-      <span class="skill-source-card-subtitle">The canonical skill definition your AI harness loads.</span>
+      <span class="skill-source-card-subtitle">The canonical skill definition Codex loads.</span>
     </header>
     <div class="skill-source-card-body prose">
 ${bodyHtml}
@@ -162,7 +162,7 @@ function renderDocsSidebar(skillsByCategory, tutorials, current = null) {
   // where they are at a glance, then open the menu to switch.
   let currentLabel = 'Docs menu';
   if (current?.kind === 'skill') {
-    currentLabel = `/${current.id}`;
+    currentLabel = `$${current.id}`;
   } else if (current?.kind === 'tutorial') {
     const t = tutorials.find((x) => x.slug === current.slug);
     if (t) currentLabel = t.title;
@@ -200,9 +200,9 @@ ${tutorials
   // Sub-command links that appear as indented entries after their parent skill.
   const SUB_COMMANDS = {
     impeccable: [
-      { id: 'impeccable-craft', label: '/impeccable craft', href: '/skills/impeccable#craft' },
-      { id: 'impeccable-teach', label: '/impeccable teach', href: '/skills/impeccable#teach' },
-      { id: 'impeccable-extract', label: '/impeccable extract', href: '/skills/impeccable#extract' },
+      { id: 'impeccable-craft', label: '$impeccable craft', href: '/skills/impeccable#craft' },
+      { id: 'impeccable-teach', label: '$impeccable teach', href: '/skills/impeccable#teach' },
+      { id: 'impeccable-extract', label: '$impeccable extract', href: '/skills/impeccable#extract' },
     ],
   };
 
@@ -218,7 +218,7 @@ ${list
   .flatMap((s) => {
     const isCurrent = current?.kind === 'skill' && current.id === s.id;
     const attr = isCurrent ? ' aria-current="page"' : '';
-    const items = [`        <li><a href="/skills/${s.id}"${attr}>/${escapeHtml(s.id)}</a></li>`];
+    const items = [`        <li><a href="/skills/${s.id}"${attr}>$${escapeHtml(s.id)}</a></li>`];
     const subs = SUB_COMMANDS[s.id];
     if (subs) {
       for (const sub of subs) {
@@ -258,7 +258,7 @@ function renderSkillsOverviewMain(skillsByCategory) {
     const skillChips = list
       .map(
         (s) =>
-          `<a class="skills-overview-chip" href="/skills/${s.id}">/${escapeHtml(s.id)}</a>`,
+          `<a class="skills-overview-chip" href="/skills/${s.id}">$${escapeHtml(s.id)}</a>`,
       )
       .join('');
 
@@ -281,12 +281,12 @@ ${skillChips}
   <header class="skills-overview-header">
     <p class="sub-page-eyebrow">${totalSkills} commands</p>
     <h1 class="sub-page-title">Skills</h1>
-    <p class="sub-page-lede">One skill, <a href="/skills/impeccable">/impeccable</a>, teaches your AI design. Eighteen commands steer the result. Each command does one job with an opinion about what good looks like.</p>
+    <p class="sub-page-lede">One skill, <a href="/skills/impeccable">$impeccable</a>, teaches your AI design. Eighteen commands steer the result. Each command does one job with an opinion about what good looks like.</p>
   </header>
 
   <section class="skills-overview-howto">
     <h2 class="skills-overview-howto-title">How to pick one</h2>
-    <p>Skills are named after the intent you bring to them. Reviewing something? <a href="/skills/critique">/critique</a> or <a href="/skills/audit">/audit</a>. Fixing type? <a href="/skills/typeset">/typeset</a>. Last-mile pass before shipping? <a href="/skills/polish">/polish</a>. The categories below group skills by the job.</p>
+    <p>Skills are named after the intent you bring to them. Reviewing something? <a href="/skills/critique">$critique</a> or <a href="/skills/audit">$audit</a>. Fixing type? <a href="/skills/typeset">$typeset</a>. Last-mile pass before shipping? <a href="/skills/polish">$polish</a>. The categories below group skills by the job.</p>
   </section>
 
   <div class="skills-overview-categories">
@@ -397,7 +397,7 @@ function renderRuleCard(rule) {
   const layerLabel = LAYER_LABELS[layer] || layer;
   const layerTitle = LAYER_DESCRIPTIONS[layer] || '';
   const skillLink = rule.skillSection
-    ? `<a class="rule-card-skill-link" href="/skills/impeccable#${slugify(rule.skillSection)}">See in /impeccable</a>`
+    ? `<a class="rule-card-skill-link" href="/skills/impeccable#${slugify(rule.skillSection)}">See in $impeccable</a>`
     : '';
   const visual = rule.visual
     ? `<div class="rule-card-visual" aria-hidden="true"><div class="rule-card-visual-inner">${rule.visual}</div></div>`
@@ -500,8 +500,8 @@ function renderVisualModeMain() {
     <h2 class="visual-mode-methods-title">Three ways to run it</h2>
     <div class="visual-mode-methods-grid">
       <article class="visual-mode-method">
-        <p class="visual-mode-method-label">Inside /critique</p>
-        <h3 class="visual-mode-method-name"><a href="/skills/critique">/critique</a></h3>
+        <p class="visual-mode-method-label">Inside $critique</p>
+        <h3 class="visual-mode-method-name"><a href="/skills/critique">$critique</a></h3>
         <p class="visual-mode-method-desc">The design review skill opens the overlay automatically during its browser assessment pass. You get the deterministic findings highlighted in place while the LLM runs its separate heuristic review.</p>
       </article>
       <article class="visual-mode-method">
@@ -579,7 +579,7 @@ ${rules.map(renderRuleCard).join('\n')}
   <header class="anti-patterns-header">
     <p class="sub-page-eyebrow">${totalRules} rules</p>
     <h1 class="sub-page-title">Anti-patterns</h1>
-    <p class="sub-page-lede">The full catalog of patterns <a href="/skills/impeccable">/impeccable</a> teaches against. ${detectedCount} are caught by a deterministic detector (<code>npx impeccable detect</code> or the browser extension). ${llmCount} can only be flagged by <a href="/skills/critique">/critique</a>'s LLM review pass. Want to see them live on real pages? Try <a href="/visual-mode">Visual Mode</a>.</p>
+    <p class="sub-page-lede">The full catalog of patterns <a href="/skills/impeccable">$impeccable</a> teaches against. ${detectedCount} are caught by a deterministic detector (<code>npx impeccable detect</code> or the browser extension). ${llmCount} can only be flagged by <a href="/skills/critique">$critique</a>'s LLM review pass. Want to see them live on real pages? Try <a href="/visual-mode">Visual Mode</a>.</p>
   </header>
 
   <details class="anti-patterns-legend">
@@ -592,7 +592,7 @@ ${rules.map(renderRuleCard).join('\n')}
       <dl class="anti-patterns-legend-layers">
         <div><dt><span class="rule-card-layer" data-layer="cli">CLI</span></dt><dd>Deterministic. Runs from <code>npx impeccable detect</code> on files, no browser required.</dd></div>
         <div><dt><span class="rule-card-layer" data-layer="browser">Browser</span></dt><dd>Deterministic, but needs real browser layout. Runs via the browser extension or Puppeteer, not the plain CLI.</dd></div>
-        <div><dt><span class="rule-card-layer" data-layer="llm">LLM only</span></dt><dd>No deterministic detector. Caught by <a href="/skills/critique">/critique</a> during its LLM design review.</dd></div>
+        <div><dt><span class="rule-card-layer" data-layer="llm">LLM only</span></dt><dd>No deterministic detector. Caught by <a href="/skills/critique">$critique</a> during its LLM design review.</dd></div>
       </dl>
     </div>
   </details>
@@ -633,7 +633,7 @@ export async function generateSubPages(rootDir) {
     const html = renderPage({
       title: 'Skills | Impeccable',
       description:
-        '18 commands that teach your AI harness how to design. Browse by category: create, evaluate, refine, simplify, harden.',
+        '18 commands that teach Codex how to design. Browse by category: create, evaluate, refine, simplify, harden.',
       bodyHtml: wrapInDocsLayout(sidebar, main),
       activeNav: 'docs',
       canonicalPath: '/skills',
@@ -648,7 +648,7 @@ export async function generateSubPages(rootDir) {
   for (const skill of data.skills) {
     const sidebar = renderDocsSidebar(data.skillsByCategory, data.tutorials, { kind: 'skill', id: skill.id });
     const main = renderSkillDetail(skill, data.knownSkillIds);
-    const title = `/${skill.id} | Impeccable`;
+    const title = `$${skill.id} | Impeccable`;
     const description = skill.editorial?.frontmatter?.tagline || skill.description;
     const html = renderPage({
       title,
@@ -703,7 +703,7 @@ export async function generateSubPages(rootDir) {
     const html = renderPage({
       title: 'Visual Mode | Impeccable',
       description:
-        'See every anti-pattern flagged directly on the page. Live detection overlay from Impeccable, available via /critique, npx impeccable live, or the upcoming Chrome extension.',
+        'See every anti-pattern flagged directly on the page. Live detection overlay from Impeccable, available via $critique, npx impeccable live, or the Chrome extension.',
       bodyHtml: renderVisualModeMain(),
       activeNav: 'visual-mode',
       canonicalPath: '/visual-mode',

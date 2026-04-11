@@ -2,7 +2,7 @@
   "name": "impeccable",
   "version": "2.1.7",
   "author": "Paul Bakaus",
-  "description": "Design skills, commands, and anti-pattern detection for AI coding agents",
+  "description": "Design skills, commands, and anti-pattern detection for Codex CLI",
   "keywords": [
     "design",
     "frontend",
@@ -21,7 +21,7 @@
   "homepage": "https://impeccable.style",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pbakaus/impeccable.git"
+    "url": "git+https://github.com/MaxFabian25/impeccable.git"
   },
   "engines": {
     "node": ">=18"
@@ -36,6 +36,8 @@
     "./browser": "./src/detect-antipatterns-browser.js"
   },
   "files": [
+    ".codex/",
+    ".codex-plugin/",
     "bin/",
     "src/",
     "LICENSE"
@@ -49,7 +51,7 @@
     "dev": "bun run server/index.js",
     "preview": "bun run build && wrangler pages dev",
     "deploy": "bun run build && wrangler pages deploy build/",
-    "test": "bun test tests/build.test.js tests/detect-antipatterns.test.js && node --test tests/detect-antipatterns-fixtures.test.mjs && node --test tests/detect-antipatterns-browser.test.mjs && node --test tests/cleanup-deprecated.test.mjs",
+    "test": "bun test tests/build.test.js tests/detect-antipatterns.test.js tests/server/download-validation.test.js tests/skills-cli.test.js tests/lib/utils.test.js tests/lib/transformers/factory.test.js tests/site-contract.test.js && node --test tests/detect-antipatterns-fixtures.test.mjs tests/detect-antipatterns-browser.test.mjs tests/cleanup-deprecated.test.mjs",
     "prepack": "cp README.md README.repo.md && cp README.npm.md README.md",
     "postpack": "cp README.repo.md README.md && rm README.repo.md",
     "screenshot": "bun run scripts/screenshot-antipatterns.js",

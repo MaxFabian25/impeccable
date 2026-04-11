@@ -1,0 +1,42 @@
+{
+  "name": "impeccable",
+  "version": "2.1.7",
+  "description": "Design fluency and anti-pattern detection for Codex CLI.",
+  "author": {
+    "name": "Paul Bakaus",
+    "email": "paul@paulbakaus.com",
+    "url": "https://www.paulbakaus.com"
+  },
+  "homepage": "https://impeccable.style",
+  "repository": "https://github.com/MaxFabian25/impeccable",
+  "license": "Apache-2.0",
+  "keywords": [
+    "codex",
+    "design",
+    "frontend",
+    "ux",
+    "skills",
+    "anti-patterns"
+  ],
+  "skills": "./.codex/skills",
+  "interface": {
+    "displayName": "Impeccable",
+    "shortDescription": "Design skills for Codex CLI",
+    "longDescription": "Codex-native design skills, steering commands, and anti-pattern guidance for building sharper frontend interfaces.",
+    "developerName": "Paul Bakaus",
+    "category": "Design",
+    "capabilities": [
+      "Write",
+      "Interactive"
+    ],
+    "websiteURL": "https://impeccable.style",
+    "privacyPolicyURL": "https://impeccable.style/privacy",
+    "termsOfServiceURL": "https://github.com/MaxFabian25/impeccable/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Audit this UI and prioritize the issues.",
+      "Polish this feature for launch quality.",
+      "Teach the design context for this project."
+    ],
+    "brandColor": "#1f3f72"
+  }
+}

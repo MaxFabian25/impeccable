@@ -207,7 +207,7 @@ async function generateOgImage() {
     <div class="content">
       <div class="top">
         <div class="title">Impeccable</div>
-        <div class="tagline">Design fluency for AI harnesses</div>
+        <div class="tagline">Design fluency for Codex CLI</div>
       </div>
       <div class="bottom">
         <div class="features">

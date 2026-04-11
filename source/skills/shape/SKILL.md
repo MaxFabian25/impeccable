@@ -25,7 +25,7 @@ Most AI-generated UIs fail not because of bad code, but because of skipped think
 
 **Do NOT write any code or make any design decisions during this phase.** Your only job is to understand the feature deeply enough to make excellent design decisions later.
 
-Ask these questions in conversation, adapting based on answers. Don't dump them all at once; have a natural dialogue. {{ask_instruction}}
+Ask these questions in conversation, adapting based on answers. Don't dump them all at once; have a natural dialogue, and ask directly for anything you cannot infer.
 
 ### Purpose & Context
 - What is this feature for? What problem does it solve?
@@ -68,7 +68,7 @@ What this is, who it's for, what it needs to accomplish.
 The single most important thing a user should do or understand here.
 
 **3. Design Direction**
-How this should feel. What aesthetic approach fits. Reference the project's design context from `.impeccable.md` and explain how this feature should express it.
+How this should feel. What aesthetic approach fits. Reference the project's Design Context in `{{config_file}}` and explain how this feature should express it.
 
 **4. Layout Strategy**
 High-level spatial approach: what gets emphasis, what's secondary, how information flows. Describe the visual hierarchy and rhythm, not specific CSS.
@@ -90,6 +90,6 @@ Anything unresolved that the implementer should resolve during build.
 
 ---
 
-{{ask_instruction}} Get explicit confirmation of the brief before finishing. If the user disagrees with any part, revisit the relevant discovery questions.
+Ask for explicit confirmation of the brief before finishing. If the user disagrees with any part, revisit the relevant discovery questions.
 
 Once confirmed, the brief is complete. The user can now hand it to {{command_prefix}}impeccable, or use it to guide any other implementation approach. (If the user wants the full discovery-then-build flow in one step, they should use {{command_prefix}}impeccable craft instead, which runs this skill internally.)

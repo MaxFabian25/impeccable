@@ -10,6 +10,7 @@
  */
 
 import { marked } from 'marked';
+import { replacePlaceholders } from './utils.js';
 
 /**
  * Slugify a heading text into a stable anchor id.
@@ -135,11 +136,42 @@ function resolveHref(href, { knownSkillIds, currentSkillId }) {
  */
 export function renderMarkdown(markdown, opts = {}) {
   const renderer = createRenderer(opts);
-  return marked.parse(markdown, {
+  const materialized = materializeCodexMarkdown(markdown, opts);
+  return marked.parse(rewriteCodexCommandSyntax(materialized, opts.knownSkillIds), {
     renderer,
     gfm: true,
     breaks: false,
   });
+}
+
+function materializeCodexMarkdown(markdown, { knownSkillIds = new Set(), currentSkillId = null } = {}) {
+  const skillIds = [...knownSkillIds];
+  let result = replacePlaceholders(markdown, 'codex', skillIds, skillIds);
+
+  if (currentSkillId) {
+    result = result.replace(
+      /\{\{scripts_path\}\}/g,
+      `.codex/skills/${currentSkillId}/scripts`,
+    );
+  }
+
+  return result;
+}
+
+function rewriteCodexCommandSyntax(markdown, knownSkillIds = new Set()) {
+  if (!markdown || knownSkillIds.size === 0) return markdown;
+
+  const skillPattern = [...knownSkillIds]
+    .sort((a, b) => b.length - a.length)
+    .map(escapeRegex)
+    .join('|');
+
+  if (!skillPattern) return markdown;
+
+  return markdown.replace(
+    new RegExp(`(^|[\\s([\\` + "`" + `>])\\/(${skillPattern})(?=[^a-zA-Z0-9_-]|$)`, 'gm'),
+    (_, prefix, skillId) => `${prefix}$${skillId}`
+  );
 }
 
 function escapeHtml(str) {
@@ -153,4 +185,8 @@ function escapeHtml(str) {
 
 function escapeAttr(str) {
   return String(str).replace(/"/g, '&quot;');
+}
+
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

@@ -456,7 +456,7 @@ Impeccable design instructions.`;
 name: test-skill
 description: A comprehensive test skill
 license: Apache-2.0
-compatibility: claude-code
+compatibility: codex
 user-invocable: true
 allowed-tools: Bash,Edit
 ---
@@ -472,7 +472,7 @@ Body content.`;
     expect(skills[0].name).toBe('test-skill');
     expect(skills[0].description).toBe('A comprehensive test skill');
     expect(skills[0].license).toBe('Apache-2.0');
-    expect(skills[0].compatibility).toBe('claude-code');
+    expect(skills[0].compatibility).toBe('codex');
     expect(skills[0].userInvocable).toBe(true);
     expect(skills[0].allowedTools).toBe('Bash,Edit');
   });
@@ -580,74 +580,61 @@ name: impeccable
 
 describe('replacePlaceholders', () => {
   test('should replace {{model}} with provider-specific value', () => {
-    expect(replacePlaceholders('Ask {{model}} for help.', 'claude-code')).toBe('Ask Claude for help.');
-    expect(replacePlaceholders('Ask {{model}} for help.', 'gemini')).toBe('Ask Gemini for help.');
     expect(replacePlaceholders('Ask {{model}} for help.', 'codex')).toBe('Ask GPT for help.');
-    expect(replacePlaceholders('Ask {{model}} for help.', 'cursor')).toBe('Ask the model for help.');
-    expect(replacePlaceholders('Ask {{model}} for help.', 'agents')).toBe('Ask the model for help.');
-    expect(replacePlaceholders('Ask {{model}} for help.', 'kiro')).toBe('Ask Claude for help.');
   });
 
   test('should replace {{config_file}} with provider-specific value', () => {
-    expect(replacePlaceholders('See {{config_file}}.', 'claude-code')).toBe('See CLAUDE.md.');
-    expect(replacePlaceholders('See {{config_file}}.', 'cursor')).toBe('See .cursorrules.');
-    expect(replacePlaceholders('See {{config_file}}.', 'gemini')).toBe('See GEMINI.md.');
     expect(replacePlaceholders('See {{config_file}}.', 'codex')).toBe('See AGENTS.md.');
-    expect(replacePlaceholders('See {{config_file}}.', 'agents')).toBe('See .github/copilot-instructions.md.');
-    expect(replacePlaceholders('See {{config_file}}.', 'kiro')).toBe('See .kiro/settings.json.');
   });
 
   test('should replace {{ask_instruction}} with provider-specific value', () => {
-    const result = replacePlaceholders('{{ask_instruction}}', 'claude-code');
-    expect(result).toBe('STOP and call the AskUserQuestion tool to clarify.');
-
-    const cursorResult = replacePlaceholders('{{ask_instruction}}', 'cursor');
-    expect(cursorResult).toBe('ask the user directly to clarify what you cannot infer.');
+    const result = replacePlaceholders('{{ask_instruction}}', 'codex');
+    expect(result).toBe('ask the user directly to clarify what you cannot infer.');
   });
 
   test('should replace {{available_commands}} with command list', () => {
-    const result = replacePlaceholders('Commands: {{available_commands}}', 'claude-code', ['audit', 'polish', 'optimize']);
-    expect(result).toBe('Commands: /audit, /polish, /optimize');
+    const result = replacePlaceholders('Commands: {{available_commands}}', 'codex', ['audit', 'polish', 'optimize']);
+    expect(result).toBe('Commands: $audit, $polish, $optimize');
   });
 
   test('should exclude impeccable from {{available_commands}}', () => {
-    const result = replacePlaceholders('Commands: {{available_commands}}', 'claude-code', ['audit', 'impeccable', 'polish']);
-    expect(result).toBe('Commands: /audit, /polish');
+    const result = replacePlaceholders('Commands: {{available_commands}}', 'codex', ['audit', 'impeccable', 'polish']);
+    expect(result).toBe('Commands: $audit, $polish');
   });
 
   test('should exclude i-impeccable from {{available_commands}}', () => {
-    const result = replacePlaceholders('Commands: {{available_commands}}', 'claude-code', ['i-audit', 'i-impeccable', 'i-polish']);
-    expect(result).toBe('Commands: /i-audit, /i-polish');
+    const result = replacePlaceholders('Commands: {{available_commands}}', 'codex', ['i-audit', 'i-impeccable', 'i-polish']);
+    expect(result).toBe('Commands: $i-audit, $i-polish');
   });
 
   test('should exclude legacy teach-impeccable from {{available_commands}}', () => {
-    const result = replacePlaceholders('Commands: {{available_commands}}', 'claude-code', ['audit', 'teach-impeccable', 'polish']);
-    expect(result).toBe('Commands: /audit, /polish');
+    const result = replacePlaceholders('Commands: {{available_commands}}', 'codex', ['audit', 'teach-impeccable', 'polish']);
+    expect(result).toBe('Commands: $audit, $polish');
   });
 
   test('should exclude legacy i-teach-impeccable from {{available_commands}}', () => {
-    const result = replacePlaceholders('Commands: {{available_commands}}', 'claude-code', ['i-audit', 'i-teach-impeccable', 'i-polish']);
-    expect(result).toBe('Commands: /i-audit, /i-polish');
+    const result = replacePlaceholders('Commands: {{available_commands}}', 'codex', ['i-audit', 'i-teach-impeccable', 'i-polish']);
+    expect(result).toBe('Commands: $i-audit, $i-polish');
   });
 
   test('should produce empty string for {{available_commands}} with no commands', () => {
-    const result = replacePlaceholders('Commands: {{available_commands}}.', 'claude-code', []);
+    const result = replacePlaceholders('Commands: {{available_commands}}.', 'codex', []);
     expect(result).toBe('Commands: .');
   });
 
   test('should replace multiple placeholders in the same string', () => {
-    const result = replacePlaceholders('{{model}} uses {{config_file}} and {{ask_instruction}}', 'claude-code');
-    expect(result).toBe('Claude uses CLAUDE.md and STOP and call the AskUserQuestion tool to clarify.');
+    const result = replacePlaceholders('{{model}} uses {{config_file}} and {{ask_instruction}}', 'codex');
+    expect(result).toBe('GPT uses AGENTS.md and ask the user directly to clarify what you cannot infer.');
   });
 
   test('should replace multiple occurrences of the same placeholder', () => {
-    const result = replacePlaceholders('{{model}} and {{model}} again.', 'gemini');
-    expect(result).toBe('Gemini and Gemini again.');
+    const result = replacePlaceholders('{{model}} and {{model}} again.', 'codex');
+    expect(result).toBe('GPT and GPT again.');
   });
 
-  test('should fall back to cursor placeholders for unknown provider', () => {
+  test('should fall back to codex placeholders for unknown provider', () => {
     const result = replacePlaceholders('{{model}} {{config_file}}', 'unknown-provider');
-    expect(result).toBe('the model .cursorrules');
+    expect(result).toBe('GPT AGENTS.md');
   });
 });
 

@@ -1,417 +1,244 @@
-/**
- * End-to-end tests for `impeccable skills` subcommands.
- *
- * Creates real temp directories, runs the CLI, and verifies results.
- * Tests that require `npx skills` are skipped if it's not available.
- */
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { execSync } from 'child_process';
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync, existsSync, readdirSync, readFileSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import {
+  SKILLS_DIR_NAME,
+  installBundleIntoRoot,
+  isAlreadyInstalled,
+  detectPrefix,
+  renameSkillsWithPrefix,
+  undoPrefix,
+  isUpToDate,
+} from '../bin/commands/skills.mjs';
 
-const CLI = join(import.meta.dir, '..', 'bin', 'cli.js');
+const REPO_ROOT = join(import.meta.dir, '..');
+const CLI_PATH = join(REPO_ROOT, 'bin', 'cli.js');
 
-function run(args, opts = {}) {
-  return execSync(`node ${CLI} ${args}`, {
-    encoding: 'utf8',
-    timeout: 60000,
-    ...opts,
-  });
-}
-
-/** Create a fake skill installation in a temp dir */
-function createFakeSkills(root, skills = ['audit', 'polish', 'impeccable'], providers = ['.claude']) {
-  for (const provider of providers) {
-    for (const skill of skills) {
-      const skillDir = join(root, provider, 'skills', skill);
-      mkdirSync(skillDir, { recursive: true });
-      writeFileSync(join(skillDir, 'SKILL.md'), [
-        '---',
-        `name: ${skill}`,
-        'user-invocable: true',
-        '---',
-        '',
-        'Run /audit first, then /polish to finish.',
-        'Use the impeccable skill for setup.',
-      ].join('\n'));
-    }
-  }
-}
-
-// ─── Already-installed detection ─────────────────────────────────────────────
-
-describe('skills install: already-installed detection', () => {
-  test('detects impeccable sentinel and bails', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'imp-test-'));
-    execSync('git init', { cwd: tmp });
-    createFakeSkills(tmp);
-
-    const output = run('skills install -y', { cwd: tmp });
-    expect(output).toContain('already installed');
-
-    rmSync(tmp, { recursive: true, force: true });
-  }, 15000);
-
-  test('detects prefixed i-impeccable', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'imp-test-'));
-    execSync('git init', { cwd: tmp });
-
-    const skillDir = join(tmp, '.cursor', 'skills', 'i-impeccable');
+function createFakeCodexSkills(root, skills = ['audit', 'polish', 'impeccable']) {
+  for (const skill of skills) {
+    const skillDir = join(root, '.codex', 'skills', skill);
     mkdirSync(skillDir, { recursive: true });
-    writeFileSync(join(skillDir, 'SKILL.md'), '---\nname: i-impeccable\n---\n');
+    const extraBody = skill === 'impeccable'
+      ? '\nnode .codex/skills/impeccable/scripts/cleanup-deprecated.mjs'
+      : '';
+    writeFileSync(join(skillDir, 'SKILL.md'), [
+      '---',
+      `name: ${skill}`,
+      'argument-hint: "[area]"',
+      '---',
+      '',
+      'Run $audit first, then $polish to finish.',
+      'Use the impeccable skill for setup.',
+      extraBody,
+    ].join('\n'));
+  }
+}
 
-    const output = run('skills install -y', { cwd: tmp });
-    expect(output).toContain('already installed');
+function runSkillsCli(cwd, args) {
+  return spawnSync('node', [CLI_PATH, 'skills', ...args], {
+    cwd,
+    encoding: 'utf8',
+  });
+}
 
-    rmSync(tmp, { recursive: true, force: true });
-  }, 15000);
-});
-
-// ─── Prefix rename (real filesystem) ─────────────────────────────────────────
-
-describe('skills install: prefix rename', () => {
+describe('codex-only installer contract', () => {
   let tmp;
 
-  beforeAll(() => {
-    tmp = mkdtempSync(join(tmpdir(), 'imp-test-pfx-'));
-    createFakeSkills(tmp, ['audit', 'polish', 'impeccable'], ['.claude', '.cursor']);
+  beforeEach(() => {
+    tmp = mkdtempSync(join(tmpdir(), 'imp-test-cli-'));
   });
 
-  afterAll(() => {
+  afterEach(() => {
     if (tmp) rmSync(tmp, { recursive: true, force: true });
   });
 
-  test('renames folders with prefix', () => {
-    // Write a helper script that imports and runs renameSkillsWithPrefix
-    const helperScript = join(tmp, '_test_rename.mjs');
-    writeFileSync(helperScript, `
-import { existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+  test('uses .codex/skills as the only install root', () => {
+    expect(SKILLS_DIR_NAME).toBe('.codex');
+  });
 
-function escapeRegex(str) {
-  return str.replace(/[.*+?^$\{\}()|[\\]\\\\]/g, '\\\\$&');
-}
+  test('detects an existing Codex install', () => {
+    createFakeCodexSkills(tmp);
+    expect(isAlreadyInstalled(tmp)).toBe('.codex');
+  });
 
-function prefixSkillContent(content, prefix, allSkillNames) {
-  let result = content.replace(/^name:\\s*(.+)$/m, (_, name) => 'name: ' + prefix + name.trim());
-  const sorted = [...allSkillNames].sort((a, b) => b.length - a.length);
-  for (const name of sorted) {
-    result = result.replace(
-      new RegExp('/' + '(?=' + escapeRegex(name) + '(?:[^a-zA-Z0-9_-]|$))', 'g'),
-      '/' + prefix
-    );
-    result = result.replace(
-      new RegExp('(the) ' + escapeRegex(name) + ' skill', 'gi'),
-      (_, article) => article + ' ' + prefix + name + ' skill'
-    );
-  }
-  return result;
-}
+  test('ignores non-Codex harness directories', () => {
+    const skillDir = join(tmp, '.legacy', 'skills', 'impeccable');
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(join(skillDir, 'SKILL.md'), '---\nname: impeccable\n---\n');
 
-const DIRS = ['.claude', '.cursor'];
-const root = process.argv[2];
-const prefix = process.argv[3];
+    expect(isAlreadyInstalled(tmp)).toBe(null);
+  });
 
-let allNames = [];
-for (const d of DIRS) {
-  const dir = join(root, d, 'skills');
-  if (!existsSync(dir)) continue;
-  allNames = readdirSync(dir, { withFileTypes: true }).filter(e => e.isDirectory()).map(e => e.name);
-  if (allNames.length > 0) break;
-}
+  test('renames codex skills with a prefix and updates references', () => {
+    createFakeCodexSkills(tmp);
 
-let count = 0;
-for (const d of DIRS) {
-  const dir = join(root, d, 'skills');
-  if (!existsSync(dir)) continue;
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (!entry.isDirectory() || entry.name.startsWith(prefix)) continue;
-    const skillMd = join(dir, entry.name, 'SKILL.md');
-    if (!existsSync(skillMd)) continue;
-    renameSync(join(dir, entry.name), join(dir, prefix + entry.name));
-    let content = readFileSync(join(dir, prefix + entry.name, 'SKILL.md'), 'utf8');
-    content = prefixSkillContent(content, prefix, allNames);
-    writeFileSync(join(dir, prefix + entry.name, 'SKILL.md'), content);
-    count++;
-  }
-}
-console.log(JSON.stringify({ count }));
-    `);
+    const renamed = renameSkillsWithPrefix(tmp, 'i-');
 
-    const output = JSON.parse(execSync(`node ${helperScript} ${tmp} i-`, { encoding: 'utf8' }));
-    expect(output.count).toBe(6); // 3 skills x 2 providers
+    expect(renamed).toBe(3);
+    expect(readdirSync(join(tmp, '.codex', 'skills')).sort()).toEqual([
+      'i-audit',
+      'i-impeccable',
+      'i-polish',
+    ]);
 
-    // Verify folders renamed
-    const skills = readdirSync(join(tmp, '.claude', 'skills'));
-    expect(skills).toContain('i-audit');
-    expect(skills).toContain('i-polish');
-    expect(skills).toContain('i-impeccable');
-    expect(skills).not.toContain('audit');
-    expect(skills).not.toContain('polish');
-  }, 15000);
-
-  test('prefixed SKILL.md has correct name and cross-references', () => {
-    const content = readFileSync(join(tmp, '.claude', 'skills', 'i-audit', 'SKILL.md'), 'utf8');
+    const content = readFileSync(join(tmp, '.codex', 'skills', 'i-audit', 'SKILL.md'), 'utf8');
     expect(content).toContain('name: i-audit');
-    expect(content).toContain('/i-audit');
-    expect(content).toContain('/i-polish');
+    expect(content).toContain('$i-audit');
+    expect(content).toContain('$i-polish');
     expect(content).toContain('the i-impeccable skill');
-    // Original unprefixed references should be gone
-    expect(content).not.toMatch(/\/audit(?=[^a-zA-Z0-9_-]|$)/);
+
+    const impeccableContent = readFileSync(join(tmp, '.codex', 'skills', 'i-impeccable', 'SKILL.md'), 'utf8');
+    expect(impeccableContent).toContain('node .codex/skills/i-impeccable/scripts/cleanup-deprecated.mjs');
   });
 
-  test('also prefixed in second provider', () => {
-    const skills = readdirSync(join(tmp, '.cursor', 'skills'));
-    expect(skills).toContain('i-audit');
-    expect(skills).toContain('i-impeccable');
-  });
-});
+  test('rejects unsafe prefixes before mutating skills', () => {
+    createFakeCodexSkills(tmp);
 
-// ─── Update fallback (direct download) ───────────────────────────────────────
-
-describe('skills update: direct download fallback', () => {
-  let tmp;
-
-  beforeAll(() => {
-    tmp = mkdtempSync(join(tmpdir(), 'imp-test-update-'));
-    execSync('git init', { cwd: tmp });
-
-    // Create stale skills that the update should overwrite
-    for (const skill of ['audit', 'impeccable']) {
-      const skillDir = join(tmp, '.claude', 'skills', skill);
-      mkdirSync(skillDir, { recursive: true });
-      writeFileSync(join(skillDir, 'SKILL.md'), `---\nname: ${skill}\nstale: true\n---\nOld content.\n`);
-    }
+    expect(() => renameSkillsWithPrefix(tmp, '../x-')).toThrow(/prefix/i);
+    expect(readdirSync(join(tmp, '.codex', 'skills')).sort()).toEqual([
+      'audit',
+      'impeccable',
+      'polish',
+    ]);
   });
 
-  afterAll(() => {
-    if (tmp) rmSync(tmp, { recursive: true, force: true });
+  test('detects the active prefix from codex skills', () => {
+    createFakeCodexSkills(tmp);
+    renameSkillsWithPrefix(tmp, 'x-');
+
+    expect(detectPrefix(tmp)).toBe('x-');
   });
 
-  test('downloads universal bundle and updates skills', () => {
-    const output = run('skills update -y', { cwd: tmp });
-    expect(output).toContain('direct download');
-    expect(output).toContain('Updated');
+  test('undoPrefix restores the canonical codex skill names', () => {
+    createFakeCodexSkills(tmp);
+    renameSkillsWithPrefix(tmp, 'x-');
 
-    // Skills should have fresh content (no 'stale: true')
-    const content = readFileSync(join(tmp, '.claude', 'skills', 'audit', 'SKILL.md'), 'utf8');
-    expect(content).not.toContain('stale: true');
-    expect(content).toContain('name:');
-  }, 60000);
+    undoPrefix(tmp, 'x-');
 
-  test('update added new skills that were not present before', () => {
-    // The universal bundle has ~20 skills, we only had 2
-    const skills = readdirSync(join(tmp, '.claude', 'skills'));
-    expect(skills.length).toBeGreaterThan(5);
-  });
-});
+    expect(readdirSync(join(tmp, '.codex', 'skills')).sort()).toEqual([
+      'audit',
+      'impeccable',
+      'polish',
+    ]);
 
-// ─── Prefix round-trip: detect, undo, re-apply ──────────────────────────────
-
-describe('prefix round-trip: detect, undo, re-apply', () => {
-  let tmp;
-
-  beforeAll(() => {
-    tmp = mkdtempSync(join(tmpdir(), 'imp-test-roundtrip-'));
-    // Create prefixed skills to simulate post-install state
-    for (const skill of ['audit', 'polish', 'impeccable']) {
-      const skillDir = join(tmp, '.claude', 'skills', 'i-' + skill);
-      mkdirSync(skillDir, { recursive: true });
-      writeFileSync(join(skillDir, 'SKILL.md'), [
-        '---',
-        `name: i-${skill}`,
-        'user-invocable: true',
-        '---',
-        '',
-        'Run /i-audit first, then /i-polish to finish.',
-        'Use the i-impeccable skill for setup.',
-      ].join('\n'));
-    }
-  });
-
-  afterAll(() => {
-    if (tmp) rmSync(tmp, { recursive: true, force: true });
-  });
-
-  test('detectPrefix finds the prefix from skill names', () => {
-    const script = join(tmp, '_detect.mjs');
-    writeFileSync(script, `
-import { existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
-const DIRS = ['.claude', '.cursor', '.agents'];
-const root = ${JSON.stringify(tmp)};
-for (const d of DIRS) {
-  const dir = join(root, d, 'skills');
-  if (!existsSync(dir)) continue;
-  for (const name of readdirSync(dir)) {
-    if (name === 'impeccable') { console.log(''); process.exit(); }
-    if (name.endsWith('-impeccable')) { console.log(name.slice(0, -'impeccable'.length)); process.exit(); }
-  }
-}
-console.log('');
-    `);
-    const output = execSync(`node ${script}`, { encoding: 'utf8' }).trim();
-    expect(output).toBe('i-');
-  });
-
-  test('undo removes prefix from folders and content', () => {
-    // Write undo helper script
-    const script = join(tmp, '_undo.mjs');
-    writeFileSync(script, `
-import { existsSync, readdirSync, readFileSync, lstatSync, readlinkSync, unlinkSync, renameSync, writeFileSync, symlinkSync } from 'node:fs';
-import { join } from 'node:path';
-
-function escapeRegex(str) { return str.replace(/[.*+?^$\{\\}()|[\\]\\\\]/g, '\\\\$&'); }
-
-const root = ${JSON.stringify(tmp)};
-const prefix = 'i-';
-const skillsDir = join(root, '.claude', 'skills');
-const entries = readdirSync(skillsDir);
-const prefixedNames = entries.filter(n => n.startsWith(prefix));
-
-for (const name of entries) {
-  if (!name.startsWith(prefix)) continue;
-  const unprefixed = name.slice(prefix.length);
-  const src = join(skillsDir, name);
-  const dest = join(skillsDir, unprefixed);
-
-  if (lstatSync(src).isSymbolicLink()) {
-    const target = readlinkSync(src);
-    unlinkSync(src);
-    symlinkSync(target.replace('/' + name, '/' + unprefixed), dest);
-  } else {
-    renameSync(src, dest);
-    const skillMd = join(dest, 'SKILL.md');
-    if (existsSync(skillMd)) {
-      let content = readFileSync(skillMd, 'utf8');
-      content = content.replace(new RegExp('^name:\\\\s*' + escapeRegex(prefix), 'm'), 'name: ');
-      const sorted = [...prefixedNames].sort((a, b) => b.length - a.length);
-      for (const pName of sorted) {
-        const uName = pName.slice(prefix.length);
-        content = content.replace(new RegExp('/' + escapeRegex(pName) + '(?=[^a-zA-Z0-9_-]|$)', 'g'), '/' + uName);
-        content = content.replace(new RegExp('(the) ' + escapeRegex(pName) + ' skill', 'gi'), '$1 ' + uName + ' skill');
-      }
-      writeFileSync(skillMd, content);
-    }
-  }
-}
-console.log(JSON.stringify(readdirSync(skillsDir)));
-    `);
-    const output = JSON.parse(execSync(`node ${script}`, { encoding: 'utf8' }));
-    expect(output).toContain('audit');
-    expect(output).toContain('polish');
-    expect(output).toContain('impeccable');
-    expect(output).not.toContain('i-audit');
-
-    // Verify content was un-prefixed
-    const content = readFileSync(join(tmp, '.claude', 'skills', 'audit', 'SKILL.md'), 'utf8');
+    const content = readFileSync(join(tmp, '.codex', 'skills', 'audit', 'SKILL.md'), 'utf8');
     expect(content).toContain('name: audit');
-    expect(content).toContain('/audit');
-    expect(content).toContain('/polish');
+    expect(content).toContain('$audit');
+    expect(content).toContain('$polish');
     expect(content).toContain('the impeccable skill');
-    expect(content).not.toContain('/i-audit');
-    expect(content).not.toContain('i-impeccable');
   });
 
-  test('re-applying prefix restores original state', () => {
-    // Now re-apply using the same helper from the rename test
-    const script = join(tmp, '_reprefix.mjs');
-    writeFileSync(script, `
-import { existsSync, readdirSync, readFileSync, statSync, lstatSync, renameSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+  test('prefixing only mutates the codex skill tree', () => {
+    createFakeCodexSkills(tmp, ['audit']);
+    const otherSkillDir = join(tmp, '.legacy', 'skills', 'audit');
+    mkdirSync(otherSkillDir, { recursive: true });
+    writeFileSync(join(otherSkillDir, 'SKILL.md'), '---\nname: audit\n---\n');
 
-function escapeRegex(str) { return str.replace(/[.*+?^$\{\\}()|[\\]\\\\]/g, '\\\\$&'); }
+    renameSkillsWithPrefix(tmp, 'i-');
 
-const root = ${JSON.stringify(tmp)};
-const prefix = 'i-';
-const skillsDir = join(root, '.claude', 'skills');
-const allNames = readdirSync(skillsDir).filter(n => {
-  const full = join(skillsDir, n);
-  try { return statSync(full).isDirectory() && existsSync(join(full, 'SKILL.md')); } catch { return false; }
-});
-
-for (const name of allNames) {
-  if (name.startsWith(prefix)) continue;
-  const src = join(skillsDir, name);
-  const dest = join(skillsDir, prefix + name);
-  const ls = lstatSync(src);
-  if (ls.isSymbolicLink() || !ls.isDirectory()) continue;
-  renameSync(src, dest);
-  let content = readFileSync(join(dest, 'SKILL.md'), 'utf8');
-  content = content.replace(/^name:\\s*(.+)$/m, (_, n) => 'name: ' + prefix + n.trim());
-  const sorted = [...allNames].sort((a, b) => b.length - a.length);
-  for (const n of sorted) {
-    content = content.replace(new RegExp('/' + '(?=' + escapeRegex(n) + '(?:[^a-zA-Z0-9_-]|$))', 'g'), '/' + prefix);
-    content = content.replace(new RegExp('(the) ' + escapeRegex(n) + ' skill', 'gi'), (_, art) => art + ' ' + prefix + n + ' skill');
-  }
-  writeFileSync(join(dest, 'SKILL.md'), content);
-}
-console.log(JSON.stringify(readdirSync(skillsDir)));
-    `);
-    const output = JSON.parse(execSync(`node ${script}`, { encoding: 'utf8' }));
-    expect(output).toContain('i-audit');
-    expect(output).toContain('i-polish');
-    expect(output).toContain('i-impeccable');
-    expect(output).not.toContain('audit');
-
-    // Verify content was re-prefixed
-    const content = readFileSync(join(tmp, '.claude', 'skills', 'i-audit', 'SKILL.md'), 'utf8');
-    expect(content).toContain('name: i-audit');
-    expect(content).toContain('/i-polish');
-    expect(content).toContain('the i-impeccable skill');
-  });
-});
-
-// ─── Full install e2e (with real npx skills) ─────────────────────────────────
-
-let hasNpxSkills = false;
-try {
-  execSync('npx skills --version', { encoding: 'utf8', timeout: 15000, stdio: 'pipe' });
-  hasNpxSkills = true;
-} catch {}
-
-const describeNpx = hasNpxSkills ? describe : describe.skip;
-
-describeNpx('skills install: full e2e with npx skills', () => {
-  let tmp;
-
-  beforeAll(() => {
-    tmp = mkdtempSync(join(tmpdir(), 'imp-test-full-'));
-    execSync('git init', { cwd: tmp });
+    expect(existsSync(join(tmp, '.legacy', 'skills', 'audit', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(tmp, '.legacy', 'skills', 'i-audit', 'SKILL.md'))).toBe(false);
   });
 
-  afterAll(() => {
-    if (tmp) rmSync(tmp, { recursive: true, force: true });
+  test('prefixing can be scoped to bundle-managed skills only', () => {
+    createFakeCodexSkills(tmp, ['audit', 'impeccable']);
+    const customSkillDir = join(tmp, '.codex', 'skills', 'custom');
+    mkdirSync(customSkillDir, { recursive: true });
+    writeFileSync(join(customSkillDir, 'SKILL.md'), '---\nname: custom\n---\nRun $custom.\n');
+
+    const renamed = renameSkillsWithPrefix(tmp, 'i-', ['audit', 'impeccable']);
+
+    expect(renamed).toBe(2);
+    expect(existsSync(join(tmp, '.codex', 'skills', 'i-audit', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(tmp, '.codex', 'skills', 'i-impeccable', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(tmp, '.codex', 'skills', 'custom', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(tmp, '.codex', 'skills', 'i-custom', 'SKILL.md'))).toBe(false);
   });
 
-  test('installs skills into a fresh project', () => {
-    const output = run('skills install -y', { cwd: tmp });
-    expect(output).toContain('Done!');
+  test('plugin manifest drift marks the install as outdated', () => {
+    createFakeCodexSkills(tmp, ['audit', 'impeccable']);
+    mkdirSync(join(tmp, '.codex-plugin'), { recursive: true });
+    writeFileSync(join(tmp, '.codex-plugin', 'plugin.json'), '{"version":"2.1.7"}\n');
 
-    const hasSkills = ['.claude', '.cursor'].some(d => {
-      const dir = join(tmp, d, 'skills');
-      return existsSync(dir) && readdirSync(dir).length > 0;
-    });
-    expect(hasSkills).toBe(true);
-  }, 90000);
+    const bundleRoot = join(tmp, 'bundle');
+    createFakeCodexSkills(bundleRoot, ['audit', 'impeccable']);
+    mkdirSync(join(bundleRoot, '.codex-plugin'), { recursive: true });
+    writeFileSync(join(bundleRoot, '.codex-plugin', 'plugin.json'), '{"version":"2.1.8"}\n');
 
-  test('install with --prefix= renames all skills', () => {
-    const output = run('skills install -y --force --prefix=x-', { cwd: tmp });
+    expect(isUpToDate(tmp, bundleRoot)).toBe(false);
+  });
 
-    // Find the provider that has skills
-    let found = false;
-    for (const d of ['.claude', '.cursor', '.gemini', '.codex', '.agents', '.kiro']) {
-      const dir = join(tmp, d, 'skills');
-      if (!existsSync(dir)) continue;
-      const skills = readdirSync(dir);
-      if (skills.length === 0) continue;
-      found = true;
-      const prefixed = skills.filter(s => s.startsWith('x-'));
-      // All skills should be prefixed
-      expect(prefixed.length).toBe(skills.length);
-      break;
-    }
-    expect(found).toBe(true);
-  }, 90000);
+  test('bundled script drift marks the install as outdated', () => {
+    createFakeCodexSkills(tmp, ['impeccable']);
+    mkdirSync(join(tmp, '.codex', 'skills', 'impeccable', 'scripts'), { recursive: true });
+    writeFileSync(
+      join(tmp, '.codex', 'skills', 'impeccable', 'scripts', 'cleanup-deprecated.mjs'),
+      'export const version = "local";\n'
+    );
+
+    const bundleRoot = join(tmp, 'bundle');
+    createFakeCodexSkills(bundleRoot, ['impeccable']);
+    mkdirSync(join(bundleRoot, '.codex', 'skills', 'impeccable', 'scripts'), { recursive: true });
+    writeFileSync(
+      join(bundleRoot, '.codex', 'skills', 'impeccable', 'scripts', 'cleanup-deprecated.mjs'),
+      'export const version = "bundle";\n'
+    );
+
+    expect(isUpToDate(tmp, bundleRoot)).toBe(false);
+  });
+
+  test('retired managed skills mark the install as outdated', () => {
+    createFakeCodexSkills(tmp, ['audit', 'impeccable']);
+    const staleSkillDir = join(tmp, '.codex', 'skills', 'normalize');
+    mkdirSync(staleSkillDir, { recursive: true });
+    writeFileSync(join(staleSkillDir, 'SKILL.md'), '---\nname: normalize\n---\n');
+
+    const bundleRoot = join(tmp, 'bundle');
+    createFakeCodexSkills(bundleRoot, ['audit', 'impeccable']);
+
+    expect(isUpToDate(tmp, bundleRoot)).toBe(false);
+  });
+
+  test('cli install rejects unsafe prefixes without creating a Codex skill tree', () => {
+    const result = runSkillsCli(tmp, ['install', '--yes', '--prefix=../x-']);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('Install failed');
+    expect(existsSync(join(tmp, '.codex'))).toBe(false);
+  });
+
+  test('cli install fails atomically when another Codex plugin already owns plugin.json', () => {
+    mkdirSync(join(tmp, '.codex-plugin'), { recursive: true });
+    writeFileSync(
+      join(tmp, '.codex-plugin', 'plugin.json'),
+      JSON.stringify({ name: 'other-plugin', repository: 'https://example.com/other' }, null, 2)
+    );
+    mkdirSync(join(tmp, '.codex', 'skills', 'custom'), { recursive: true });
+    writeFileSync(join(tmp, '.codex', 'skills', 'custom', 'SKILL.md'), '---\nname: custom\n---\n');
+
+    const result = runSkillsCli(tmp, ['install', '--yes']);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('another Codex plugin');
+    expect(readdirSync(join(tmp, '.codex', 'skills')).sort()).toEqual(['custom']);
+    expect(existsSync(join(tmp, '.codex', 'skills', 'impeccable'))).toBe(false);
+  });
+
+  test('bundle install preserves custom unprefixed skill names when managed skills are prefixed', () => {
+    createFakeCodexSkills(tmp, ['audit', 'impeccable']);
+    renameSkillsWithPrefix(tmp, 'i-', ['audit', 'impeccable']);
+
+    const customSkillDir = join(tmp, '.codex', 'skills', 'audit');
+    mkdirSync(customSkillDir, { recursive: true });
+    writeFileSync(join(customSkillDir, 'SKILL.md'), '---\nname: audit\n---\nRun $audit.\n');
+
+    const bundleRoot = join(tmp, 'bundle');
+    createFakeCodexSkills(bundleRoot, ['audit', 'impeccable']);
+
+    expect(() => installBundleIntoRoot(tmp, bundleRoot, 'i-')).not.toThrow();
+    expect(existsSync(join(tmp, '.codex', 'skills', 'audit', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(tmp, '.codex', 'skills', 'i-audit', 'SKILL.md'))).toBe(true);
+  });
 });

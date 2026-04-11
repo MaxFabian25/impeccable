@@ -9,7 +9,7 @@ license: Apache 2.0. Based on Anthropic's frontend-design skill. See NOTICE.md f
 <post-update-cleanup>
 BEFORE doing any design work, run this one-time maintenance step. Tell the user:
 
-> **Impeccable was updated.** A few skills were renamed or merged in this version (e.g. `/arrange` is now `/layout`, `/normalize` was folded into `/polish`). I'll clean up the old skill files so they don't clutter your project. This only runs once after an update.
+> **Impeccable was updated.** A few skills were renamed or merged in this version (e.g. `$arrange` is now `$layout`, `$normalize` was folded into `$polish`). I'll clean up the old skill files so they don't clutter your project. This only runs once after an update.
 
 Then run:
 
@@ -39,7 +39,7 @@ Individual skills may require additional context. Check the skill's preparation 
 
 **Gathering order:**
 1. **Check current instructions (instant)**: If your loaded instructions already contain a **Design Context** section, proceed immediately.
-2. **Check .impeccable.md (fast)**: If not in instructions, read `.impeccable.md` from the project root. If it exists and contains the required context, proceed.
+2. **Check project-root {{config_file}} (fast)**: If not in instructions, read `{{config_file}}` from the project root. If it exists and contains the required context, proceed.
 3. **Run impeccable teach (REQUIRED)**: If neither source has context, you MUST run {{command_prefix}}impeccable teach NOW before doing anything else. Do NOT skip this step. Do NOT attempt to infer context from the codebase instead.
 
 ---
@@ -308,7 +308,7 @@ Note what you've learned and what remains unclear.
 
 ### Step 2: Ask UX-Focused Questions
 
-{{ask_instruction}} Focus only on what you couldn't infer from the codebase:
+Ask only about what you could not infer from the codebase:
 
 #### Users & Purpose
 - Who uses this? What's their context when using it?
@@ -351,9 +351,7 @@ Synthesize your findings and the user's answers into a `## Design Context` secti
 [3-5 principles derived from the conversation that should guide all design decisions]
 ```
 
-Write this section to `.impeccable.md` in the project root. If the file already exists, update the Design Context section in place.
-
-Then {{ask_instruction}} whether they'd also like the Design Context appended to {{config_file}}. If yes, append or update the section there as well.
+Write this section to `{{config_file}}` in the project root. If the file already exists, update the Design Context section in place.
 
 Confirm completion and summarize the key design principles that will now guide all future work.
 

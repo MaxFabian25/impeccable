@@ -1,6 +1,14 @@
 import { renderCommandDemo, initCommandDemo } from "../demo-renderer.js";
 import { initSplitCompare } from "../effects/split-compare.js";
-import { commandProcessSteps, commandCategories, commandRelationships, betaCommands } from "../data.js";
+import {
+    commandProcessSteps,
+    commandCategories,
+    commandRelationships,
+    commandCategoryLabels,
+    commandCategoryOrder,
+    commandCategoryCommandOrder,
+    betaCommands,
+} from "../data.js";
 
 // Track current split instance and command for cleanup
 let currentSplitInstance = null;
@@ -56,48 +64,22 @@ let magazineState = {
     intersectionObserver: null
 };
 
-const categoryOrder = ['diagnostic', 'quality', 'intensity', 'adaptation', 'enhancement', 'system'];
-const categoryLabels = {
-    'create': 'Create',
-    'evaluate': 'Evaluate',
-    'refine': 'Refine',
-    'simplify': 'Simplify',
-    'harden': 'Harden',
-    'system': 'System'
-};
+const categoryLabels = commandCategoryLabels;
 
 function renderDesktopLayout(container, commands) {
     magazineState.commands = commands;
 
     let startIndex = -1;
 
-    // Filter out deprecated shims and sub-commands (no standalone demos)
-    const deprecated = new Set(['teach-impeccable', 'frontend-design', 'arrange', 'normalize', 'onboard', 'extract', 'impeccable craft', 'impeccable teach', 'impeccable extract']);
-    const filteredCommands = commands.filter(c => !deprecated.has(c.id));
-
-    const categoryOrder = ['create', 'evaluate', 'refine', 'simplify', 'harden', 'system'];
-    const categoryLabelsShort = {
-        'create': 'Create', 'evaluate': 'Evaluate', 'refine': 'Refine',
-        'simplify': 'Simplify', 'harden': 'Harden', 'system': 'System'
-    };
-    // Preferred order within each category (unlisted commands append at end)
-    const categoryCommandOrder = {
-        'create': ['impeccable', 'shape'],
-        'evaluate': ['critique', 'audit'],
-        'refine': ['typeset', 'arrange', 'colorize', 'animate', 'delight', 'bolder', 'quieter', 'onboard', 'overdrive'],
-        'simplify': ['distill', 'clarify', 'adapt'],
-        'harden': ['normalize', 'polish', 'optimize', 'harden'],
-        'system': ['extract']
-    };
+    const filteredCommands = commands.filter(c => commandCategories[c.id]);
     const grouped = {};
     filteredCommands.forEach(cmd => {
         const cat = commandCategories[cmd.id] || 'other';
         if (!grouped[cat]) grouped[cat] = [];
         grouped[cat].push(cmd);
     });
-    // Sort each group by preferred order
     Object.entries(grouped).forEach(([cat, cmds]) => {
-        const order = categoryCommandOrder[cat] || [];
+        const order = commandCategoryCommandOrder[cat] || [];
         cmds.sort((a, b) => {
             const ai = order.indexOf(a.id);
             const bi = order.indexOf(b.id);
@@ -106,9 +88,9 @@ function renderDesktopLayout(container, commands) {
     });
     const orderedCommands = [];
     const headerIndices = [];
-    categoryOrder.forEach(cat => {
+    commandCategoryOrder.forEach(cat => {
         if (!grouped[cat]) return;
-        headerIndices.push({ index: orderedCommands.length, label: categoryLabelsShort[cat] || cat });
+        headerIndices.push({ index: orderedCommands.length, label: categoryLabels[cat] || cat });
         orderedCommands.push(...grouped[cat]);
     });
     // Use ordered list for everything
@@ -133,7 +115,7 @@ function renderDesktopLayout(container, commands) {
     const fisheyeHTML = filteredCommands.map((cmd, i) => {
         const cat = commandCategories[cmd.id] || 'other';
         const isBeta = betaCommands.includes(cmd.id);
-        return `<button class="fisheye-item${i === startIndex ? ' is-active' : ''}" data-index="${i}" data-id="${cmd.id}" data-cat="${cat}"><span class="fisheye-slash">/</span>${cmd.id}${isBeta ? '<span class="fisheye-beta">BETA</span>' : ''}</button>`;
+        return `<button class="fisheye-item${i === startIndex ? ' is-active' : ''}" data-index="${i}" data-id="${cmd.id}" data-cat="${cat}"><span class="fisheye-slash">$</span>${cmd.id}${isBeta ? '<span class="fisheye-beta">BETA</span>' : ''}</button>`;
     }).join('');
 
     container.innerHTML = `
@@ -168,21 +150,21 @@ function renderSpread(cmd, index, isActive) {
                 <div class="spread-flow">
                     <span class="spread-flow-icon">&#8596;</span>
                     <span class="spread-flow-label">pairs with</span>
-                    <span class="spread-flow-cmd">/${relationship.pairs}</span>
+                    <span class="spread-flow-cmd">$${relationship.pairs}</span>
                 </div>`;
         } else if (relationship.leadsTo && relationship.leadsTo.length > 0) {
             flowHTML = `
                 <div class="spread-flow">
                     <span class="spread-flow-icon">&#8594;</span>
                     <span class="spread-flow-label">leads to</span>
-                    ${relationship.leadsTo.map(c => `<span class="spread-flow-cmd">/${c}</span>`).join(' ')}
+                    ${relationship.leadsTo.map(c => `<span class="spread-flow-cmd">$${c}</span>`).join(' ')}
                 </div>`;
         } else if (relationship.combinesWith && relationship.combinesWith.length > 0) {
             flowHTML = `
                 <div class="spread-flow">
                     <span class="spread-flow-icon">+</span>
                     <span class="spread-flow-label">combines with</span>
-                    ${relationship.combinesWith.map(c => `<span class="spread-flow-cmd">/${c}</span>`).join(' ')}
+                    ${relationship.combinesWith.map(c => `<span class="spread-flow-cmd">$${c}</span>`).join(' ')}
                 </div>`;
         }
         if (!flowHTML && relationship.flow) {
@@ -197,7 +179,7 @@ function renderSpread(cmd, index, isActive) {
         <div class="magazine-spread${isActive ? ' active' : ''}" data-index="${index}" data-category="${cat}" data-id="${cmd.id}" id="cmd-${cmd.id}">
             <div class="spread-identity">
                 <span class="spread-category-label">${categoryLabels[cat] || cat}</span>
-                <h3 class="spread-command-name"><span class="spread-slash">/</span>${cmd.id}${isBeta ? '<span class="beta-badge">BETA</span>' : ''}</h3>
+                <h3 class="spread-command-name"><span class="spread-slash">$</span>${cmd.id}${isBeta ? '<span class="beta-badge">BETA</span>' : ''}</h3>
                 <p class="spread-description">${cmd.description}</p>
                 ${flowHTML}
             </div>
@@ -468,7 +450,7 @@ function renderMobileLayout(container, commands) {
     // Build carousel pills
     const carouselHTML = commands.map((cmd, i) => `
         <button class="mobile-cmd-pill${i === 0 ? ' active' : ''}" data-id="${cmd.id}">
-            /${cmd.id}
+            $${cmd.id}
         </button>
     `).join('');
 
@@ -479,15 +461,15 @@ function renderMobileLayout(container, commands) {
 
         if (relationship) {
             if (relationship.pairs) {
-                relationshipHTML = `<div class="mobile-cmd-rel">↔ pairs with <code>/${relationship.pairs}</code></div>`;
+                relationshipHTML = `<div class="mobile-cmd-rel">↔ pairs with <code>$${relationship.pairs}</code></div>`;
             } else if (relationship.leadsTo && relationship.leadsTo.length > 0) {
-                relationshipHTML = `<div class="mobile-cmd-rel">→ leads to ${relationship.leadsTo.map(c => `<code>/${c}</code>`).join(', ')}</div>`;
+                relationshipHTML = `<div class="mobile-cmd-rel">→ leads to ${relationship.leadsTo.map(c => `<code>$${c}</code>`).join(', ')}</div>`;
             }
         }
 
         return `
             <div class="mobile-cmd-info${i === 0 ? ' active' : ''}" data-id="${cmd.id}">
-                <h3 class="mobile-cmd-name">/${cmd.id}</h3>
+                <h3 class="mobile-cmd-name">$${cmd.id}</h3>
                 <p class="mobile-cmd-desc">${cmd.description}</p>
                 ${relationshipHTML}
             </div>
@@ -640,4 +622,3 @@ async function updateSourceContent(cmdId) {
         contentEl.innerHTML = '<span class="source-loading">Source not available</span>';
     }
 }
-

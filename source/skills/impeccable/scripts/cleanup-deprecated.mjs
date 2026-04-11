@@ -9,8 +9,7 @@
  *   node {{scripts_path}}/cleanup-deprecated.mjs
  *
  * What it does:
- *   1. Finds every harness-specific skills directory (.claude/skills,
- *      .cursor/skills, .agents/skills, etc.).
+ *   1. Finds the Codex skills directory (`.codex/skills`).
  *   2. For each deprecated skill name (with and without i- prefix),
  *      checks if the directory exists and its SKILL.md mentions
  *      "impeccable" (to avoid deleting unrelated user skills).
@@ -24,18 +23,17 @@ import { join, resolve } from 'node:path';
 // Skills that were renamed, merged, or folded in v2.0 and v2.1.
 const DEPRECATED_NAMES = [
   'frontend-design',    // renamed to impeccable (v2.0)
-  'teach-impeccable',   // folded into /impeccable teach (v2.0)
+  'teach-impeccable',   // folded into $impeccable teach (v2.0)
   'arrange',            // renamed to layout (v2.1)
   'normalize',          // merged into polish (v2.1)
   'onboard',            // merged into harden (v2.1)
-  'extract',            // merged into /impeccable extract (v2.1)
+  'extract',            // merged into $impeccable extract (v2.1)
 ];
 
-// All known harness directories that may contain a skills/ subfolder.
-const HARNESS_DIRS = [
-  '.claude', '.cursor', '.gemini', '.codex', '.agents',
-  '.trae', '.trae-cn', '.pi', '.opencode', '.kiro', '.rovodev',
-];
+const IMPECCABLE_SOURCE = 'MaxFabian25/impeccable';
+
+// Codex is the only supported skill surface in this fork.
+const SKILL_CONFIG_DIRS = ['.codex'];
 
 /**
  * Walk up from startDir until we find a directory that looks like a
@@ -89,13 +87,13 @@ export function buildTargetNames() {
 }
 
 /**
- * Find every skills directory across all harness dirs in the project.
+ * Find every skills directory across the supported Codex dirs in the project.
  * Returns absolute paths that exist on disk.
  */
 export function findSkillsDirs(projectRoot) {
   const dirs = [];
-  for (const harness of HARNESS_DIRS) {
-    const candidate = join(projectRoot, harness, 'skills');
+  for (const configDir of SKILL_CONFIG_DIRS) {
+    const candidate = join(projectRoot, configDir, 'skills');
     if (existsSync(candidate)) {
       dirs.push(candidate);
     }
@@ -104,7 +102,7 @@ export function findSkillsDirs(projectRoot) {
 }
 
 /**
- * Remove deprecated skill directories/symlinks from all harness dirs.
+ * Remove deprecated skill directories/symlinks from the Codex skill dir.
  * Returns an array of paths that were deleted.
  */
 export function removeDeprecatedSkills(projectRoot) {
@@ -150,7 +148,7 @@ export function removeDeprecatedSkills(projectRoot) {
 
 /**
  * Remove deprecated entries from skills-lock.json.
- * Only removes entries whose source is "pbakaus/impeccable".
+ * Only removes entries whose source is the current fork.
  * Returns the list of removed skill names.
  */
 export function cleanSkillsLock(projectRoot) {
@@ -173,7 +171,7 @@ export function cleanSkillsLock(projectRoot) {
     const entry = lock.skills[name];
     if (!entry) continue;
     // Only remove if it belongs to impeccable
-    if (entry.source === 'pbakaus/impeccable') {
+    if (entry.source === IMPECCABLE_SOURCE) {
       delete lock.skills[name];
       removed.push(name);
     }

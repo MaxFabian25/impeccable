@@ -2,12 +2,12 @@ import path from 'path';
 import { cleanDir, ensureDir, writeFile, generateYamlFrontmatter, replacePlaceholders, prefixSkillReferences } from '../utils.js';
 
 /**
- * Shared transformer logic for all providers.
+ * Shared transformer logic for provider bundles.
  *
  * @param {Object} config - Provider-specific configuration
- * @param {string} config.provider - Provider key for placeholders (e.g., 'claude-code')
- * @param {string} config.displayName - Display name for logging (e.g., 'Claude Code')
- * @param {string} config.configDir - Dot-directory name (e.g., '.claude')
+ * @param {string} config.provider - Provider key for placeholders (e.g., 'codex')
+ * @param {string} config.displayName - Display name for logging (e.g., 'Codex CLI')
+ * @param {string} config.configDir - Dot-directory name (e.g., '.codex')
  * @param {Function} config.buildFrontmatter - (skill, skillName) => frontmatter object
  * @param {Function} [config.transformBody] - Optional (body, skill) => transformed body
  * @param {Array} skills - All skills
@@ -37,10 +37,8 @@ export function transformProvider(config, skills, distDir, options = {}) {
 
     let skillBody = replacePlaceholders(skill.body, provider, commandNames);
 
-    // Replace {{scripts_path}} with provider-aware path to skill's scripts directory
-    const scriptsPath = provider === 'claude-code'
-      ? '${CLAUDE_PLUGIN_ROOT}/scripts'
-      : `${configDir}/skills/${skillName}/scripts`;
+    // Replace {{scripts_path}} with the provider bundle's scripts directory.
+    const scriptsPath = `${configDir}/skills/${skillName}/scripts`;
     skillBody = skillBody.replace(/\{\{scripts_path\}\}/g, scriptsPath);
 
     if (prefix) skillBody = prefixSkillReferences(skillBody, prefix, allSkillNames);

@@ -17,7 +17,7 @@
  *
  *  3. LLM_ONLY_RULES: DON'T lines from source/skills/impeccable/SKILL.md
  *     that do not map to any detection rule. These can only be caught by
- *     the /critique skill's LLM pass. They appear on the /anti-patterns
+ *     the $critique skill's LLM pass. They appear on the /anti-patterns
  *     page alongside detected rules with an 'llm' layer badge.
  */
 
@@ -31,7 +31,7 @@
  *  'browser': requires real browser layout (getBoundingClientRect with
  *             actual dimensions). Works via Puppeteer or the browser
  *             extension, NOT via the CLI on raw HTML.
- *  'llm':     no deterministic detector; only caught by /critique's LLM
+ *  'llm':     no deterministic detector; only caught by $critique's LLM
  *             assessment pass.
  *
  * Per tests/detect-antipatterns-browser.test.mjs: only two rules genuinely
@@ -75,7 +75,7 @@ export const LAYER_LABELS = {
 export const LAYER_DESCRIPTIONS = {
   cli: 'Deterministic. Runs from `npx impeccable detect` on files, no browser required.',
   browser: 'Deterministic, but needs real browser layout. Runs via the browser extension or Puppeteer, not the plain CLI.',
-  llm: 'Not caught by any deterministic detector. Flagged by /critique during its LLM design review.',
+  llm: 'Not caught by any deterministic detector. Flagged by $critique during its LLM design review.',
 };
 
 // ─── Visual examples ─────────────────────────────────────────────────
@@ -164,9 +164,9 @@ export const VISUAL_EXAMPLES = {
 };
 
 /**
- * Anti-patterns that live in the /impeccable skill's DON'T list but
+ * Anti-patterns that live in the $impeccable skill's DON'T list but
  * don't have a deterministic detector. These can only be caught by
- * /critique running an LLM assessment pass.
+ * $critique running an LLM assessment pass.
  *
  * Each entry looks like a detection rule: id, category, name,
  * description, skillSection. The generator merges these into the

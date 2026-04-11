@@ -4,9 +4,9 @@ tagline: "Tone down designs that are shouting without losing their intent."
 
 ## When to use it
 
-`/quieter` is the counterweight to `/bolder`. Reach for it when an interface is visually aggressive, overstimulating, or trying to do too many things at full volume. Neon on dark, gradient text everywhere, 6 accent colors, everything animated, 20px shadows. Use quieter when the design needs to breathe and you want refinement without losing the point of view.
+`$quieter` is the counterweight to `$bolder`. Reach for it when an interface is visually aggressive, overstimulating, or trying to do too many things at full volume. Neon on dark, gradient text everywhere, 6 accent colors, everything animated, 20px shadows. Use quieter when the design needs to breathe and you want refinement without losing the point of view.
 
-Also useful after `/bolder` goes a little too far.
+Also useful after `$bolder` goes a little too far.
 
 ## How it works
 
@@ -22,7 +22,7 @@ The skill preserves the design's intent. If the original had a point of view, th
 ## Try it
 
 ```
-/quieter the pricing page
+$quieter the pricing page
 ```
 
 Typical diff:
@@ -37,4 +37,4 @@ Typical diff:
 
 - **Over-applying.** Quieter can strip personality if you run it on something that was already measured. Use it when the design is too loud, not when it is correctly assertive.
 - **Confusing quieter with distill.** Quieter reduces intensity. Distill removes elements. They are different moves.
-- **Running it in response to a critique that says "too busy".** Busy usually means too many things, not too loud. Try `/distill` first.
+- **Running it in response to a critique that says "too busy".** Busy usually means too many things, not too loud. Try `$distill` first.

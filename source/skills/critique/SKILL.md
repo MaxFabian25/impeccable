@@ -17,7 +17,7 @@ Invoke {{command_prefix}}impeccable, which contains design principles, anti-patt
 
 Launch two independent assessments. **Neither must see the other's output** to avoid bias.
 
-You SHOULD delegate each assessment to a separate sub-agent for independence. Use your environment's agent spawning mechanism (e.g., Claude Code's `Agent` tool, or Codex's subagent spawning). Sub-agents should return their findings as structured text. Do NOT output findings to the user yet.
+You SHOULD delegate each assessment to a separate sub-agent for independence. Use your environment's subagent spawning mechanism. Sub-agents should return their findings as structured text. Do NOT output findings to the user yet.
 
 If sub-agents are not available in the current environment, complete each assessment sequentially, writing findings to internal notes before proceeding.
 
@@ -179,7 +179,7 @@ Provocative questions that might unlock better solutions:
 
 ### Step 4: Ask the User
 
-**After presenting findings**, use targeted questions based on what was actually found. {{ask_instruction}} These answers will shape the action plan.
+**After presenting findings**, ask targeted follow-up questions based on what was actually found. These answers will shape the action plan.
 
 Ask questions along these lines (adapt to the specific findings; do NOT ask generic questions):
 

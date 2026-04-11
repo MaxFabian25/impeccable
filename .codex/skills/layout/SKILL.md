@@ -1,7 +1,7 @@
 ---
 name: layout
 description: Improve layout, spacing, and visual rhythm. Fixes monotonous grids, inconsistent spacing, and weak visual hierarchy. Use when the user mentions layout feeling off, spacing issues, visual hierarchy, crowded UI, alignment problems, or wanting better composition.
-version: 2.1.1
+version: 2.1.7
 argument-hint: "[target]"
 ---
 
