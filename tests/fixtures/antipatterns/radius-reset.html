@@ -11,10 +11,19 @@
       background: white;
       padding: 16px;
       border-top: 4px solid var(--brand);
+    }
+    .rounded-base {
       border-radius: 8px;
     }
     .square {
       border-radius: 0;
+    }
+    #specificity-reset {
+      border-top: 4px solid var(--brand);
+      border-radius: 0;
+    }
+    .low-specificity-radius {
+      border-radius: 12px;
     }
     h3 { margin: 0 0 6px; font-size: 18px; color: #0f172a; }
     p { margin: 0; color: #475569; }
@@ -22,9 +31,14 @@
 </head>
 <body>
   <div class="stack">
-    <div class="card square">
-      <h3>Square border card</h3>
+    <div class="card rounded-base square">
+      <h3>Equal specificity reset</h3>
       <p>A later class clears the earlier rounded border radius.</p>
+    </div>
+
+    <div id="specificity-reset" class="card low-specificity-radius">
+      <h3>Higher specificity reset</h3>
+      <p>An id-based reset must beat a later lower-specificity class radius.</p>
     </div>
   </div>
 </body>

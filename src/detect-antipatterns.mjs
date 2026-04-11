@@ -1286,7 +1286,7 @@ function checkElementBorders(tag, style, overrides) {
       colors[s] = overrides[s].color;
     }
   }
-  const radius = resolveRadius(style.borderRadius, overrides?.radius);
+  const radius = resolveRadius(style.borderRadius, overrides?.radius?.value);
   return checkBorders(tag, widths, colors, radius);
 }
 
@@ -1343,7 +1343,7 @@ function checkElementIconTile(el, tag, window, styleOverrides) {
     siblingBgColor: parseRgb(sibStyle.backgroundColor),
     siblingBgImage: sibStyle.backgroundImage || '',
     siblingBorderWidth: parseFloat(sibStyle.borderTopWidth) || 0,
-    siblingBorderRadius: resolveRadius(sibStyle.borderRadius, siblingOverride?.radius),
+    siblingBorderRadius: resolveRadius(sibStyle.borderRadius, siblingOverride?.radius?.value),
     hasIconChild: !!iconChild || hasInlineEmojiIcon,
     iconChildWidth: iconWidth,
   });
@@ -2478,6 +2478,99 @@ function resolveRadius(styleRadius, overrideRadius) {
   return 0;
 }
 
+function splitSelectorList(selectorText) {
+  const selectors = [];
+  let current = '';
+  let bracketDepth = 0;
+  let parenDepth = 0;
+  let quote = '';
+
+  for (const ch of selectorText) {
+    if (quote) {
+      current += ch;
+      if (ch === quote) quote = '';
+      continue;
+    }
+
+    if (ch === '"' || ch === '\'') {
+      quote = ch;
+      current += ch;
+      continue;
+    }
+
+    if (ch === '[') bracketDepth++;
+    if (ch === ']') bracketDepth = Math.max(0, bracketDepth - 1);
+    if (ch === '(') parenDepth++;
+    if (ch === ')') parenDepth = Math.max(0, parenDepth - 1);
+
+    if (ch === ',' && bracketDepth === 0 && parenDepth === 0) {
+      if (current.trim()) selectors.push(current.trim());
+      current = '';
+      continue;
+    }
+
+    current += ch;
+  }
+
+  if (current.trim()) selectors.push(current.trim());
+  return selectors;
+}
+
+function computeSelectorSpecificity(selector) {
+  let working = selector
+    .replace(/"[^"]*"|'[^']*'/g, '')
+    .replace(/:where\((?:[^()]|\([^()]*\))*\)/g, '');
+
+  const ids = (working.match(/#[\w-]+/g) || []).length;
+  const classLike =
+    (working.match(/\.[\w-]+/g) || []).length +
+    (working.match(/\[[^\]]+\]/g) || []).length +
+    (working.match(/:(?!:)[\w-]+(?:\([^)]*\))?/g) || []).length;
+  const pseudoElements = (working.match(/::[\w-]+(?:\([^)]*\))?/g) || []).length;
+
+  working = working
+    .replace(/#[\w-]+/g, ' ')
+    .replace(/\.[\w-]+/g, ' ')
+    .replace(/\[[^\]]+\]/g, ' ')
+    .replace(/::[\w-]+(?:\([^)]*\))?/g, ' ')
+    .replace(/:(?!:)[\w-]+(?:\([^)]*\))?/g, ' ');
+
+  const typeMatches = working.match(/(^|[\s>+~])([a-zA-Z][\w-]*|\*)/g) || [];
+  let typeCount = pseudoElements;
+  for (const match of typeMatches) {
+    const token = match.trim();
+    if (!token || token === '*') continue;
+    const parts = token.split(/[\s>+~]+/);
+    const last = parts[parts.length - 1];
+    if (last && last !== '*') typeCount++;
+  }
+
+  return { ids, classLike, typeCount };
+}
+
+function compareSelectorPriority(a, b) {
+  if (!b) return 1;
+  if (a.ids !== b.ids) return a.ids - b.ids;
+  if (a.classLike !== b.classLike) return a.classLike - b.classLike;
+  if (a.typeCount !== b.typeCount) return a.typeCount - b.typeCount;
+  return a.order - b.order;
+}
+
+function getWinningRulePriority(el, selectorText, order) {
+  const selectors = splitSelectorList(selectorText);
+  let best = null;
+  for (const selector of selectors) {
+    try {
+      if (!el.matches(selector)) continue;
+    } catch {
+      continue;
+    }
+    const priority = { ...computeSelectorSpecificity(selector), order };
+    if (compareSelectorPriority(priority, best) > 0) best = priority;
+  }
+  return best;
+}
+
 function buildStyleOverrideMap(document, window) {
   const map = new Map();
   const rootStyle = window.getComputedStyle(document.documentElement);
@@ -2524,6 +2617,19 @@ function buildStyleOverrideMap(document, window) {
     return chosen;
   }
 
+  function setSideOverride(entry, side, override, priority) {
+    const existing = entry[side];
+    if (!existing || compareSelectorPriority(priority, existing.priority) > 0) {
+      entry[side] = { ...override, priority };
+    }
+  }
+
+  function setRadiusOverride(entry, radius, priority) {
+    if (!entry.radius || compareSelectorPriority(priority, entry.radius.priority) > 0) {
+      entry.radius = { value: radius, priority };
+    }
+  }
+
   // Read from the per-property accessors on rule.style. jsdom preserves
   // each border-* shorthand it parsed, even when the overall cssText has
   // been truncated (e.g. a `border: 1px solid var(...)` followed by a
@@ -2537,12 +2643,14 @@ function buildStyleOverrideMap(document, window) {
     ['borderInlineEnd', 'Right'],
   ];
 
+  let ruleOrder = 0;
   for (const sheet of document.styleSheets) {
     let rules;
     try { rules = sheet.cssRules || []; } catch { continue; }
     for (const rule of rules) {
       // CSSStyleRule only; skip @media / @keyframes / @supports wrappers.
       if (rule.type !== 1 || !rule.style || !rule.selectorText) continue;
+      const order = ruleOrder++;
 
       const perSide = {};
       const radius = pickRadius(rule.style);
@@ -2591,18 +2699,15 @@ function buildStyleOverrideMap(document, window) {
       catch { continue; }
 
       for (const el of matched) {
-        const existing = map.get(el);
-        if (existing) {
-          // Later rules overwrite earlier ones — approximates source-order
-          // cascade for equal-specificity rules and is good enough for the
-          // uncontested var()-dropped sides we're trying to recover.
-          Object.assign(existing, perSide);
-          if (radius != null) existing.radius = radius;
-        } else {
-          const entry = { ...perSide };
-          if (radius != null) entry.radius = radius;
-          map.set(el, entry);
+        const priority = getWinningRulePriority(el, rule.selectorText, order);
+        if (!priority) continue;
+
+        const entry = map.get(el) || {};
+        for (const [side, override] of Object.entries(perSide)) {
+          setSideOverride(entry, side, override, priority);
         }
+        if (radius != null) setRadiusOverride(entry, radius, priority);
+        map.set(el, entry);
       }
     }
   }
