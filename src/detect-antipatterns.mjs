@@ -1286,7 +1286,8 @@ function checkElementBorders(tag, style, overrides) {
       colors[s] = overrides[s].color;
     }
   }
-  return checkBorders(tag, widths, colors, parseFloat(style.borderRadius) || 0);
+  const radius = parseFloat(style.borderRadius) || parseFloat(overrides?.radius) || 0;
+  return checkBorders(tag, widths, colors, radius);
 }
 
 function checkElementColors(el, style, tag, window) {
@@ -1310,10 +1311,11 @@ function checkElementColors(el, style, tag, window) {
   });
 }
 
-function checkElementIconTile(el, tag, window) {
+function checkElementIconTile(el, tag, window, styleOverrides) {
   if (!HEADING_TAGS.has(tag)) return [];
   const sibling = el.previousElementSibling;
   if (!sibling) return [];
+  const siblingOverride = styleOverrides?.get?.(sibling);
 
   const sibStyle = window.getComputedStyle(sibling);
   // jsdom doesn't lay out — read explicit pixel dimensions from CSS instead.
@@ -1341,7 +1343,7 @@ function checkElementIconTile(el, tag, window) {
     siblingBgColor: parseRgb(sibStyle.backgroundColor),
     siblingBgImage: sibStyle.backgroundImage || '',
     siblingBorderWidth: parseFloat(sibStyle.borderTopWidth) || 0,
-    siblingBorderRadius: parseFloat(sibStyle.borderRadius) || 0,
+    siblingBorderRadius: parseFloat(sibStyle.borderRadius) || parseFloat(siblingOverride?.radius) || 0,
     hasIconChild: !!iconChild || hasInlineEmojiIcon,
     iconChildWidth: iconWidth,
   });
@@ -2409,27 +2411,18 @@ function isFullPage(content) {
 }
 
 // ---------------------------------------------------------------------------
-// jsdom CSS-variable border override map
+// jsdom CSS override map
 // ---------------------------------------------------------------------------
 //
-// jsdom's CSSOM silently drops any border shorthand that contains a var()
-// reference — the computed style for the element then shows empty width,
-// empty style, and a default black color. That's enough to hide the most
-// common real-world side-tab pattern in AI-generated pages:
+// jsdom misses a few stylesheet-derived values we need on the Node path:
+//   * border shorthands containing CSS variables can disappear entirely
+//   * border colors can survive as literal `var(...)` strings
+//   * border-radius from matched stylesheet rules can come back empty
 //
-//   :root { --brand: #87a8ff; }
-//   .card { border-left: 5px solid var(--brand); border-radius: 4px; }
-//
-// Real browsers (and therefore the browser detector path) resolve var()
-// natively, so this only affects the Node jsdom path.
-//
-// This pre-pass walks the stylesheets, finds any rule whose per-side or
-// all-sides border property contains var(), resolves the var() against
-// :root-level custom properties (read from the documentElement's computed
-// style, which jsdom DOES handle correctly), and attaches the resolved
-// width+color to every element that matches the rule's selector. The
-// Node-side `checkElementBorders` adapter consumes that map as a fallback
-// whenever jsdom's computed style came back empty.
+// Real browsers resolve all of these correctly, so this pre-pass is scoped
+// to detectHtml() only. It walks stylesheets, resolves rule-level fallbacks,
+// and attaches the recovered values to every matching element. Node adapters
+// consume this map only when computed style data is missing.
 //
 // Limitations (intentional, to keep the pass simple):
 //   * Only :root-level custom properties are resolved. Scoped overrides on
@@ -2475,7 +2468,7 @@ function normalizeColorForCheck(value) {
   return v;
 }
 
-function buildBorderOverrideMap(document, window) {
+function buildStyleOverrideMap(document, window) {
   const map = new Map();
   const rootStyle = window.getComputedStyle(document.documentElement);
 
@@ -2496,6 +2489,26 @@ function buildBorderOverrideMap(document, window) {
     const m = text.trim().match(BORDER_SHORTHAND_RE);
     if (!m) return null;
     return { width: parseFloat(m[1]), color: normalizeColorForCheck(m[3]) };
+  }
+
+  function pickRadius(style) {
+    const candidates = [
+      style.borderRadius,
+      style.borderTopLeftRadius,
+      style.borderTopRightRadius,
+      style.borderBottomRightRadius,
+      style.borderBottomLeftRadius,
+    ].filter(Boolean);
+    let chosen = '';
+    let maxRadius = 0;
+    for (const value of candidates) {
+      const radius = parseFloat(value);
+      if (!Number.isNaN(radius) && radius > maxRadius) {
+        chosen = value.trim();
+        maxRadius = radius;
+      }
+    }
+    return chosen;
   }
 
   // Read from the per-property accessors on rule.style. jsdom preserves
@@ -2519,6 +2532,7 @@ function buildBorderOverrideMap(document, window) {
       if (rule.type !== 1 || !rule.style || !rule.selectorText) continue;
 
       const perSide = {};
+      const radius = pickRadius(rule.style);
 
       for (const [prop, side] of SIDE_PROPS) {
         const val = rule.style[prop];
@@ -2557,7 +2571,7 @@ function buildBorderOverrideMap(document, window) {
         if (!perSide[side]) perSide[side] = { width: 0, color: normalizeColorForCheck(resolved) };
       }
 
-      if (Object.keys(perSide).length === 0) continue;
+      if (Object.keys(perSide).length === 0 && !radius) continue;
 
       let matched;
       try { matched = document.querySelectorAll(rule.selectorText); }
@@ -2570,8 +2584,9 @@ function buildBorderOverrideMap(document, window) {
           // cascade for equal-specificity rules and is good enough for the
           // uncontested var()-dropped sides we're trying to recover.
           Object.assign(existing, perSide);
+          if (radius) existing.radius = radius;
         } else {
-          map.set(el, { ...perSide });
+          map.set(el, radius ? { ...perSide, radius } : { ...perSide });
         }
       }
     }
@@ -2616,6 +2631,20 @@ async function detectHtml(filePath) {
     }
   }
 
+  // jsdom currently crashes on some inline `background: linear-gradient(...)`
+  // declarations when the same style attribute also clips the background to
+  // text. Rewriting that single shorthand to `background-image` preserves the
+  // rendered meaning and keeps the gradient-text rule testable.
+  processedHtml = processedHtml.replace(/\bstyle=(["'])([\s\S]*?)\1/gi, (match, quote, cssText) => {
+    if (!/(?:^|;)\s*background\s*:\s*[^;]*gradient/i.test(cssText)) return match;
+    if (!/(?:-webkit-)?background-clip\s*:\s*text/i.test(cssText)) return match;
+    const normalized = cssText.replace(
+      /(^|;)\s*background\s*:\s*([^;]*gradient[^;]*)(?=;|$)/gi,
+      (_, prefix, value) => `${prefix}${prefix ? ' ' : ''}background-image: ${value.trim()}`
+    );
+    return `style=${quote}${normalized}${quote}`;
+  });
+
   const dom = new JSDOM(processedHtml, {
     url: `file://${resolvedPath}`,
   });
@@ -2627,13 +2656,14 @@ async function detectHtml(filePath) {
   // Pre-pass: recover border declarations that jsdom dropped because they
   // contained a var() reference. The map is keyed by element and consulted
   // by the border check adapter as a fallback.
-  const borderOverrides = buildBorderOverrideMap(document, window);
+  const styleOverrides = buildStyleOverrideMap(document, window);
 
   // Element-level checks (borders + colors + motion)
   for (const el of document.querySelectorAll('*')) {
     const tag = el.tagName.toLowerCase();
     const style = window.getComputedStyle(el);
-    for (const f of checkElementBorders(tag, style, borderOverrides.get(el))) {
+    const override = styleOverrides.get(el);
+    for (const f of checkElementBorders(tag, style, override)) {
       findings.push(finding(f.id, filePath, f.snippet));
     }
     for (const f of checkElementColors(el, style, tag, window)) {
@@ -2645,7 +2675,7 @@ async function detectHtml(filePath) {
     for (const f of checkElementMotion(tag, style)) {
       findings.push(finding(f.id, filePath, f.snippet));
     }
-    for (const f of checkElementIconTile(el, tag, window)) {
+    for (const f of checkElementIconTile(el, tag, window, styleOverrides)) {
       findings.push(finding(f.id, filePath, f.snippet));
     }
     for (const f of checkElementQuality(el, style, tag, window)) {
