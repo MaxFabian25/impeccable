@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pseudo Specificity Radius Reset</title>
+  <style>
+    :root { --brand: #3b82f6; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 24px; background: #f8fafc; }
+    #pseudo-reset.card {
+      border-top: 4px solid var(--brand);
+      border-radius: 0;
+      background: white;
+      padding: 16px;
+      max-width: 480px;
+    }
+    :not(#other) {
+      border-radius: 12px;
+    }
+    h3 { margin: 0 0 6px; font-size: 18px; color: #0f172a; }
+    p { margin: 0; color: #475569; }
+  </style>
+</head>
+<body>
+  <div id="pseudo-reset" class="card">
+    <h3>Functional pseudo specificity</h3>
+    <p>A higher-specificity reset should stay square even when a later :not() selector adds radius.</p>
+  </div>
+</body>
+</html>

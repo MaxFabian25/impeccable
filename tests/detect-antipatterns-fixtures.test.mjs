@@ -169,6 +169,15 @@ describe('detectHtml — jsdom fixtures', () => {
     );
   });
 
+  it('pseudo-specificity: functional pseudo-classes do not outrank higher-specificity resets', async () => {
+    const f = await detectHtml(path.join(FIXTURES, 'radius-pseudo-specificity.html'));
+    const borderAccent = f.filter(r => r.antipattern === 'border-accent-on-rounded');
+    assert.equal(
+      borderAccent.length, 0,
+      `expected 0 border-accent-on-rounded for functional pseudo-class specificity case, got ${borderAccent.length}: ${borderAccent.map(r => r.snippet).join('; ')}`
+    );
+  });
+
   it('typography-should-flag: detects all three issues', async () => {
     const f = await detectHtml(path.join(FIXTURES, 'typography-should-flag.html'));
     assert.ok(f.some(r => r.antipattern === 'overused-font'));

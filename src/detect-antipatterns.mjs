@@ -2516,13 +2516,106 @@ function splitSelectorList(selectorText) {
   return selectors;
 }
 
-function computeSelectorSpecificity(selector) {
-  let working = selector
-    .replace(/"[^"]*"|'[^']*'/g, '')
-    .replace(/:where\((?:[^()]|\([^()]*\))*\)/g, '');
+function findMatchingParen(text, openIndex) {
+  let depth = 0;
+  let quote = '';
+  for (let i = openIndex; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === '\'') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '(') depth++;
+    if (ch === ')') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
 
-  const ids = (working.match(/#[\w-]+/g) || []).length;
-  const classLike =
+function findTopLevelOfIndex(text) {
+  let bracketDepth = 0;
+  let parenDepth = 0;
+  let quote = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === '\'') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '[') bracketDepth++;
+    if (ch === ']') bracketDepth = Math.max(0, bracketDepth - 1);
+    if (ch === '(') parenDepth++;
+    if (ch === ')') parenDepth = Math.max(0, parenDepth - 1);
+    if (bracketDepth !== 0 || parenDepth !== 0) continue;
+    if (text.slice(i, i + 2).toLowerCase() !== 'of') continue;
+    const prev = text[i - 1];
+    const next = text[i + 2];
+    if ((prev == null || /\s/.test(prev)) && (next == null || /\s/.test(next))) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function maxSelectorSpecificity(selectorListText) {
+  let best = { ids: 0, classLike: 0, typeCount: 0 };
+  for (const selector of splitSelectorList(selectorListText)) {
+    const specificity = computeSelectorSpecificity(selector);
+    if (compareSelectorPriority({ ...specificity, order: 0 }, { ...best, order: 0 }) > 0) {
+      best = specificity;
+    }
+  }
+  return best;
+}
+
+function computeSelectorSpecificity(selector) {
+  let working = selector.replace(/"[^"]*"|'[^']*'/g, '');
+  const extra = { ids: 0, classLike: 0, typeCount: 0 };
+
+  for (let i = 0; i < working.length; i++) {
+    if (working[i] !== ':' || working[i + 1] === ':') continue;
+    const fnMatch = working.slice(i).match(/^:([a-z-]+)\(/i);
+    if (!fnMatch) continue;
+
+    const name = fnMatch[1].toLowerCase();
+    if (!['is', 'not', 'has', 'where', 'nth-child', 'nth-last-child'].includes(name)) continue;
+
+    const openIndex = i + fnMatch[0].length - 1;
+    const closeIndex = findMatchingParen(working, openIndex);
+    if (closeIndex === -1) continue;
+
+    const args = working.slice(openIndex + 1, closeIndex);
+    if (name === 'is' || name === 'not' || name === 'has') {
+      const specificity = maxSelectorSpecificity(args);
+      extra.ids += specificity.ids;
+      extra.classLike += specificity.classLike;
+      extra.typeCount += specificity.typeCount;
+    } else if (name === 'nth-child' || name === 'nth-last-child') {
+      extra.classLike += 1;
+      const ofIndex = findTopLevelOfIndex(args);
+      if (ofIndex !== -1) {
+        const specificity = maxSelectorSpecificity(args.slice(ofIndex + 2).trim());
+        extra.ids += specificity.ids;
+        extra.classLike += specificity.classLike;
+        extra.typeCount += specificity.typeCount;
+      }
+    }
+
+    working = `${working.slice(0, i)}${' '.repeat(closeIndex - i + 1)}${working.slice(closeIndex + 1)}`;
+  }
+
+  const ids = extra.ids + (working.match(/#[\w-]+/g) || []).length;
+  const classLike = extra.classLike +
     (working.match(/\.[\w-]+/g) || []).length +
     (working.match(/\[[^\]]+\]/g) || []).length +
     (working.match(/:(?!:)[\w-]+(?:\([^)]*\))?/g) || []).length;
@@ -2536,7 +2629,7 @@ function computeSelectorSpecificity(selector) {
     .replace(/:(?!:)[\w-]+(?:\([^)]*\))?/g, ' ');
 
   const typeMatches = working.match(/(^|[\s>+~])([a-zA-Z][\w-]*|\*)/g) || [];
-  let typeCount = pseudoElements;
+  let typeCount = extra.typeCount + pseudoElements;
   for (const match of typeMatches) {
     const token = match.trim();
     if (!token || token === '*') continue;
