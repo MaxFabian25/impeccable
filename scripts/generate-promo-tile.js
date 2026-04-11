@@ -6,7 +6,7 @@
  * Run: node scripts/generate-promo-tile.js
  */
 
-import puppeteer from 'puppeteer';
+import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -126,9 +126,11 @@ const svg = `
 </svg>
 `;
 
-const browser = await puppeteer.launch({ headless: true });
-const page = await browser.newPage();
-await page.setViewport({ width: 440, height: 280, deviceScaleFactor: 1 });
+const browser = await chromium.launch();
+const page = await browser.newPage({
+  viewport: { width: 440, height: 280 },
+  deviceScaleFactor: 1,
+});
 await page.setContent(`
   <!DOCTYPE html>
   <html>

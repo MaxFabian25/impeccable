@@ -1,10 +1,11 @@
 import { describe, test, expect } from 'bun:test';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { spawnSync } from 'child_process';
 import {
   ANTIPATTERNS, checkElementBorders, checkElementMotion, checkElementGlow, isNeutralColor, isFullPage,
-  detectText, extractStyleBlocks, extractCSSinJS,
+  detectText, detectUrl, extractStyleBlocks, extractCSSinJS,
   walkDir, SCANNABLE_EXTENSIONS,
   buildImportGraph, resolveImport,
   detectFrameworkConfig, isPortListening, FRAMEWORK_CONFIGS,
@@ -530,6 +531,192 @@ describe('walkDir', () => {
 
   test('returns empty for nonexistent dir', () => {
     expect(walkDir('/nonexistent/path/12345')).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// detectUrl runtime contract
+// ---------------------------------------------------------------------------
+
+describe('detectUrl — agent-browser contract', () => {
+  function withAgentBrowserStub(mode, run) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'impeccable-agent-browser-'));
+    const scriptPath = path.join(dir, 'agent-browser-stub.mjs');
+    const logPath = path.join(dir, 'calls.jsonl');
+    const statePath = path.join(dir, 'state.json');
+
+    fs.writeFileSync(scriptPath, `#!/usr/bin/env node
+import fs from 'node:fs';
+
+const args = process.argv.slice(2);
+const logPath = process.env.IMPECCABLE_STUB_LOG_PATH;
+const statePath = process.env.IMPECCABLE_STUB_STATE_PATH;
+const mode = process.env.IMPECCABLE_STUB_MODE || 'success';
+
+const stdin = await new Promise((resolve) => {
+  let data = '';
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (chunk) => data += chunk);
+  process.stdin.on('end', () => resolve(data));
+});
+
+const state = fs.existsSync(statePath)
+  ? JSON.parse(fs.readFileSync(statePath, 'utf8'))
+  : { evalCount: 0 };
+const command = ['open', 'set', 'wait', 'eval', 'close'].find((candidate) => args.includes(candidate)) || 'unknown';
+if (command === 'eval') state.evalCount += 1;
+fs.writeFileSync(statePath, JSON.stringify(state));
+fs.appendFileSync(logPath, JSON.stringify({ command, args, stdin, evalCount: state.evalCount }) + '\\n');
+
+if (command === 'open') {
+  console.log(JSON.stringify({
+    success: true,
+    data: { url: args.at(-1), title: '' },
+    error: null,
+  }));
+  process.exit(0);
+}
+
+if (command === 'eval') {
+  if (mode === 'eval-failure' && state.evalCount === 2) {
+    console.log(JSON.stringify({
+      success: false,
+      data: null,
+      error: 'Evaluation error: synthetic fixture failure',
+    }));
+    process.exit(1);
+  }
+
+  const result = state.evalCount === 1
+    ? null
+    : [
+      { id: 'line-length', snippet: 'paragraph exceeds 80ch' },
+      { id: 'cramped-padding', snippet: 'card padding below threshold' },
+    ];
+
+  console.log(JSON.stringify({
+    success: true,
+    data: { origin: args.at(-1) || '', result },
+    error: null,
+  }));
+  process.exit(0);
+}
+
+if (command === 'set') {
+  console.log(JSON.stringify({
+    success: true,
+    data: { applied: true },
+    error: null,
+  }));
+  process.exit(0);
+}
+
+if (command === 'wait') {
+  console.log(JSON.stringify({
+    success: true,
+    data: { waited: true },
+    error: null,
+  }));
+  process.exit(0);
+}
+
+if (command === 'close') {
+  console.log(JSON.stringify({
+    success: true,
+    data: { closed: true },
+    error: null,
+  }));
+  process.exit(0);
+}
+
+console.log(JSON.stringify({
+  success: false,
+  data: null,
+  error: 'Unexpected command',
+}));
+process.exit(1);
+`);
+    fs.chmodSync(scriptPath, 0o755);
+
+    const previousEnv = {
+      IMPECCABLE_AGENT_BROWSER_BIN: process.env.IMPECCABLE_AGENT_BROWSER_BIN,
+      IMPECCABLE_STUB_LOG_PATH: process.env.IMPECCABLE_STUB_LOG_PATH,
+      IMPECCABLE_STUB_STATE_PATH: process.env.IMPECCABLE_STUB_STATE_PATH,
+      IMPECCABLE_STUB_MODE: process.env.IMPECCABLE_STUB_MODE,
+    };
+
+    process.env.IMPECCABLE_AGENT_BROWSER_BIN = scriptPath;
+    process.env.IMPECCABLE_STUB_LOG_PATH = logPath;
+    process.env.IMPECCABLE_STUB_STATE_PATH = statePath;
+    process.env.IMPECCABLE_STUB_MODE = mode;
+
+    const readCalls = () => fs.existsSync(logPath)
+      ? fs.readFileSync(logPath, 'utf8').trim().split('\n').filter(Boolean).map((line) => JSON.parse(line))
+      : [];
+
+    const cleanup = () => {
+      for (const [key, value] of Object.entries(previousEnv)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+      fs.rmSync(dir, { recursive: true, force: true });
+    };
+
+    return run({ readCalls, cleanup });
+  }
+
+  test('uses agent-browser CLI JSON commands and maps findings', async () => {
+    await withAgentBrowserStub('success', async ({ readCalls, cleanup }) => {
+      try {
+        const findings = await detectUrl('https://example.com/demo');
+
+        expect(findings.map((finding) => ({
+          antipattern: finding.antipattern,
+          file: finding.file,
+          snippet: finding.snippet,
+        }))).toEqual([
+          {
+            antipattern: 'line-length',
+            file: 'https://example.com/demo',
+            snippet: 'paragraph exceeds 80ch',
+          },
+          {
+            antipattern: 'cramped-padding',
+            file: 'https://example.com/demo',
+            snippet: 'card padding below threshold',
+          },
+        ]);
+
+        const calls = readCalls();
+        expect(calls.map((call) => call.command)).toEqual(['set', 'open', 'wait', 'eval', 'eval', 'close']);
+        expect(calls.every((call) => call.args.includes('--json'))).toBe(true);
+        expect(calls.filter((call) => call.command === 'eval').every((call) => call.args.includes('--stdin'))).toBe(true);
+
+        const sessionNames = calls.map((call) => call.args[call.args.indexOf('--session') + 1]);
+        expect(new Set(sessionNames).size).toBe(1);
+        expect(sessionNames[0].startsWith('impeccable-detect-')).toBe(true);
+
+        expect(calls[0].args.slice(-3)).toEqual(['viewport', '1280', '800']);
+        expect(calls[2].args.slice(-2)).toEqual(['--load', 'networkidle']);
+        expect(calls[3].stdin).toContain('window.impeccableScan');
+        expect(calls[4].stdin).toContain('flatMap');
+      } finally {
+        cleanup();
+      }
+    });
+  });
+
+  test('closes the owned session when scan evaluation fails', async () => {
+    await withAgentBrowserStub('eval-failure', async ({ readCalls, cleanup }) => {
+      try {
+        await expect(detectUrl('https://example.com/demo')).rejects.toThrow('synthetic fixture failure');
+
+        const calls = readCalls();
+        expect(calls.map((call) => call.command)).toEqual(['set', 'open', 'wait', 'eval', 'eval', 'close']);
+      } finally {
+        cleanup();
+      }
+    });
   });
 });
 

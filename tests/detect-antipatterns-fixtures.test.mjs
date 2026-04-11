@@ -236,7 +236,7 @@ describe('detectHtml — quality (jsdom-compatible rules)', () => {
   // computed CSS values (tight-leading, tiny-text, justified-text,
   // all-caps-body, wide-tracking) or pure DOM walks (skipped-heading).
   // The other two (line-length, cramped-padding) need real layout rects and
-  // live in tests/detect-antipatterns-browser.test.mjs (Puppeteer-backed).
+  // live in tests/detect-antipatterns-browser.test.mjs (agent-browser-backed).
   it('quality: flag column triggers all 6 jsdom-compatible quality rules', async () => {
     const f = await detectHtml(path.join(FIXTURES, 'quality.html'));
     assert.equal(f.filter(r => r.antipattern === 'tight-leading').length, 1);

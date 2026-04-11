@@ -21,7 +21,7 @@ if (typeof window === 'undefined') return;
  *
  * Node usage:
  *   node detect-antipatterns.mjs [file-or-dir...]   # jsdom for HTML, regex for rest
- *   node detect-antipatterns.mjs https://...         # Puppeteer (auto)
+ *   node detect-antipatterns.mjs https://...         # agent-browser (auto)
  *   node detect-antipatterns.mjs --fast [files...]   # regex-only (skip jsdom)
  *   node detect-antipatterns.mjs --json              # JSON output
  *
@@ -1291,7 +1291,8 @@ function checkElementBorders(tag, style, overrides) {
       colors[s] = overrides[s].color;
     }
   }
-  return checkBorders(tag, widths, colors, parseFloat(style.borderRadius) || 0);
+  const radius = resolveRadius(style.borderRadius, overrides?.radius?.value);
+  return checkBorders(tag, widths, colors, radius);
 }
 
 function checkElementColors(el, style, tag, window) {
@@ -1315,10 +1316,11 @@ function checkElementColors(el, style, tag, window) {
   });
 }
 
-function checkElementIconTile(el, tag, window) {
+function checkElementIconTile(el, tag, window, styleOverrides) {
   if (!HEADING_TAGS.has(tag)) return [];
   const sibling = el.previousElementSibling;
   if (!sibling) return [];
+  const siblingOverride = styleOverrides?.get?.(sibling);
 
   const sibStyle = window.getComputedStyle(sibling);
   // jsdom doesn't lay out — read explicit pixel dimensions from CSS instead.
@@ -1346,7 +1348,7 @@ function checkElementIconTile(el, tag, window) {
     siblingBgColor: parseRgb(sibStyle.backgroundColor),
     siblingBgImage: sibStyle.backgroundImage || '',
     siblingBorderWidth: parseFloat(sibStyle.borderTopWidth) || 0,
-    siblingBorderRadius: parseFloat(sibStyle.borderRadius) || 0,
+    siblingBorderRadius: resolveRadius(sibStyle.borderRadius, siblingOverride?.radius?.value),
     hasIconChild: !!iconChild || hasInlineEmojiIcon,
     iconChildWidth: iconWidth,
   });

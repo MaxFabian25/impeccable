@@ -21,7 +21,7 @@ npx impeccable skills update
 # Scan files or directories for anti-patterns
 npx impeccable detect src/
 
-# Scan a live URL (requires Puppeteer)
+# Scan a live URL (requires agent-browser)
 npx impeccable detect https://example.com
 
 # JSON output for CI/tooling
@@ -60,7 +60,8 @@ By default it prefers the bundle shipped inside the npm package. Updates and che
 
 - Node.js 18+
 - `jsdom` for markup analysis
-- `puppeteer` only when scanning live URLs
+- `agent-browser` for live URL scans
+- a local Chrome/Chromium install; run `npx agent-browser install` if none is detected
 
 ## License
 

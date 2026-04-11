@@ -60,7 +60,7 @@ npx impeccable --json [--fast] [target]
 ```
 
 - Pass HTML/JSX/TSX/Vue/Svelte files or directories as `[target]` (anything with markup). Do not pass CSS-only files.
-- For URLs, skip the CLI scan (it requires Puppeteer). Use browser visualization instead.
+- For URLs, use the CLI scan when you want deterministic findings from the live page. It runs through agent-browser and needs a working local browser install.
 - For large directories (200+ scannable files), use `--fast` (regex-only, skips jsdom)
 - For 500+ files, narrow scope or ask the user
 - Exit code 0 = clean, 2 = findings

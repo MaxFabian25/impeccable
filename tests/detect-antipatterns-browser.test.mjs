@@ -1,5 +1,5 @@
 /**
- * Puppeteer-backed fixture tests for browser-only detection rules.
+ * agent-browser-backed fixture tests for browser-only detection rules.
  *
  * Some detection rules (cramped-padding, line-length, tight-leading,
  * skipped-heading, justified-text, tiny-text, all-caps-body, wide-tracking,
@@ -7,9 +7,9 @@
  * and getComputedStyle results that jsdom can't compute. Those rules can't
  * be tested with the jsdom suite in detect-antipatterns-fixtures.test.mjs.
  *
- * This file uses detectUrl() (Puppeteer) to load fixtures in headless Chrome
- * via a temporary static HTTP server, so the fixtures can use absolute
- * <script src="/js/..."> paths just like in development.
+ * This file uses detectUrl() (agent-browser) to load fixtures in a real
+ * browser via a temporary static HTTP server, so the fixtures can use
+ * absolute <script src="/js/..."> paths just like in development.
  *
  * Run via Node's built-in test runner:
  *   node --test tests/detect-antipatterns-browser.test.mjs
@@ -37,19 +37,30 @@ const MIME = {
 };
 
 let server;
-let hasPuppeteer = false;
+let browserUrlScanningAvailable = true;
+let browserSkipReason = '';
 try {
-  await import('puppeteer');
-  hasPuppeteer = true;
-} catch {
-  hasPuppeteer = false;
+  await detectUrl('data:text/html;charset=utf-8,<!DOCTYPE html><html><body>probe</body></html>');
+} catch (error) {
+  browserUrlScanningAvailable = false;
+  browserSkipReason = error.message;
 }
 
-if (hasPuppeteer) {
+if (browserUrlScanningAvailable) {
   before(async () => {
     // Static server: maps /fixtures/* to tests/fixtures/* and /js/* to public/js/*
     // (mirrors the routes in server/index.js so fixtures can use absolute paths)
     server = http.createServer((req, res) => {
+      if (req.url === '/fixtures/antipatterns/async-line-length-data') {
+        setTimeout(() => {
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({
+            text: 'This paragraph is intentionally inserted only after an async fetch resolves, and it is wide enough to exceed the line-length threshold once the live browser layout has settled across the full content width of the fixture shell.',
+          }));
+        }, 350);
+        return;
+      }
+
       let filePath;
       if (req.url.startsWith('/fixtures/')) {
         filePath = path.join(ROOT, 'tests', req.url);
@@ -104,7 +115,12 @@ if (hasPuppeteer) {
       const f = await detectUrl(`${BASE}/fixtures/antipatterns/quality.html`);
       assert.equal(f.filter(r => r.antipattern === 'line-length').length, 1);
     });
+
+    it('waits for async content before scanning live URLs', async () => {
+      const f = await detectUrl(`${BASE}/fixtures/antipatterns/async-line-length.html`);
+      assert.equal(f.filter(r => r.antipattern === 'line-length').length, 1);
+    });
   });
 } else {
-  test('detectUrl — browser-only fixtures', { skip: 'puppeteer optional dependency not installed' }, () => {});
+  test('detectUrl — browser-only fixtures', { skip: browserSkipReason }, () => {});
 }

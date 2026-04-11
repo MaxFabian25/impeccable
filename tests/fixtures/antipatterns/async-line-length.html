@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Async Line Length Fixture</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #f8fafc;
+      color: #0f172a;
+      font: 16px/1.6 system-ui, sans-serif;
+    }
+
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .async-target {
+      max-width: none;
+      white-space: normal;
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <h1>Async content placeholder</h1>
+    <div id="mount">Loading…</div>
+  </main>
+
+  <script>
+    fetch('/fixtures/antipatterns/async-line-length-data')
+      .then((response) => response.json())
+      .then((payload) => {
+        document.getElementById('mount').innerHTML = `
+          <p class="async-target">${payload.text}</p>
+        `;
+      });
+  </script>
+</body>
+</html>

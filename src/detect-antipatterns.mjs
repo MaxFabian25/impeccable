@@ -9,7 +9,7 @@
  *
  * Node usage:
  *   node detect-antipatterns.mjs [file-or-dir...]   # jsdom for HTML, regex for rest
- *   node detect-antipatterns.mjs https://...         # Puppeteer (auto)
+ *   node detect-antipatterns.mjs https://...         # agent-browser (auto)
  *   node detect-antipatterns.mjs --fast [files...]   # regex-only (skip jsdom)
  *   node detect-antipatterns.mjs --json              # JSON output
  *
@@ -26,10 +26,13 @@ const IS_BROWSER = typeof window !== 'undefined';
 const IS_NODE = !IS_BROWSER;
 
 // @browser-strip-start
-let fs, path;
+let fs, path, spawn, createRequire, randomUUID;
 if (!IS_BROWSER) {
   fs = (await import('node:fs')).default;
   path = (await import('node:path')).default;
+  ({ spawn } = await import('node:child_process'));
+  ({ createRequire } = await import('node:module'));
+  ({ randomUUID } = await import('node:crypto'));
 }
 // @browser-strip-end
 
@@ -2917,18 +2920,100 @@ async function detectHtml(filePath) {
 }
 
 // ---------------------------------------------------------------------------
-// Puppeteer detection (for URLs)
+// agent-browser detection (for URLs)
 // ---------------------------------------------------------------------------
 
-async function detectUrl(url) {
-  let puppeteer;
-  try {
-    puppeteer = await import('puppeteer');
-  } catch {
-    throw new Error('puppeteer is required for URL scanning. Install: npm install puppeteer');
+function resolveAgentBrowserInvocation() {
+  const overridePath = process.env.IMPECCABLE_AGENT_BROWSER_BIN;
+  if (overridePath) {
+    const resolved = path.resolve(overridePath);
+    if (/\.(?:c|m)?js$/i.test(resolved)) {
+      return { command: process.execPath, prefixArgs: [resolved] };
+    }
+    return { command: resolved, prefixArgs: [] };
   }
 
-  // Read the browser detection script — reuse it instead of reimplementing
+  try {
+    const require = createRequire(import.meta.url);
+    const packageJsonPath = require.resolve('agent-browser/package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+    const binPath = typeof packageJson.bin === 'string'
+      ? packageJson.bin
+      : packageJson.bin?.['agent-browser'];
+
+    if (!binPath) {
+      throw new Error('agent-browser package does not expose a CLI binary');
+    }
+
+    return {
+      command: process.execPath,
+      prefixArgs: [path.resolve(path.dirname(packageJsonPath), binPath)],
+    };
+  } catch {
+    throw new Error('agent-browser is required for URL scanning. Install: npm install agent-browser');
+  }
+}
+
+function runAgentBrowserCommand(sessionName, args, { input = null } = {}) {
+  const { command, prefixArgs } = resolveAgentBrowserInvocation();
+  const launchArgs = process.env.CI ? ['--args', '--no-sandbox,--disable-setuid-sandbox'] : [];
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      command,
+      [...prefixArgs, '--session', sessionName, '--json', ...launchArgs, ...args],
+      {
+        env: {
+          ...process.env,
+          AGENT_BROWSER_DEFAULT_TIMEOUT: process.env.AGENT_BROWSER_DEFAULT_TIMEOUT || '30000',
+        },
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }
+    );
+
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf-8');
+    child.stderr.setEncoding('utf-8');
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+
+    child.on('error', (error) => {
+      if (error.code === 'ENOENT') {
+        reject(new Error('agent-browser is required for URL scanning. Install: npm install agent-browser'));
+        return;
+      }
+      reject(error);
+    });
+
+    child.on('close', (code) => {
+      const trimmedStdout = stdout.trim();
+      const trimmedStderr = stderr.trim();
+      let payload = null;
+
+      if (trimmedStdout) {
+        try {
+          payload = JSON.parse(trimmedStdout);
+        } catch {
+          reject(new Error(`agent-browser returned invalid JSON for ${args[0]}: ${trimmedStdout}`));
+          return;
+        }
+      }
+
+      if (code !== 0 || payload?.success === false) {
+        const message = payload?.error || trimmedStderr || `agent-browser ${args[0]} failed`;
+        reject(new Error(message));
+        return;
+      }
+
+      resolve(payload?.data ?? null);
+    });
+
+    if (input !== null) child.stdin.end(input);
+    else child.stdin.end();
+  });
+}
+
+async function detectUrl(url) {
   const browserScriptPath = path.resolve(
     path.dirname(new URL(import.meta.url).pathname),
     'detect-antipatterns-browser.js'
@@ -2940,27 +3025,46 @@ async function detectUrl(url) {
     throw new Error(`Browser script not found at ${browserScriptPath}`);
   }
 
-  // CI runners (GitHub Actions Ubuntu) block unprivileged user namespaces, so
-  // Chrome can't initialize its sandbox there. Disable the sandbox only when
-  // running in CI; local users keep the default hardened launch.
-  const launchArgs = process.env.CI ? ['--no-sandbox', '--disable-setuid-sandbox'] : [];
-  const browser = await puppeteer.default.launch({ headless: true, args: launchArgs });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 800 });
-  await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
+  const scanScript = `
+(async () => {
+  await Promise.race([
+    document.fonts?.ready ?? Promise.resolve(),
+    new Promise((resolve) => setTimeout(resolve, 1500)),
+  ]);
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  if (!window.impeccableScan) return [];
+  const allFindings = window.impeccableScan();
+  return allFindings.flatMap(({ findings }) =>
+    findings.map((f) => ({ id: f.type, snippet: f.detail }))
+  );
+})()
+`.trim();
 
-  // Inject the browser detection script and collect results
-  await page.evaluate(browserScript);
-  const results = await page.evaluate(() => {
-    if (!window.impeccableScan) return [];
-    const allFindings = window.impeccableScan();
-    return allFindings.flatMap(({ findings }) =>
-      findings.map(f => ({ id: f.type, snippet: f.detail }))
-    );
-  });
+  const sessionName = `impeccable-detect-${process.pid}-${randomUUID()}`;
+  let scanError = null;
+  let results = [];
 
-  await browser.close();
-  return results.map(f => finding(f.id, url, f.snippet));
+  try {
+    await runAgentBrowserCommand(sessionName, ['set', 'viewport', '1280', '800']);
+    await runAgentBrowserCommand(sessionName, ['open', url]);
+    await runAgentBrowserCommand(sessionName, ['wait', '--load', 'networkidle']);
+    await runAgentBrowserCommand(sessionName, ['eval', '--stdin'], { input: browserScript });
+    const scanResult = await runAgentBrowserCommand(sessionName, ['eval', '--stdin'], { input: scanScript });
+    results = Array.isArray(scanResult?.result) ? scanResult.result : [];
+  } catch (error) {
+    scanError = error;
+  }
+
+  let closeError = null;
+  try {
+    await runAgentBrowserCommand(sessionName, ['close']);
+  } catch (error) {
+    closeError = error;
+  }
+
+  if (scanError) throw scanError;
+  if (closeError) throw closeError;
+  return results.map((f) => finding(f.id, url, f.snippet));
 }
 
 // ---------------------------------------------------------------------------
@@ -3558,7 +3662,7 @@ Options:
 Detection modes:
   HTML files     jsdom with computed styles (default, catches linked CSS)
   Non-HTML files Regex pattern matching (CSS, JSX, TSX, etc.)
-  URLs           Puppeteer full browser rendering (auto-detected)
+  URLs           agent-browser full browser rendering (auto-detected)
   --fast         Forces regex for all files
 
 Examples:

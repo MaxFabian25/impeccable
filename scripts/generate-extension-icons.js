@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * Generates PNG extension icons from SVG using Puppeteer.
+ * Generates PNG extension icons from SVG using Playwright.
  *
  * Run: node scripts/generate-extension-icons.js
  */
 
-import puppeteer from 'puppeteer';
+import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -19,11 +19,11 @@ const SIZES = [16, 32, 48, 128];
 
 const svgContent = fs.readFileSync(path.join(ICONS_DIR, 'icon.svg'), 'utf-8');
 
-const browser = await puppeteer.launch({ headless: true });
+const browser = await chromium.launch();
 const page = await browser.newPage();
 
 for (const size of SIZES) {
-  await page.setViewport({ width: size, height: size, deviceScaleFactor: 1 });
+  await page.setViewportSize({ width: size, height: size });
   await page.setContent(`
     <!DOCTYPE html>
     <html>

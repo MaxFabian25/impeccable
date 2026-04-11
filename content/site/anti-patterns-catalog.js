@@ -29,7 +29,7 @@
  *  'cli':     static analysis or jsdom (works with `npx impeccable detect`
  *             on files, no browser required)
  *  'browser': requires real browser layout (getBoundingClientRect with
- *             actual dimensions). Works via Puppeteer or the browser
+ *             actual dimensions). Works via agent-browser or the browser
  *             extension, NOT via the CLI on raw HTML.
  *  'llm':     no deterministic detector; only caught by $critique's LLM
  *             assessment pass.
@@ -74,7 +74,7 @@ export const LAYER_LABELS = {
 
 export const LAYER_DESCRIPTIONS = {
   cli: 'Deterministic. Runs from `npx impeccable detect` on files, no browser required.',
-  browser: 'Deterministic, but needs real browser layout. Runs via the browser extension or Puppeteer, not the plain CLI.',
+  browser: 'Deterministic, but needs real browser layout. Runs via the browser extension or `npx impeccable detect https://...`, which uses agent-browser under the hood.',
   llm: 'Not caught by any deterministic detector. Flagged by $critique during its LLM design review.',
 };
 
