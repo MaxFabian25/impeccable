@@ -8,6 +8,7 @@ import { initScrollReveal } from "./js/utils/reveal.js";
 import { initAnchorScroll, initHashTracking } from "./js/utils/scroll.js";
 import { initSectionNav } from "./js/components/section-nav.js";
 import { initFoundationGrid } from "./js/components/foundation-grid.js";
+import { initLiveDemo } from "./js/components/live-demo.js";
 
 // ============================================
 // STATE
@@ -218,6 +219,7 @@ function init() {
 	initFoundationGrid();
 	initSectionNav();
 	initWhyTabs();
+	initLiveDemo();
 	loadContent();
 
 	document.body.classList.add("loaded");
