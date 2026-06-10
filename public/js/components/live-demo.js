@@ -118,6 +118,7 @@ export function initLiveDemo() {
 		annotations.classList.remove('is-visible', 'is-comment-visible');
 		inputText.textContent = '';
 		showVariant(0);
+		setCaption('Hover an element to pick.');
 	};
 
 	const setCaption = (text) => {
