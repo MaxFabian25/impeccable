@@ -3183,34 +3183,35 @@ code {
   margin-bottom: var(--spacing-xl);
 }
 
-.antidote-wall-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+.antidote-pair {
+  display: grid;
+  grid-template-rows: 1fr 1fr auto;
+  gap: 12px;
   color: inherit;
   text-decoration: none;
   transition: transform 260ms var(--ease-out);
 }
 
-.antidote-wall-card:hover {
+.antidote-pair:hover {
   transform: translateY(-4px);
 }
 
-.antidote-wall-image {
+.antidote-pair-figure {
+  position: relative;
   overflow: hidden;
+  margin: 0;
   aspect-ratio: 4 / 3;
   background: var(--color-paper);
   border: 1px solid var(--color-mist);
   border-radius: 8px;
-  box-shadow: 0 12px 32px oklch(0% 0 0 / 0.08);
   transition: box-shadow 260ms var(--ease-out);
 }
 
-.antidote-wall-card:hover .antidote-wall-image {
-  box-shadow: 0 20px 40px oklch(0% 0 0 / 0.14), 0 0 0 1px var(--color-accent-soft);
+.antidote-pair-figure--before {
+  filter: saturate(1.05);
 }
 
-.antidote-wall-image img {
+.antidote-pair-figure img {
   display: block;
   width: 100%;
   height: 100%;
@@ -3218,22 +3219,53 @@ code {
   object-position: center top;
 }
 
-.antidote-wall-caption {
+.antidote-pair-figure figcaption {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 10px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: oklch(100% 0 0 / 0.88);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.antidote-pair-figure--before figcaption {
+  color: oklch(35% 0.15 25);
+}
+
+.antidote-pair-figure--after figcaption {
+  color: oklch(45% 0.18 145);
+}
+
+.antidote-pair:hover .antidote-pair-figure {
+  box-shadow: 0 14px 28px oklch(0% 0 0 / 0.1);
+}
+
+.antidote-pair-caption {
   display: flex;
   align-items: baseline;
   gap: var(--spacing-sm);
   padding: 0 2px;
 }
 
-.antidote-wall-num {
+.antidote-pair-num {
   color: var(--color-accent);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  letter-spacing: 0.22em;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
-.antidote-wall-label {
+.antidote-pair-name {
   color: var(--color-ink);
   font-family: var(--font-display);
   font-size: 1.375rem;
@@ -3241,6 +3273,205 @@ code {
   font-weight: 400;
   line-height: 1.1;
   letter-spacing: -0.01em;
+}
+
+/* After mocks are pure HTML/CSS sketches of what Impeccable steers toward. */
+.ab-after {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+}
+
+.ab-after--editorial {
+  gap: 10px;
+  background: var(--color-cream);
+}
+
+.ab-after-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-mist);
+}
+
+.ab-after-logo {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--color-ink);
+}
+
+.ab-after-link {
+  width: 22px;
+  height: 5px;
+  border-radius: 2px;
+  background: var(--color-mist);
+}
+
+.ab-after-cta {
+  width: 48px;
+  height: 16px;
+  margin-left: auto;
+  border-radius: 2px;
+  background: var(--color-ink);
+}
+
+.ab-after-hero {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ab-after-kicker {
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.ab-after-title {
+  max-width: 10ch;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.ab-after-title em {
+  color: var(--color-accent);
+  font-style: italic;
+}
+
+.ab-after-line {
+  height: 5px;
+  border-radius: 2px;
+  background: var(--color-mist);
+}
+
+.ab-after-line--short {
+  width: 60%;
+}
+
+.ab-after-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 7px 12px;
+  border-radius: 0;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ab-after--data {
+  gap: 0;
+  padding: 14px 14px 10px;
+  background: var(--color-paper);
+}
+
+.ab-after-data-kicker {
+  margin-bottom: 10px;
+  color: var(--color-ash);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.ab-after-data-row {
+  display: grid;
+  grid-template-columns: 1fr max-content max-content;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-mist);
+  font-family: var(--font-body);
+  font-size: 11px;
+}
+
+.ab-after-data-row:last-child {
+  border-bottom: 0;
+}
+
+.ab-after-data-k {
+  color: var(--color-charcoal);
+}
+
+.ab-after-data-v {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ab-after-data-d {
+  color: oklch(45% 0.18 145);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.ab-after--insight {
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 20px;
+  background: var(--color-cream);
+}
+
+.ab-after-insight-kicker {
+  color: var(--color-ash);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.ab-after-insight-num {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.ab-after-insight-num span {
+  margin-left: 2px;
+  color: var(--color-accent);
+  font-size: 0.5em;
+  font-style: normal;
+  vertical-align: top;
+}
+
+.ab-after-insight-label {
+  max-width: 24ch;
+  color: var(--color-charcoal);
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ab-after-insight-label em {
+  color: var(--color-ink);
+  font-style: italic;
+}
+
+.ab-after-spark {
+  width: 100%;
+  height: 28px;
+  margin-top: 6px;
+  color: var(--color-accent);
+  opacity: 0.8;
 }
 
 .antidote-foot {
