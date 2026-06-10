@@ -110,7 +110,8 @@ export function createTransformer(config) {
         const refDir = path.join(skillDir, 'reference');
         ensureDir(refDir);
         for (const ref of skill.references) {
-          const refContent = replacePlaceholders(ref.content, placeholderKey, [], allSkillNames);
+          let refContent = replacePlaceholders(ref.content, placeholderKey, [], allSkillNames);
+          refContent = refContent.replace(/\{\{scripts_path\}\}/g, scriptsPath);
           writeFile(path.join(refDir, `${ref.name}.md`), refContent);
           refCount++;
         }

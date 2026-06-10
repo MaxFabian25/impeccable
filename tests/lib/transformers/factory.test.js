@@ -146,7 +146,7 @@ describe('createTransformer factory', () => {
       description: 'Test',
       body: 'Body',
       references: [
-        { name: 'ref1', content: 'Reference 1 content', filePath: '/fake/ref1.md' },
+        { name: 'ref1', content: 'Reference 1 content. Run {{scripts_path}}/tool.mjs.', filePath: '/fake/ref1.md' },
         { name: 'ref2', content: 'Reference 2 content', filePath: '/fake/ref2.md' },
       ]
     }];
@@ -155,7 +155,7 @@ describe('createTransformer factory', () => {
     expect(fs.existsSync(path.join(TEST_DIR, 'codex/test-skills/test/reference/ref1.md'))).toBe(true);
     expect(fs.existsSync(path.join(TEST_DIR, 'codex/test-skills/test/reference/ref2.md'))).toBe(true);
     const ref1 = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/reference/ref1.md'), 'utf-8');
-    expect(ref1).toBe('Reference 1 content');
+    expect(ref1).toBe('Reference 1 content. Run test-skills/test/scripts/tool.mjs.');
   });
 
   test('should clean existing directory before writing', () => {
