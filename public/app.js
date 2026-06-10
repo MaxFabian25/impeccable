@@ -51,9 +51,6 @@ async function loadContent() {
 		// Render commands (Glass Terminal)
 		renderTerminalLayout(allCommands);
 
-		// Initialize gallery card stack
-		initGalleryStack();
-
 		// Render patterns with tabbed navigation
 		renderPatternsWithTabs(patternsData.patterns, patternsData.antipatterns);
 
@@ -95,41 +92,6 @@ function showLoadError(error) {
 			</div>
 		`;
 	}
-}
-
-function initGalleryStack() {
-	const container = document.querySelector('.gallery-stack-container');
-	const stack = document.getElementById('gallery-stack');
-	if (!stack || !container) return;
-
-	const cards = stack.querySelectorAll('.gallery-stack-card');
-	const counter = container.querySelector('.gallery-stack-counter');
-	const total = cards.length;
-	let current = 0;
-	let lastScroll = 0;
-
-	function update() {
-		cards.forEach((card, i) => {
-			const offset = (i - current + total) % total;
-			card.dataset.offset = offset;
-		});
-	}
-
-	function next() { current = (current + 1) % total; update(); }
-	function prev() { current = (current - 1 + total) % total; update(); }
-
-	container.querySelector('.gallery-stack-prev').addEventListener('click', prev);
-	container.querySelector('.gallery-stack-next').addEventListener('click', next);
-
-	stack.addEventListener('wheel', (e) => {
-		e.preventDefault();
-		const now = Date.now();
-		if (now - lastScroll < 350) return;
-		lastScroll = now;
-		if (e.deltaY > 0) next(); else prev();
-	}, { passive: false });
-
-	update();
 }
 
 function renderPatternsWithTabs(patterns, antipatterns) {

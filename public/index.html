@@ -229,61 +229,41 @@
         <h2 class="section-title">The Antidote</h2>
       </div>
       <div class="antidote-content">
-        <div class="antidote-row antidote-row--split" data-reveal>
-          <div class="antidote-intro">
-            <p class="section-lead">Every AI model learned from the same templates. Passive design guidance lists a handful of don'ts and hopes the model remembers. Impeccable names the patterns, shows examples, and actively detects them in source and rendered UI.</p>
+        <p class="section-lead" data-reveal>29 deterministic anti-pattern rules, detected in source and rendered UI. These are three of the public examples.</p>
 
-            <dl class="antidote-stats">
-              <div class="antidote-stat">
-                <dt>29</dt>
-                <dd><strong>Deterministic anti-pattern rules</strong>, each tied to a named failure mode and source or DOM checks.</dd>
-              </div>
-              <div class="antidote-stat">
-                <dt>6</dt>
-                <dd><strong>Public categories</strong>: typography, color, layout, visual detail, motion, and interaction.</dd>
-              </div>
-              <div class="antidote-stat">
-                <dt>3</dt>
-                <dd><strong>Codex surfaces</strong>: CLI checks for PR gating, browser overlay for rendered pages, and the detector inside <code>$critique</code>.</dd>
-              </div>
-            </dl>
-
-            <a href="/anti-patterns" class="antidote-catalog-link">Browse the full catalog &rarr;</a>
-          </div>
-
-          <div class="gallery-stack-container">
-            <div class="gallery-stack-header">
-              <h3 class="gallery-stack-title">Gallery of Shame</h3>
-              <button class="gallery-stack-btn gallery-stack-prev" aria-label="Previous">&larr;</button>
-              <button class="gallery-stack-btn gallery-stack-next" aria-label="Next">&rarr;</button>
+        <div class="antidote-wall" data-reveal>
+          <a href="/antipattern-examples/purple-gradients.html" class="antidote-wall-card">
+            <div class="antidote-wall-image">
+              <img src="antipattern-images/purple-gradients.png" alt="Purple gradient UI" loading="lazy">
             </div>
-            <div class="gallery-stack" id="gallery-stack">
-              <a href="/antipattern-examples/purple-gradients.html" class="gallery-stack-card">
-                <img src="antipattern-images/purple-gradients.png" alt="Purple gradient UI" loading="lazy">
-                <span class="gallery-stack-label">Purple Gradients</span>
-              </a>
-              <a href="/antipattern-examples/thick-border-cards.html" class="gallery-stack-card">
-                <img src="antipattern-images/thick-border-cards.png" alt="Thick border accent cards" loading="lazy">
-                <span class="gallery-stack-label">Side-Tab Cards</span>
-              </a>
-              <a href="/antipattern-examples/cardocalypse.html" class="gallery-stack-card">
-                <img src="antipattern-images/cardocalypse.png" alt="Cards nested inside cards" loading="lazy">
-                <span class="gallery-stack-label">Cardocalypse</span>
-              </a>
-              <a href="/antipattern-examples/inter-everywhere.html" class="gallery-stack-card">
-                <img src="antipattern-images/inter-everywhere.png" alt="Inter font everywhere" loading="lazy">
-                <span class="gallery-stack-label">Inter Everywhere</span>
-              </a>
-              <a href="/antipattern-examples/layout-templates.html" class="gallery-stack-card">
-                <img src="antipattern-images/layout-templates.png" alt="Generic layout templates" loading="lazy">
-                <span class="gallery-stack-label">Template Layouts</span>
-              </a>
-              <a href="/antipattern-examples/bad-contrast.html" class="gallery-stack-card">
-                <img src="antipattern-images/bad-contrast.png" alt="Low contrast text" loading="lazy">
-                <span class="gallery-stack-label">Bad Contrast</span>
-              </a>
+            <div class="antidote-wall-caption">
+              <span class="antidote-wall-num">01</span>
+              <span class="antidote-wall-label">Purple Gradients</span>
             </div>
-          </div>
+          </a>
+          <a href="/antipattern-examples/cardocalypse.html" class="antidote-wall-card">
+            <div class="antidote-wall-image">
+              <img src="antipattern-images/cardocalypse.png" alt="Cards nested inside cards" loading="lazy">
+            </div>
+            <div class="antidote-wall-caption">
+              <span class="antidote-wall-num">02</span>
+              <span class="antidote-wall-label">Cardocalypse</span>
+            </div>
+          </a>
+          <a href="/antipattern-examples/layout-templates.html" class="antidote-wall-card">
+            <div class="antidote-wall-image">
+              <img src="antipattern-images/layout-templates.png" alt="Generic layout template" loading="lazy">
+            </div>
+            <div class="antidote-wall-caption">
+              <span class="antidote-wall-num">03</span>
+              <span class="antidote-wall-label">Template Layouts</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="antidote-foot" data-reveal>
+          <a href="/anti-patterns" class="antidote-catalog-link">Browse the full catalog &rarr;</a>
+          <span class="antidote-foot-meta">29 deterministic rules. 6 public categories. Browser overlay plus <code>$critique</code>.</span>
         </div>
 
         <div class="antidote-footer" data-reveal>
