@@ -281,7 +281,7 @@ ${skillChips}
   <header class="skills-overview-header">
     <p class="sub-page-eyebrow">${totalSkills} commands</p>
     <h1 class="sub-page-title">Skills</h1>
-    <p class="sub-page-lede">One skill, <a href="/skills/impeccable">$impeccable</a>, teaches your AI design. Eighteen commands steer the result. Each command does one job with an opinion about what good looks like.</p>
+    <p class="sub-page-lede">One skill, <a href="/skills/impeccable">$impeccable</a>, teaches your AI design. Nineteen commands steer the result. Each command does one job with an opinion about what good looks like.</p>
   </header>
 
   <section class="skills-overview-howto">
@@ -633,7 +633,7 @@ export async function generateSubPages(rootDir) {
     const html = renderPage({
       title: 'Skills | Impeccable',
       description:
-        '18 commands that teach Codex how to design. Browse by category: create, evaluate, refine, simplify, harden.',
+        '19 commands that teach Codex how to design. Browse by category: create, evaluate, refine, simplify, harden.',
       bodyHtml: wrapInDocsLayout(sidebar, main),
       activeNav: 'docs',
       canonicalPath: '/skills',

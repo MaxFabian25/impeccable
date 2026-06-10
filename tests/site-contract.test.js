@@ -23,10 +23,11 @@ const CURRENT_COMMANDS = [
   'polish',
   'optimize',
   'harden',
+  'onboard',
 ].sort();
 
 describe('codex-only site contract', () => {
-  test('public command registry exposes only the 18 current commands', () => {
+  test('public command registry exposes only the 19 current commands', () => {
     expect(Object.keys(commandCategories).sort()).toEqual(CURRENT_COMMANDS);
     expect(Object.keys(commandRelationships).sort()).toEqual(CURRENT_COMMANDS);
   });
@@ -54,6 +55,7 @@ describe('codex-only site contract', () => {
 
     expect(sitemap).toContain('<loc>https://impeccable.style/visual-mode</loc>');
     expect(sitemap).toContain('<loc>https://impeccable.style/skills/layout</loc>');
+    expect(sitemap).toContain('<loc>https://impeccable.style/skills/onboard</loc>');
   });
 
   test('landing-page client no longer carries retired command ids and includes the extract mode guide', () => {
@@ -65,7 +67,6 @@ describe('codex-only site contract', () => {
     expect(glassTerminal).not.toContain('frontend-design');
     expect(glassTerminal).not.toContain("'arrange'");
     expect(glassTerminal).not.toContain("'normalize'");
-    expect(glassTerminal).not.toContain("'onboard'");
     expect(glassTerminal).not.toContain("'extract'");
   });
 });

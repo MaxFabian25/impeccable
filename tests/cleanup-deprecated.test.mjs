@@ -127,7 +127,7 @@ describe('cleanup-deprecated (codex-only)', () => {
       assert.ok(names.includes('i-arrange'));
       assert.ok(names.includes('extract'));
       assert.ok(names.includes('i-extract'));
-      assert.equal(names.length, 12);
+      assert.equal(names.length, 10);
     });
   });
 

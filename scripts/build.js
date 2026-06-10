@@ -605,7 +605,7 @@ async function build() {
   // not clutter the repo's own skill directories.
   const deprecatedLocalSkills = [
     'frontend-design', 'teach-impeccable',
-    'arrange', 'normalize', 'onboard', 'extract',
+    'arrange', 'normalize', 'extract',
   ];
   for (const name of deprecatedLocalSkills) {
     const p = path.join(ROOT_DIR, 'plugins', 'impeccable', syncConfig.skillsPath, name);

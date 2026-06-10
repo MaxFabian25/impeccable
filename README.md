@@ -1,11 +1,11 @@
 # Impeccable for Codex CLI
 
-Impeccable is a Codex-native design skill pack for frontend work. It gives Codex a stronger design vocabulary, 18 steering commands, and explicit anti-pattern guidance so the output stops collapsing into the same generic UI defaults.
+Impeccable is a Codex-native design skill pack for frontend work. It gives Codex a stronger design vocabulary, 19 steering commands, and explicit anti-pattern guidance so the output stops collapsing into the same generic UI defaults.
 
 ## What's Included
 
 - `impeccable`: the core design skill, with reference material across typography, color, layout, motion, responsive behavior, interaction design, and UX writing.
-- 18 user-invocable commands such as `$audit`, `$critique`, `$polish`, `$typeset`, `$layout`, and `$overdrive`.
+- 19 user-invocable commands such as `$audit`, `$critique`, `$polish`, `$typeset`, `$layout`, `$onboard`, and `$overdrive`.
 - A deterministic anti-pattern detector and CLI for scanning HTML, JSX, TSX, Vue, and Svelte for common “AI slop” tells and general design quality issues.
 
 ## Install

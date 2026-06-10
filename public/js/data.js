@@ -60,7 +60,7 @@ export const commandCategoryCommandOrder = {
   evaluate: ['critique', 'audit'],
   refine: ['typeset', 'layout', 'colorize', 'animate', 'delight', 'bolder', 'quieter', 'overdrive'],
   simplify: ['distill', 'clarify', 'adapt'],
-  harden: ['polish', 'optimize', 'harden'],
+  harden: ['polish', 'optimize', 'harden', 'onboard'],
 };
 
 export const commandProcessSteps = {
@@ -82,6 +82,7 @@ export const commandProcessSteps = {
   polish: ['Discover', 'Review', 'Refine', 'Verify'],
   optimize: ['Profile', 'Identify', 'Improve', 'Measure'],
   harden: ['Test', 'Handle', 'Validate', 'Confirm'],
+  onboard: ['Assess', 'Guide', 'Activate', 'Measure'],
 };
 
 export const commandCategories = {
@@ -103,6 +104,7 @@ export const commandCategories = {
   polish: 'harden',
   optimize: 'harden',
   harden: 'harden',
+  onboard: 'harden',
 };
 
 export const skillRelationships = {
@@ -130,5 +132,6 @@ export const commandRelationships = {
   adapt: { combinesWith: ['polish', 'clarify'], flow: 'Simplify: Adapt for different contexts' },
   polish: { flow: 'Harden: Final pass and design system alignment' },
   optimize: { flow: 'Harden: Performance improvements' },
-  harden: { combinesWith: ['optimize'], flow: 'Harden: Edge cases, onboarding, and error handling' },
+  harden: { combinesWith: ['optimize', 'onboard'], flow: 'Harden: Edge cases, error handling, and production resilience' },
+  onboard: { combinesWith: ['harden', 'clarify'], flow: 'Harden: First-run activation, empty states, and feature discovery' },
 };

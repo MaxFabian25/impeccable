@@ -26,7 +26,6 @@ const DEPRECATED_NAMES = [
   'teach-impeccable',   // folded into $impeccable teach (v2.0)
   'arrange',            // renamed to layout (v2.1)
   'normalize',          // merged into polish (v2.1)
-  'onboard',            // merged into harden (v2.1)
   'extract',            // merged into $impeccable extract (v2.1)
 ];
 

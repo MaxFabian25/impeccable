@@ -108,7 +108,7 @@ For each issue, document:
 - **Impact**: How it affects users
 - **WCAG/Standard**: Which standard it violates (if applicable)
 - **Recommendation**: How to fix it
-- **Suggested command**: Which command to use (prefer: $adapt, $animate, $audit, $bolder, $clarify, $colorize, $critique, $delight, $distill, $harden, $layout, $optimize, $overdrive, $polish, $quieter, $shape, $typeset)
+- **Suggested command**: Which command to use (prefer: $adapt, $animate, $audit, $bolder, $clarify, $colorize, $critique, $delight, $distill, $harden, $layout, $onboard, $optimize, $overdrive, $polish, $quieter, $shape, $typeset)
 
 ### Patterns & Systemic Issues
 
@@ -127,7 +127,7 @@ List recommended commands in priority order (P0 first, then P1, then P2):
 1. **[P?] `$command-name`** — Brief description (specific context from audit findings)
 2. **[P?] `$command-name`** — Brief description (specific context)
 
-**Rules**: Only recommend commands from: $adapt, $animate, $audit, $bolder, $clarify, $colorize, $critique, $delight, $distill, $harden, $layout, $optimize, $overdrive, $polish, $quieter, $shape, $typeset. Map findings to the most appropriate command. End with `$polish` as the final step if any fixes were recommended.
+**Rules**: Only recommend commands from: $adapt, $animate, $audit, $bolder, $clarify, $colorize, $critique, $delight, $distill, $harden, $layout, $onboard, $optimize, $overdrive, $polish, $quieter, $shape, $typeset. Map findings to the most appropriate command. End with `$polish` as the final step if any fixes were recommended.
 
 After presenting the summary, tell the user:
 

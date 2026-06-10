@@ -16,6 +16,7 @@ import adapt from "./adapt.js";
 import typeset from "./typeset.js";
 import layout from "./layout.js";
 import overdrive from "./overdrive.js";
+import onboard from "./onboard.js";
 
 export const commandDemos = {
 	bolder,
@@ -34,6 +35,7 @@ export const commandDemos = {
 	typeset,
 	layout,
 	overdrive,
+	onboard,
 };
 
 export function getCommandDemo(commandId) {

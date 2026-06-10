@@ -36,7 +36,6 @@ const EXCLUDED_SKILLS = new Set([
   'teach-impeccable',  // deprecated, folded into /impeccable teach
   'arrange',           // renamed to layout
   'normalize',         // merged into /polish
-  'onboard',           // merged into /harden
   'extract',           // merged into /impeccable extract
 ]);
 
@@ -69,6 +68,7 @@ const SKILL_CATEGORIES = {
   polish: 'harden',
   optimize: 'harden',
   harden: 'harden',
+  onboard: 'harden',
 };
 
 export const CATEGORY_ORDER = ['create', 'evaluate', 'refine', 'simplify', 'harden'];
