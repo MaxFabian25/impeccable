@@ -114,6 +114,16 @@ Body.`;
     const result = parseFrontmatter(content);
     expect(result.frontmatter['allowed-tools']).toBe('Bash');
   });
+
+  test('should parse CRLF frontmatter', () => {
+    const content = '---\r\nname: test-skill\r\ndescription: CRLF line endings\r\n---\r\nBody.';
+
+    const result = parseFrontmatter(content);
+
+    expect(result.frontmatter.name).toBe('test-skill');
+    expect(result.frontmatter.description).toBe('CRLF line endings');
+    expect(result.body).toBe('Body.');
+  });
 });
 
 describe('generateYamlFrontmatter', () => {
