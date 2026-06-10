@@ -13,11 +13,11 @@ Invoke $impeccable, which contains design principles, anti-patterns, and the **C
 
 ### Step 2: Gather Assessments
 
-Launch two independent assessments. **Neither must see the other's output** to avoid bias.
+Launch two independent assessments. **Neither may see the other's output**. This isolation is what makes the combined score honest. Running both in one head silently anchors them to each other; do not shortcut it for cost, speed, or context-size reasons.
 
-You SHOULD delegate each assessment to a separate sub-agent for independence. Use your environment's subagent spawning mechanism. Sub-agents should return their findings as structured text. Do NOT output findings to the user yet.
+Delegate each assessment to a separate sub-agent when the environment supports it. Use your environment's subagent spawning mechanism. Sub-agents should return their findings as structured text. Do NOT output findings to the user yet.
 
-If sub-agents are not available in the current environment, complete each assessment sequentially, writing findings to internal notes before proceeding.
+Fall back to sequential in-head work only if the environment genuinely cannot spawn sub-agents.
 
 **Tab isolation**: When browser automation is available, each assessment MUST create its own new tab. Never reuse an existing tab, even if one is already open at the correct URL. This prevents the two assessments from interfering with each other's page state.
 
@@ -63,7 +63,7 @@ npx impeccable --json [--fast] [target]
 - For 500+ files, narrow scope or ask the user
 - Exit code 0 = clean, 2 = findings
 
-**Browser visualization** (when browser automation tools are available AND the target is a viewable page):
+**Browser visualization**: Required when browser automation tools are available AND the target is a viewable page. The **[Human]** overlay tab is the user-facing deliverable; the critique is incomplete without it. Skip only if the target is not a viewable page (CSS-only file, non-browser target).
 
 The overlay is a **visual aid for the user**. It highlights issues directly in their browser. Do NOT scroll through the page to screenshot overlays. Instead, read the console output to get the results programmatically.
 
