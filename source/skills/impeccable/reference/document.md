@@ -146,6 +146,72 @@ components:
 
 Omit sections that truly do not apply, but keep the order above for sections that are present.
 
+## Step 5b: Write DESIGN.json
+
+After `DESIGN.md` is written, also write a machine-readable sidecar at project-root `DESIGN.json`. The live design panel reads this file to render color swatches, type specimens, shadows, spacing, and self-contained component previews.
+
+Regenerate `DESIGN.json` whenever `DESIGN.md` is regenerated. If the user asks only to refresh the sidecar, preserve `DESIGN.md` and rewrite `DESIGN.json`.
+
+Use this schema:
+
+```json
+{
+  "schemaVersion": 1,
+  "generatedAt": "ISO-8601 string",
+  "title": "Design System: <project name>",
+  "tokens": {
+    "colors": [
+      {
+        "role": "primary | secondary | neutral | accent",
+        "name": "Descriptive Name",
+        "value": "#HEX or oklch(...) or rgba(...)",
+        "description": "One sentence about where and why this color is used.",
+        "tonalRamp": ["darkest", "darker", "base", "lighter", "lightest"]
+      }
+    ],
+    "typography": [
+      {
+        "role": "display | headline | body | label | mono",
+        "name": "Display",
+        "family": "Font Family",
+        "fallback": "system-ui, sans-serif",
+        "weight": 400,
+        "style": "normal",
+        "sampleSize": "2rem",
+        "lineHeight": "1.2",
+        "letterSpacing": "normal",
+        "textTransform": "none",
+        "purpose": "Where this role is used."
+      }
+    ],
+    "radii": [{ "name": "md", "value": "8px" }],
+    "shadows": [{ "name": "Soft Lift", "value": "0 4px 24px rgba(0,0,0,0.12)", "purpose": "When to use it." }],
+    "spacing": [{ "name": "md", "value": "24px" }]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "description": "One-line what and when.",
+      "html": "<button class=\"ds-btn-primary\">Save</button>",
+      "css": ".ds-btn-primary { padding: 12px 20px; border-radius: 8px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Named metaphor",
+    "overview": "The visual philosophy from DESIGN.md.",
+    "keyCharacteristics": ["..."],
+    "rules": [{ "name": "The One Accent Rule", "section": "colors", "body": "..." }],
+    "dos": ["Do ..."],
+    "donts": ["Don't ..."]
+  }
+}
+```
+
+Component previews must be self-contained. Expand Tailwind utilities or CSS-in-JS theme values into literal CSS or project CSS variables. Prefix classes with `ds-`. Include hover and focus-visible rules where meaningful. Do not reference framework runtimes, icon packages, image paths, or external CSS bundles.
+
+If the project has no component library yet, synthesize 3-5 canonical primitives from the documented tokens: primary button, input, chip, card, and navigation.
+
 ## Step 6: Confirm
 
 After writing the file:
@@ -153,8 +219,9 @@ After writing the file:
 1. Summarize the extracted token sources.
 2. Name any inferred choices that should be reviewed by the user.
 3. Mention whether PRODUCT.md influenced the visual interpretation.
-4. Offer a concise refinement pass for names, atmosphere language, or missing component categories.
-5. Run `node {{scripts_path}}/load-context.mjs` one final time and consume the full JSON output so the freshly written DESIGN.md is in session context for any follow-up command.
+4. Mention that `DESIGN.json` was written or refreshed for the live design panel.
+5. Offer a concise refinement pass for names, atmosphere language, or missing component categories.
+6. Run `node {{scripts_path}}/load-context.mjs` one final time and consume the full JSON output so the freshly written DESIGN.md is in session context for any follow-up command.
 
 ## Quality Bar
 
@@ -163,4 +230,5 @@ After writing the file:
 - Do not track one-off values as system rules.
 - Do not duplicate PRODUCT.md prose. Reference strategic principles only when they explain a visual decision.
 - Include exact values for every token that can be extracted.
+- Keep `DESIGN.json` aligned with `DESIGN.md`.
 - Keep the document useful for agents and humans, not just mechanically complete.

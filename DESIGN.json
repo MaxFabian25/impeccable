@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-10T00:00:00Z",
+  "title": "Design System: Impeccable Editorial System",
+  "tokens": {
+    "colors": [
+      {
+        "role": "primary",
+        "name": "Editorial Magenta",
+        "value": "oklch(60% 0.25 350)",
+        "description": "The single assertive accent for active links, command highlights, and selected states.",
+        "tonalRamp": [
+          "oklch(18% 0.10 350)",
+          "oklch(28% 0.16 350)",
+          "oklch(40% 0.21 350)",
+          "oklch(52% 0.25 350)",
+          "oklch(60% 0.25 350)",
+          "oklch(72% 0.18 350)",
+          "oklch(84% 0.10 350)",
+          "oklch(94% 0.04 350)"
+        ]
+      },
+      {
+        "role": "neutral",
+        "name": "Paper",
+        "value": "oklch(98% 0 0)",
+        "description": "Main page surface, deliberately softer than pure white.",
+        "tonalRamp": [
+          "oklch(18% 0 0)",
+          "oklch(28% 0 0)",
+          "oklch(40% 0 0)",
+          "oklch(55% 0 0)",
+          "oklch(70% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(92% 0 0)",
+          "oklch(98% 0 0)"
+        ]
+      },
+      {
+        "role": "neutral",
+        "name": "Ink",
+        "value": "oklch(10% 0 0)",
+        "description": "Primary text, strong borders, active navigation, and dark fills.",
+        "tonalRamp": [
+          "oklch(10% 0 0)",
+          "oklch(18% 0 0)",
+          "oklch(28% 0 0)",
+          "oklch(40% 0 0)",
+          "oklch(55% 0 0)",
+          "oklch(70% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(96% 0 0)"
+        ]
+      },
+      {
+        "role": "neutral",
+        "name": "Mist",
+        "value": "oklch(92% 0 0)",
+        "description": "Borders, dividers, scroll thumbs, and low-emphasis structure.",
+        "tonalRamp": [
+          "oklch(20% 0 0)",
+          "oklch(32% 0 0)",
+          "oklch(44% 0 0)",
+          "oklch(56% 0 0)",
+          "oklch(68% 0 0)",
+          "oklch(80% 0 0)",
+          "oklch(92% 0 0)",
+          "oklch(98% 0 0)"
+        ]
+      }
+    ],
+    "typography": [
+      {
+        "role": "display",
+        "name": "Editorial Display",
+        "family": "Cormorant Garamond",
+        "fallback": "Georgia, serif",
+        "weight": 400,
+        "style": "normal",
+        "sampleSize": "4rem",
+        "lineHeight": "1.1",
+        "letterSpacing": "0",
+        "purpose": "Brand-scale headings and editorial section titles."
+      },
+      {
+        "role": "body",
+        "name": "Body",
+        "family": "Instrument Sans",
+        "fallback": "system-ui, sans-serif",
+        "weight": 400,
+        "style": "normal",
+        "sampleSize": "1rem",
+        "lineHeight": "1.625",
+        "purpose": "Prose, UI labels, and dense documentation."
+      },
+      {
+        "role": "mono",
+        "name": "Command Mono",
+        "family": "Space Grotesk",
+        "fallback": "monospace",
+        "weight": 500,
+        "style": "normal",
+        "sampleSize": "0.85rem",
+        "lineHeight": "1.35",
+        "purpose": "Command names, code-adjacent metadata, counters, and detector labels."
+      }
+    ],
+    "radii": [
+      { "name": "hairline", "value": "2px" },
+      { "name": "small", "value": "4px" },
+      { "name": "medium", "value": "8px" },
+      { "name": "pill", "value": "99px" }
+    ],
+    "shadows": [
+      {
+        "name": "Paper Lift",
+        "value": "0 16px 40px rgba(0,0,0,0.10)",
+        "purpose": "Rare deliberate elevation for overlays, demos, and hovered artifacts."
+      },
+      {
+        "name": "Accent Haze",
+        "value": "0 20px 60px oklch(60% 0.25 350 / 0.15)",
+        "purpose": "Magenta-tinted ambient emphasis, used sparingly."
+      }
+    ],
+    "spacing": [
+      { "name": "xs", "value": "8px" },
+      { "name": "sm", "value": "16px" },
+      { "name": "md", "value": "24px" },
+      { "name": "lg", "value": "32px" },
+      { "name": "xl", "value": "48px" },
+      { "name": "2xl", "value": "80px" },
+      { "name": "3xl", "value": "120px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "description": "Compact, sharp, and type-led. Used for decisive actions.",
+      "html": "<button class=\"ds-btn-primary\">GET STARTED</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; padding: 14px 34px; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 0.82rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; color: oklch(98% 0 0); background: oklch(10% 0 0); border: 1px solid oklch(10% 0 0); border-radius: 2px; cursor: pointer; transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease; } .ds-btn-primary:hover { transform: translateY(-1px); background: oklch(60% 0.25 350); border-color: oklch(60% 0.25 350); } .ds-btn-primary:focus-visible { outline: 3px solid oklch(60% 0.25 350 / 0.22); outline-offset: 2px; }"
+    },
+    {
+      "name": "Command Pill",
+      "kind": "chip",
+      "description": "A calm pill for command names and install affordances.",
+      "html": "<span class=\"ds-command-pill\">$impeccable polish</span>",
+      "css": ".ds-command-pill { display: inline-flex; align-items: center; padding: 6px 11px; font-family: 'Space Grotesk', ui-monospace, monospace; font-size: 0.78rem; font-weight: 600; color: oklch(10% 0 0); background: oklch(96% 0.005 350); border: 1px solid oklch(92% 0 0); border-radius: 99px; }"
+    },
+    {
+      "name": "Code Chip",
+      "kind": "chip",
+      "description": "Tiny accent-backed command fragment.",
+      "html": "<code class=\"ds-code-chip\">npx impeccable live</code>",
+      "css": ".ds-code-chip { display: inline-block; padding: 4px 7px; font-family: 'Space Grotesk', ui-monospace, monospace; font-size: 0.76rem; color: oklch(52% 0.25 350); background: oklch(60% 0.25 350 / 0.15); border-radius: 4px; }"
+    },
+    {
+      "name": "Feature Card",
+      "kind": "card",
+      "description": "A framed artifact for repeated command or demo items.",
+      "html": "<article class=\"ds-card\"><h3>$polish</h3><p>Final alignment, spacing, and micro-detail pass before shipping.</p></article>",
+      "css": ".ds-card { width: min(260px, 100%); padding: 20px; font-family: 'Instrument Sans', system-ui, sans-serif; background: oklch(98% 0 0); border: 1px solid oklch(92% 0 0); border-radius: 8px; transition: transform 0.16s ease, box-shadow 0.16s ease; } .ds-card:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(0,0,0,0.10); } .ds-card h3 { margin: 0 0 8px; font-family: 'Space Grotesk', ui-monospace, monospace; font-size: 0.92rem; } .ds-card p { margin: 0; color: oklch(25% 0 0); font-size: 0.88rem; line-height: 1.5; }"
+    },
+    {
+      "name": "Site Navigation",
+      "kind": "nav",
+      "description": "Thin editorial navigation with a serif brand mark.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-brand\">/ Impeccable</span><a href=\"#\">Skills</a><a href=\"#\" class=\"active\">Visual mode</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 18px; padding: 12px 16px; font-family: 'Instrument Sans', system-ui, sans-serif; background: oklch(98% 0 0); border: 1px solid oklch(92% 0 0); border-radius: 8px; } .ds-brand { margin-right: auto; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.12rem; color: oklch(10% 0 0); } .ds-nav a { color: oklch(25% 0 0); text-decoration: none; font-size: 0.84rem; font-weight: 600; } .ds-nav a:hover, .ds-nav a.active { color: oklch(60% 0.25 350); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Editorial Workshop",
+    "overview": "Impeccable uses an editorial, high-contrast visual system: paper, ink, considered serif display type, precise sans-serif body text, and a single assertive magenta accent. The product critiques generic AI aesthetics, so expression comes from type scale, spacing, confident hierarchy, and concrete examples rather than decorative noise.",
+    "keyCharacteristics": [
+      "Paper, ink, and one decisive magenta accent.",
+      "Typography and spacing carry most of the personality.",
+      "Category colors stay scoped to command and detector group navigation.",
+      "Surfaces stay flat until state or intent earns elevation."
+    ],
+    "rules": [
+      {
+        "name": "The One Accent Rule",
+        "section": "colors",
+        "body": "Editorial Magenta is the only assertive accent. Category colors stay in command navigation and detector taxonomy."
+      },
+      {
+        "name": "The Type-Led Rule",
+        "section": "typography",
+        "body": "Brand expression comes from display/body/mono contrast, not from decorative containers."
+      },
+      {
+        "name": "The Flat Until Earned Rule",
+        "section": "elevation",
+        "body": "Surfaces are flat by default. Shadows appear only for overlays, hovered artifacts, or intentional specimen framing."
+      }
+    ],
+    "dos": [
+      "Do let typography and spacing provide most of the personality.",
+      "Do use the magenta accent sparingly and deliberately.",
+      "Do keep examples concrete: show the command, the before state, and the improved state."
+    ],
+    "donts": [
+      "Don't use purple-blue hero gradients, glassmorphism, bokeh blobs, or neon tool-marketing tropes.",
+      "Don't bury Codex command syntax behind generic product copy.",
+      "Don't add decorative cards where a clean section or list would be clearer."
+    ]
+  }
+}

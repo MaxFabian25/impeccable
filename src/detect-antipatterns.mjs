@@ -87,6 +87,15 @@ const BRAND_FONT_DOMAINS = {
   'mona sans': GITHUB_DOMAINS,
 };
 
+const IMPECCABLE_UI_SELECTOR = [
+  '.impeccable-overlay',
+  '.impeccable-label',
+  '.impeccable-banner',
+  '.impeccable-tooltip',
+  '.impeccable-design-panel',
+  '.impeccable-design-toggle',
+].join(', ');
+
 function isBrandFontOnOwnDomain(font) {
   if (typeof location === 'undefined') return false;
   const allowed = BRAND_FONT_DOMAINS[font];
@@ -1990,7 +1999,7 @@ function checkTypography() {
   let totalTextElements = 0;
   for (const el of document.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, td, th, dd, blockquote, figcaption, a, button, label, span')) {
     // Skip impeccable's own elements
-    if (el.closest && el.closest('.impeccable-overlay, .impeccable-label, .impeccable-banner, .impeccable-tooltip')) continue;
+    if (el.closest && el.closest(IMPECCABLE_UI_SELECTOR)) continue;
     // Only count elements that actually have visible direct text
     const hasText = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 0);
     if (!hasText) continue;
@@ -2268,6 +2277,14 @@ if (IS_BROWSER) {
   const _myScript = document.currentScript;
   const EXTENSION_MODE = (_myScript && _myScript.dataset.impeccableExtension === 'true')
     || document.documentElement.dataset.impeccableExtension === 'true';
+  const LIVE_BASE_URL = (() => {
+    if (EXTENSION_MODE || !_myScript?.src) return null;
+    try {
+      return new URL(_myScript.src).origin;
+    } catch {
+      return null;
+    }
+  })();
 
   const BRAND_COLOR = 'oklch(55% 0.25 350)';
   const BRAND_COLOR_HOVER = 'oklch(45% 0.25 350)';
@@ -2327,6 +2344,140 @@ if (IS_BROWSER) {
     }
     .impeccable-hidden .impeccable-overlay${EXTENSION_MODE ? '' : ':not(.impeccable-banner)'} {
       display: none !important;
+    }
+    .impeccable-design-toggle {
+      position: fixed;
+      top: 44px;
+      right: 12px;
+      z-index: 100003;
+      padding: 7px 10px;
+      border: 1px solid oklch(92% 0 0);
+      border-radius: 6px;
+      background: oklch(98% 0 0);
+      color: oklch(10% 0 0);
+      font: 700 12px/1 system-ui, sans-serif;
+      letter-spacing: 0;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    .impeccable-design-toggle:hover,
+    .impeccable-design-toggle[data-open="true"] {
+      color: white;
+      background: ${BRAND_COLOR};
+      border-color: ${BRAND_COLOR};
+    }
+    .impeccable-design-panel {
+      position: fixed;
+      top: 84px;
+      right: 12px;
+      z-index: 100003;
+      display: none;
+      width: min(390px, calc(100vw - 24px));
+      max-height: calc(100vh - 104px);
+      overflow: auto;
+      box-sizing: border-box;
+      padding: 16px;
+      border: 1px solid oklch(90% 0 0);
+      border-radius: 8px;
+      background: oklch(98% 0 0);
+      color: oklch(12% 0 0);
+      box-shadow: 0 24px 70px rgba(0,0,0,0.22);
+      font-family: system-ui, sans-serif;
+    }
+    .impeccable-design-panel[data-open="true"] {
+      display: block;
+    }
+    .impeccable-design-panel h2,
+    .impeccable-design-panel h3 {
+      margin: 0;
+      color: oklch(10% 0 0);
+    }
+    .impeccable-design-panel h2 {
+      font-size: 15px;
+      line-height: 1.2;
+      margin-bottom: 3px;
+    }
+    .impeccable-design-panel h3 {
+      font-size: 12px;
+      line-height: 1.2;
+      margin: 16px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      color: oklch(42% 0 0);
+    }
+    .impeccable-design-panel p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.45;
+      color: oklch(32% 0 0);
+    }
+    .impeccable-design-meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 8px 0 12px;
+    }
+    .impeccable-design-chip {
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: oklch(96% 0.005 350);
+      border: 1px solid oklch(90% 0 0);
+      font-size: 11px;
+      color: oklch(32% 0 0);
+    }
+    .impeccable-design-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .impeccable-design-card {
+      padding: 10px;
+      border: 1px solid oklch(90% 0 0);
+      border-radius: 8px;
+      background: oklch(99% 0 0);
+    }
+    .impeccable-design-swatch {
+      height: 48px;
+      border-radius: 6px;
+      border: 1px solid rgba(0,0,0,0.12);
+      margin-bottom: 7px;
+    }
+    .impeccable-design-ramp {
+      display: flex;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.08);
+      margin-top: 6px;
+    }
+    .impeccable-design-ramp span {
+      flex: 1;
+    }
+    .impeccable-design-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: oklch(12% 0 0);
+    }
+    .impeccable-design-value {
+      margin-top: 2px;
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      color: oklch(45% 0 0);
+      word-break: break-word;
+    }
+    .impeccable-design-component {
+      margin-bottom: 8px;
+      padding: 12px;
+      border: 1px solid oklch(90% 0 0);
+      border-radius: 8px;
+      background: oklch(96% 0.005 350);
+    }
+    .impeccable-design-list {
+      margin: 8px 0 0;
+      padding-left: 17px;
+      color: oklch(28% 0 0);
+      font-size: 12px;
+      line-height: 1.45;
     }
   `;
   (document.head || document.documentElement).appendChild(styleEl);
@@ -2717,6 +2868,240 @@ if (IS_BROWSER) {
     overlays.push(banner);
   };
 
+  let designToggle = null;
+  let designPanel = null;
+  let designPanelLoaded = false;
+
+  function ensureDesignToggle() {
+    if (!LIVE_BASE_URL || designToggle) return;
+    designToggle = document.createElement('button');
+    designToggle.className = 'impeccable-design-toggle';
+    designToggle.type = 'button';
+    designToggle.textContent = 'Design';
+    designToggle.title = 'Open Impeccable design system panel';
+    designToggle.addEventListener('click', toggleDesignPanel);
+    document.body.appendChild(designToggle);
+  }
+
+  function toggleDesignPanel() {
+    if (!designPanel) {
+      designPanel = document.createElement('aside');
+      designPanel.className = 'impeccable-design-panel';
+      designPanel.setAttribute('aria-label', 'Impeccable design system');
+      document.body.appendChild(designPanel);
+    }
+    const nextOpen = designPanel.dataset.open !== 'true';
+    designPanel.dataset.open = nextOpen ? 'true' : 'false';
+    designToggle.dataset.open = nextOpen ? 'true' : 'false';
+    if (nextOpen && !designPanelLoaded) {
+      designPanelLoaded = true;
+      loadDesignPanel();
+    }
+  }
+
+  async function loadDesignPanel() {
+    designPanel.innerHTML = '';
+    appendText(designPanel, 'h2', 'Design System');
+    appendText(designPanel, 'p', 'Loading project design context...');
+    try {
+      const res = await fetch(`${LIVE_BASE_URL}/design-system.json`, { cache: 'no-store' });
+      const payload = await res.json().catch(() => null);
+      renderDesignPayload(payload || { present: false, error: `HTTP ${res.status}` });
+    } catch (err) {
+      renderDesignPayload({ present: false, error: err.message });
+    }
+  }
+
+  function renderDesignPayload(payload) {
+    designPanel.innerHTML = '';
+    if (!payload?.present) {
+      appendText(designPanel, 'h2', 'No DESIGN context');
+      appendText(designPanel, 'p', payload?.error || 'No DESIGN.md or DESIGN.json was found in the project root.');
+      return;
+    }
+    if (payload.error) {
+      appendText(designPanel, 'h2', 'Design context error');
+      appendText(designPanel, 'p', payload.error);
+      return;
+    }
+
+    if (payload.mode === 'sidecar' && payload.model) {
+      renderSidecarDesign(payload.model, payload);
+      return;
+    }
+    renderParsedDesign(payload.parsedMd || {});
+  }
+
+  function renderSidecarDesign(model, meta) {
+    appendText(designPanel, 'h2', model.title || 'Design System');
+    const metaRow = document.createElement('div');
+    metaRow.className = 'impeccable-design-meta';
+    addChip(metaRow, 'DESIGN.json');
+    if (meta.mdNewerThanJson) addChip(metaRow, 'DESIGN.md is newer');
+    designPanel.appendChild(metaRow);
+
+    const colors = model.tokens?.colors || [];
+    if (colors.length) {
+      appendText(designPanel, 'h3', 'Colors');
+      const grid = document.createElement('div');
+      grid.className = 'impeccable-design-grid';
+      for (const color of colors) {
+        const card = document.createElement('div');
+        card.className = 'impeccable-design-card';
+        const swatch = document.createElement('div');
+        swatch.className = 'impeccable-design-swatch';
+        swatch.style.background = safeCssValue(color.value);
+        card.appendChild(swatch);
+        appendText(card, 'div', color.name || color.role || 'Color', 'impeccable-design-name');
+        appendText(card, 'div', color.value || '', 'impeccable-design-value');
+        if (Array.isArray(color.tonalRamp) && color.tonalRamp.length) {
+          const ramp = document.createElement('div');
+          ramp.className = 'impeccable-design-ramp';
+          for (const value of color.tonalRamp) {
+            const stop = document.createElement('span');
+            stop.style.background = safeCssValue(value);
+            ramp.appendChild(stop);
+          }
+          card.appendChild(ramp);
+        }
+        grid.appendChild(card);
+      }
+      designPanel.appendChild(grid);
+    }
+
+    const type = model.tokens?.typography || [];
+    if (type.length) {
+      appendText(designPanel, 'h3', 'Typography');
+      for (const item of type) {
+        const card = document.createElement('div');
+        card.className = 'impeccable-design-card';
+        const sample = document.createElement('div');
+        sample.textContent = item.name || item.role || 'Aa';
+        Object.assign(sample.style, {
+          fontFamily: [item.family, item.fallback].filter(Boolean).join(', '),
+          fontWeight: String(item.weight || 400),
+          fontStyle: item.style || 'normal',
+          fontSize: item.sampleSize || '24px',
+          lineHeight: String(item.lineHeight || 1.2),
+          letterSpacing: item.letterSpacing || 'normal',
+          textTransform: item.textTransform || 'none',
+        });
+        card.appendChild(sample);
+        appendText(card, 'div', item.purpose || item.family || '', 'impeccable-design-value');
+        designPanel.appendChild(card);
+      }
+    }
+
+    const components = model.components || [];
+    if (components.length) {
+      appendText(designPanel, 'h3', 'Components');
+      for (const component of components) {
+        const card = document.createElement('div');
+        card.className = 'impeccable-design-component';
+        const host = document.createElement('div');
+        const shadow = host.attachShadow({ mode: 'open' });
+        const style = document.createElement('style');
+        style.textContent = component.css || '';
+        shadow.appendChild(style);
+        const body = document.createElement('div');
+        body.innerHTML = component.html || '';
+        shadow.appendChild(body);
+        card.appendChild(host);
+        appendText(card, 'div', component.name || component.kind || 'Component', 'impeccable-design-name');
+        if (component.description) appendText(card, 'p', component.description);
+        designPanel.appendChild(card);
+      }
+    }
+
+    renderNarrative(model.narrative || {});
+  }
+
+  function renderParsedDesign(parsed) {
+    appendText(designPanel, 'h2', parsed.title || 'DESIGN.md');
+    const metaRow = document.createElement('div');
+    metaRow.className = 'impeccable-design-meta';
+    addChip(metaRow, 'parsed DESIGN.md');
+    addChip(metaRow, 'basic view');
+    designPanel.appendChild(metaRow);
+
+    const groups = parsed.colors?.groups || [];
+    if (groups.length) {
+      appendText(designPanel, 'h3', 'Colors');
+      const grid = document.createElement('div');
+      grid.className = 'impeccable-design-grid';
+      for (const group of groups) {
+        for (const color of group.colors || []) {
+          const card = document.createElement('div');
+          card.className = 'impeccable-design-card';
+          const swatch = document.createElement('div');
+          swatch.className = 'impeccable-design-swatch';
+          swatch.style.background = safeCssValue(color.value);
+          card.appendChild(swatch);
+          appendText(card, 'div', color.name || group.role, 'impeccable-design-name');
+          appendText(card, 'div', color.value || '', 'impeccable-design-value');
+          grid.appendChild(card);
+        }
+      }
+      designPanel.appendChild(grid);
+    }
+
+    renderNarrative({
+      northStar: parsed.overview?.northStar,
+      overview: parsed.overview?.overview,
+      keyCharacteristics: parsed.overview?.keyCharacteristics,
+      rules: [
+        ...(parsed.colors?.rules || []),
+        ...(parsed.typography?.rules || []),
+        ...(parsed.elevation?.rules || []),
+      ],
+      dos: parsed.dosDonts?.dos || [],
+      donts: parsed.dosDonts?.donts || [],
+    });
+  }
+
+  function renderNarrative(narrative) {
+    if (narrative.northStar || narrative.overview) {
+      appendText(designPanel, 'h3', narrative.northStar || 'Overview');
+      if (narrative.overview) appendText(designPanel, 'p', narrative.overview);
+    }
+    if (Array.isArray(narrative.keyCharacteristics) && narrative.keyCharacteristics.length) {
+      appendList(designPanel, narrative.keyCharacteristics);
+    }
+    if (Array.isArray(narrative.rules) && narrative.rules.length) {
+      appendText(designPanel, 'h3', 'Rules');
+      appendList(designPanel, narrative.rules.map((r) => `${r.name}: ${r.body}`));
+    }
+    if ((narrative.dos || []).length || (narrative.donts || []).length) {
+      appendText(designPanel, 'h3', "Do's and Don'ts");
+      appendList(designPanel, [...(narrative.dos || []), ...(narrative.donts || [])]);
+    }
+  }
+
+  function appendText(parent, tag, text, className = '') {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    el.textContent = text;
+    parent.appendChild(el);
+    return el;
+  }
+
+  function appendList(parent, items) {
+    const list = document.createElement('ul');
+    list.className = 'impeccable-design-list';
+    for (const item of items) {
+      appendText(list, 'li', item);
+    }
+    parent.appendChild(list);
+  }
+
+  function addChip(parent, text) {
+    appendText(parent, 'span', text, 'impeccable-design-chip');
+  }
+
+  function safeCssValue(value) {
+    return String(value || '').replace(/[<>"'`\n\r]/g, '');
+  }
+
   // Heuristic for skipping CSS-in-JS hashed class names like "css-1a2b3c" or "_2x4hG_".
   // These change between builds and produce brittle, ugly selectors.
   function isLikelyHashedClass(c) {
@@ -2852,8 +3237,8 @@ if (IS_BROWSER) {
 
     for (const el of document.querySelectorAll('*')) {
       // Skip impeccable's own elements and any descendants (overlays, labels, banner, nav buttons)
-      if (el.closest('.impeccable-overlay, .impeccable-label, .impeccable-banner, .impeccable-tooltip')) continue;
-      // Skip browser extension elements (Claude, etc.)
+      if (el.closest(IMPECCABLE_UI_SELECTOR)) continue;
+      // Skip known host extension elements outside the page UI.
       const elId = el.id || '';
       if (elId.startsWith('claude-') || elId.startsWith('cic-')) continue;
       // Skip html/body -- page-level findings go in the banner, not a full-page overlay
@@ -3006,6 +3391,7 @@ if (IS_BROWSER) {
     });
     window.postMessage({ source: 'impeccable-ready' }, '*');
   } else {
+    ensureDesignToggle();
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => setTimeout(scan, 100));
     } else {
@@ -4484,6 +4870,43 @@ async function findOpenPort(start = 8400) {
 
 const LIVE_PID_FILE = path.join((await import('node:os')).default.tmpdir(), 'impeccable-live.json');
 
+function statOrNull(filePath) {
+  try {
+    return fs.statSync(filePath);
+  } catch {
+    return null;
+  }
+}
+
+async function loadDesignSystemPayload(projectRoot = process.cwd()) {
+  const mdPath = path.join(projectRoot, 'DESIGN.md');
+  const jsonPath = path.join(projectRoot, 'DESIGN.json');
+  const mdStat = statOrNull(mdPath);
+  const jsonStat = statOrNull(jsonPath);
+
+  if (!mdStat && !jsonStat) {
+    return { present: false };
+  }
+
+  if (jsonStat) {
+    const model = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+    return {
+      present: true,
+      mode: 'sidecar',
+      model,
+      mdNewerThanJson: !!(mdStat && mdStat.mtimeMs > jsonStat.mtimeMs + 1000),
+    };
+  }
+
+  const { parseDesignMd } = await import('./design-parser.mjs');
+  const raw = fs.readFileSync(mdPath, 'utf-8');
+  return {
+    present: true,
+    mode: 'parsed-md',
+    parsedMd: parseDesignMd(raw),
+  };
+}
+
 async function liveCli() {
   const args = process.argv.slice(2);
   const helpMode = args.includes('--help');
@@ -4507,6 +4930,8 @@ Options:
 
 The server provides:
   /detect.js    The detection overlay script (inject via <script> tag)
+  /design-system.json  DESIGN.json or parsed DESIGN.md for the design panel
+  /design-system/raw   Raw DESIGN.md, when present
   /health       Health check endpoint
   /stop         Stop the server remotely`);
     process.exit(0);
@@ -4545,19 +4970,45 @@ The server provides:
     process.exit(0);
   };
 
-  const server = http.default.createServer((req, res) => {
+  const server = http.default.createServer(async (req, res) => {
     // CORS headers for cross-origin injection
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
-    if (req.url === '/detect.js' || req.url === '/') {
+    const requestUrl = new URL(req.url, `http://localhost:${port}`);
+    const requestPath = requestUrl.pathname;
+
+    if (requestPath === '/detect.js' || requestPath === '/') {
       res.writeHead(200, { 'Content-Type': 'application/javascript' });
       res.end(browserScript);
-    } else if (req.url === '/health') {
+    } else if (requestPath === '/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok', port }));
-    } else if (req.url === '/stop') {
+      res.end(JSON.stringify({
+        status: 'ok',
+        port,
+        hasDesign: !!statOrNull(path.join(process.cwd(), 'DESIGN.md')),
+        hasDesignJson: !!statOrNull(path.join(process.cwd(), 'DESIGN.json')),
+      }));
+    } else if (requestPath === '/design-system/raw') {
+      const mdPath = path.join(process.cwd(), 'DESIGN.md');
+      if (!statOrNull(mdPath)) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Not found');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
+      res.end(fs.readFileSync(mdPath, 'utf-8'));
+    } else if (requestPath === '/design-system.json') {
+      try {
+        const payload = await loadDesignSystemPayload(process.cwd());
+        res.writeHead(payload.present ? 200 : 404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(payload));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ present: true, error: err.message }));
+      }
+    } else if (requestPath === '/stop') {
       res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.end('stopping');
       shutdown();
@@ -4607,6 +5058,7 @@ export {
   extractStyleBlocks, extractCSSinJS,
   buildImportGraph, resolveImport,
   detectFrameworkConfig, isPortListening, FRAMEWORK_CONFIGS,
+  loadDesignSystemPayload,
   main as detectCli,
   liveCli,
 };

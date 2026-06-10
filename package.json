@@ -51,7 +51,7 @@
     "dev": "bun run server/index.js",
     "preview": "bun run build && wrangler pages dev",
     "deploy": "bun run build && wrangler pages deploy build/",
-    "test": "bun test tests/build.test.js tests/detect-antipatterns.test.js tests/server/download-validation.test.js tests/skills-cli.test.js tests/lib/utils.test.js tests/lib/transformers/factory.test.js tests/site-contract.test.js && node --test tests/detect-antipatterns-fixtures.test.mjs tests/detect-antipatterns-browser.test.mjs tests/cleanup-deprecated.test.mjs tests/pin.test.mjs tests/windows-path-fix.test.mjs",
+    "test": "bun test tests/build.test.js tests/detect-antipatterns.test.js tests/server/download-validation.test.js tests/skills-cli.test.js tests/lib/utils.test.js tests/lib/transformers/factory.test.js tests/site-contract.test.js && node --test tests/design-parser.test.mjs tests/detect-antipatterns-fixtures.test.mjs tests/detect-antipatterns-browser.test.mjs tests/cleanup-deprecated.test.mjs tests/pin.test.mjs tests/windows-path-fix.test.mjs",
     "prepack": "cp README.md README.repo.md && cp README.npm.md README.md",
     "postpack": "cp README.repo.md README.md && rm README.repo.md",
     "screenshot": "bun run scripts/screenshot-antipatterns.js",
