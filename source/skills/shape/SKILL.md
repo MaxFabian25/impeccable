@@ -15,7 +15,7 @@ Shape the UX and UI for a feature before any code is written. This skill produce
 
 **Scope**: Design planning only. This skill does NOT write code. It produces the thinking that makes code good.
 
-**Output**: A design brief that can be handed off to {{command_prefix}}impeccable craft, {{command_prefix}}impeccable, or any other implementation skill.
+**Output**: A design brief that can be handed off to {{command_prefix}}impeccable craft, {{command_prefix}}impeccable, or any other implementation skill. When visual direction probes are used, the images are supporting artifacts, not the primary output.
 
 ## Philosophy
 
@@ -55,6 +55,42 @@ Ask these questions in conversation, adapting based on answers. Don't dump them 
 - What should this NOT be? What would be a wrong direction?
 - What's the biggest risk of getting this wrong?
 
+## Phase 1.5: Visual Direction Probe (Capability-Gated)
+
+After the discovery interview, generate a small set of visual direction probes before writing the final brief when all of these are true:
+
+- The work is net-new or directionally ambiguous enough that visual exploration will clarify the brief.
+- The requested fidelity is mid-fi, high-fi, or production-ready. Skip for sketch-only planning.
+- The current environment has built-in image generation capability. Do not ask the user to set up external APIs, shell scripts, or one-off tooling just to do this.
+
+When those conditions are met, this step is the default. Use it to explore visual lanes, not to replace the brief.
+
+### What To Generate
+
+Generate 2 to 4 distinct direction probes based on the discovery answers, especially:
+
+- Color strategy
+- Aesthetic tone and scene
+- Named anchor references
+- Scope and fidelity
+
+The probes should differ in primary visual direction, such as hierarchy, topology, density, typographic voice, or color strategy. Do not make mere palette variants.
+
+### How To Use The Probes
+
+- Treat them as direction tests, not final designs.
+- Use them to pressure-test whether the brief is pointing at the right lane.
+- Ask the user which direction feels closest, what feels off, and what should carry forward.
+- If the probes reveal a mismatch, revise the brief inputs before finalizing the brief.
+
+### Limits
+
+- Do not skip discovery because image generation is available.
+- Do not treat generated imagery as final UX specification, final copy, or final accessibility behavior.
+- Do not use this step for minor refinements of existing work. It is for shaping a new surface or clarifying a major directional choice.
+
+If image generation is unavailable, or the task does not benefit from it, skip this phase and proceed directly to the design brief.
+
 ## Phase 2: Design Brief
 
 After the interview, synthesize everything into a structured design brief. Present it to the user for confirmation before considering this skill complete.
@@ -69,6 +105,8 @@ The single most important thing a user should do or understand here.
 
 **3. Design Direction**
 How this should feel. What aesthetic approach fits. Reference the project's Design Context in `{{config_file}}` and explain how this feature should express it.
+
+If you ran the Visual Direction Probe step, name which probe direction won and what changed in the brief because of it.
 
 **4. Layout Strategy**
 High-level spatial approach: what gets emphasis, what's secondary, how information flows. Describe the visual hierarchy and rhythm, not specific CSS.
