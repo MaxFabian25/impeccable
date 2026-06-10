@@ -31,10 +31,8 @@ Thumbs.db
 # Extension build artifacts
 extension/detector/
 
-# User design context
+# Legacy private design context
 .impeccable.md
-PRODUCT.md
-DESIGN.md
 .impeccable/hook.cache.json
 
 # Evals (private, commercial)
