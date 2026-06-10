@@ -231,11 +231,23 @@ function initWhyTabs() {
 	const panels = Array.from(container.querySelectorAll(".why-panel"));
 	if (!tabs.length || !panels.length) return;
 
+	const cycleMs = 7000;
+	const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	let current = Math.max(0, tabs.findIndex((tab) => tab.classList.contains("is-active")));
+	let timer = null;
+	let autoRotate = !reducedMotion;
+	let visible = false;
+
+	container.style.setProperty("--why-cycle-ms", `${cycleMs}ms`);
+
 	const activate = (index) => {
+		current = index;
+
 		tabs.forEach((tab, i) => {
 			const active = i === index;
 			tab.classList.toggle("is-active", active);
 			tab.setAttribute("aria-selected", active ? "true" : "false");
+			tab.classList.remove("is-cycling");
 		});
 
 		panels.forEach((panel, i) => {
@@ -247,20 +259,76 @@ function initWhyTabs() {
 				panel.setAttribute("hidden", "");
 			}
 		});
+
+		if (autoRotate && visible) {
+			const active = tabs[index];
+			void active.offsetWidth;
+			active.classList.add("is-cycling");
+		}
+	};
+
+	const scheduleNext = () => {
+		clearTimeout(timer);
+		if (!autoRotate || !visible) return;
+
+		timer = setTimeout(() => {
+			const next = (current + 1) % tabs.length;
+			activate(next);
+			scheduleNext();
+		}, cycleMs);
+	};
+
+	const stopAuto = () => {
+		autoRotate = false;
+		clearTimeout(timer);
+		tabs.forEach((tab) => tab.classList.remove("is-cycling"));
 	};
 
 	tabs.forEach((tab, index) => {
-		tab.addEventListener("click", () => activate(index));
+		tab.addEventListener("click", () => {
+			stopAuto();
+			activate(index);
+		});
 		tab.addEventListener("keydown", (event) => {
 			if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
 
 			event.preventDefault();
+			stopAuto();
 			const direction = event.key === "ArrowDown" ? 1 : -1;
 			const next = (index + direction + tabs.length) % tabs.length;
 			tabs[next].focus();
 			activate(next);
 		});
 	});
+
+	container.addEventListener("mouseenter", () => {
+		clearTimeout(timer);
+		tabs.forEach((tab) => tab.classList.remove("is-cycling"));
+	});
+
+	container.addEventListener("mouseleave", () => {
+		if (!autoRotate || !visible) return;
+
+		const active = tabs[current];
+		void active.offsetWidth;
+		active.classList.add("is-cycling");
+		scheduleNext();
+	});
+
+	const observer = new IntersectionObserver((entries) => {
+		visible = entries.some((entry) => entry.isIntersecting);
+		if (visible && autoRotate) {
+			const active = tabs[current];
+			void active.offsetWidth;
+			active.classList.add("is-cycling");
+			scheduleNext();
+		} else {
+			clearTimeout(timer);
+			tabs.forEach((tab) => tab.classList.remove("is-cycling"));
+		}
+	}, { threshold: 0.35 });
+
+	observer.observe(container);
 }
 
 if (document.readyState === "loading") {

@@ -279,57 +279,226 @@
         <h2 class="section-title">Why Impeccable</h2>
       </div>
       <div class="why-content" data-reveal>
-        <p class="section-lead">Seven reasons this is not another AI design wrapper.</p>
-
         <div class="why-layout">
           <ol class="why-tabs" role="tablist" aria-label="Reasons Impeccable is different">
-            <li><button type="button" id="why-tab-0" role="tab" class="why-tab is-active" data-index="0" aria-selected="true" aria-controls="why-panel-0"><span class="why-tab-num">01</span><span class="why-tab-label">Intentional design</span></button></li>
-            <li><button type="button" id="why-tab-1" role="tab" class="why-tab" data-index="1" aria-selected="false" aria-controls="why-panel-1"><span class="why-tab-num">02</span><span class="why-tab-label">Brand and product, both</span></button></li>
-            <li><button type="button" id="why-tab-2" role="tab" class="why-tab" data-index="2" aria-selected="false" aria-controls="why-panel-2"><span class="why-tab-num">03</span><span class="why-tab-label">Production codebases</span></button></li>
-            <li><button type="button" id="why-tab-3" role="tab" class="why-tab" data-index="3" aria-selected="false" aria-controls="why-panel-3"><span class="why-tab-num">04</span><span class="why-tab-label">Native to Codex</span></button></li>
-            <li><button type="button" id="why-tab-4" role="tab" class="why-tab" data-index="4" aria-selected="false" aria-controls="why-panel-4"><span class="why-tab-num">05</span><span class="why-tab-label">Portable design memory</span></button></li>
-            <li><button type="button" id="why-tab-5" role="tab" class="why-tab" data-index="5" aria-selected="false" aria-controls="why-panel-5"><span class="why-tab-num">06</span><span class="why-tab-label">CI/CD-ready</span></button></li>
-            <li><button type="button" id="why-tab-6" role="tab" class="why-tab" data-index="6" aria-selected="false" aria-controls="why-panel-6"><span class="why-tab-num">07</span><span class="why-tab-label">Browser overlay</span></button></li>
+            <li><button type="button" id="why-tab-0" role="tab" class="why-tab is-active" data-index="0" aria-selected="true" aria-controls="why-panel-0"><span class="why-tab-progress" aria-hidden="true"></span><span class="why-tab-num">01</span><span class="why-tab-label">Intentional design</span></button></li>
+            <li><button type="button" id="why-tab-1" role="tab" class="why-tab" data-index="1" aria-selected="false" aria-controls="why-panel-1"><span class="why-tab-progress" aria-hidden="true"></span><span class="why-tab-num">02</span><span class="why-tab-label">Brand and product, both</span></button></li>
+            <li><button type="button" id="why-tab-2" role="tab" class="why-tab" data-index="2" aria-selected="false" aria-controls="why-panel-2"><span class="why-tab-progress" aria-hidden="true"></span><span class="why-tab-num">03</span><span class="why-tab-label">Production codebases</span></button></li>
+            <li><button type="button" id="why-tab-3" role="tab" class="why-tab" data-index="3" aria-selected="false" aria-controls="why-panel-3"><span class="why-tab-progress" aria-hidden="true"></span><span class="why-tab-num">04</span><span class="why-tab-label">Native to Codex</span></button></li>
+            <li><button type="button" id="why-tab-4" role="tab" class="why-tab" data-index="4" aria-selected="false" aria-controls="why-panel-4"><span class="why-tab-progress" aria-hidden="true"></span><span class="why-tab-num">05</span><span class="why-tab-label">Portable design memory</span></button></li>
+            <li><button type="button" id="why-tab-5" role="tab" class="why-tab" data-index="5" aria-selected="false" aria-controls="why-panel-5"><span class="why-tab-progress" aria-hidden="true"></span><span class="why-tab-num">06</span><span class="why-tab-label">CI/CD-ready</span></button></li>
+            <li><button type="button" id="why-tab-6" role="tab" class="why-tab" data-index="6" aria-selected="false" aria-controls="why-panel-6"><span class="why-tab-progress" aria-hidden="true"></span><span class="why-tab-num">07</span><span class="why-tab-label">Browser overlay</span></button></li>
           </ol>
 
           <div class="why-panels">
             <article class="why-panel is-active" id="why-panel-0" role="tabpanel" data-index="0" aria-labelledby="why-tab-0">
+              <div class="why-visual why-visual--productmd">
+                <div class="why-productmd-file">
+                  <div class="why-productmd-header">
+                    <span class="why-productmd-filename">PRODUCT.md</span>
+                    <span class="why-productmd-status">Loaded on every command</span>
+                  </div>
+                  <div class="why-productmd-body">
+                    <div class="why-productmd-field">
+                      <span class="why-productmd-k">Users</span>
+                      <span class="why-productmd-v">People doing real work, reading fast, often under pressure.</span>
+                    </div>
+                    <div class="why-productmd-field">
+                      <span class="why-productmd-k">Register</span>
+                      <span class="why-productmd-v">Product. Design serves the task.</span>
+                    </div>
+                    <div class="why-productmd-field">
+                      <span class="why-productmd-k">Voice</span>
+                      <span class="why-productmd-v">Calm, precise, concrete, no hype.</span>
+                    </div>
+                    <div class="why-productmd-field">
+                      <span class="why-productmd-k">Avoid</span>
+                      <span class="why-productmd-v">Purple gradients, glass panels, generic productivity claims.</span>
+                    </div>
+                  </div>
+                  <div class="why-productmd-footer">
+                    <span class="why-productmd-footer-dot"></span>
+                    Every command reads this before writing code.
+                  </div>
+                </div>
+              </div>
               <h3 class="why-panel-title">Design that knows who it is for.</h3>
               <p class="why-panel-body">Most AI UI work starts from a prompt and ends at a plausible mock. Impeccable starts by capturing audience, purpose, register, anti-references, and visual direction in <code>PRODUCT.md</code> and <code>DESIGN.md</code>. Every command reads that context before touching code.</p>
               <p class="why-panel-meta"><code>$impeccable teach</code> / <code>$impeccable document</code> / <code>$shape</code></p>
             </article>
 
             <article class="why-panel" id="why-panel-1" role="tabpanel" data-index="1" aria-labelledby="why-tab-1" hidden>
+              <div class="why-visual why-visual--registers">
+                <div class="why-register why-register--brand">
+                  <span class="why-register-label">Brand register</span>
+                  <div class="why-register-mock why-register-mock--brand">
+                    <span class="why-brand-hero-mono">Issue 04</span>
+                    <div class="why-brand-hero-title"><em>Shape</em> the story.</div>
+                  </div>
+                </div>
+                <div class="why-register why-register--product">
+                  <span class="why-register-label">Product register</span>
+                  <div class="why-register-mock why-register-mock--product">
+                    <div class="why-product-row"><span class="why-product-k">Users</span><span class="why-product-v">12,482</span></div>
+                    <div class="why-product-row"><span class="why-product-k">Active now</span><span class="why-product-v">1,207</span></div>
+                    <div class="why-product-row"><span class="why-product-k">Conversion</span><span class="why-product-v">4.8%</span></div>
+                  </div>
+                </div>
+              </div>
               <h3 class="why-panel-title">A landing page and a dashboard should not speak the same language.</h3>
               <p class="why-panel-body">Brand surfaces can be expressive, editorial, and memorable. Product surfaces need clarity, density, and stable repetition. Impeccable carries both registers and asks commands like <code>$typeset</code>, <code>$layout</code>, <code>$colorize</code>, and <code>$delight</code> to choose the right one for the job.</p>
               <p class="why-panel-meta">Default register lives in <code>PRODUCT.md</code>; individual tasks can override it.</p>
             </article>
 
             <article class="why-panel" id="why-panel-2" role="tabpanel" data-index="2" aria-labelledby="why-tab-2" hidden>
+              <div class="why-visual why-visual--terminal">
+                <div class="why-terminal">
+                  <div class="why-terminal-header">
+                    <span class="why-terminal-dot"></span>
+                    <span class="why-terminal-dot"></span>
+                    <span class="why-terminal-dot"></span>
+                    <span class="why-terminal-title">$polish src/Checkout.tsx : scanning codebase</span>
+                  </div>
+                  <div class="why-terminal-body">
+                    <div class="why-terminal-line why-terminal-line--prompt"><span class="why-terminal-prompt">&rsaquo;</span> Walking src/...</div>
+                    <div class="why-terminal-line">  <span class="why-terminal-ok">&check;</span> <span class="why-terminal-path">src/styles/tokens.css</span> <span class="why-terminal-meta">14 colors, 6 font sizes, 7 spacing steps</span></div>
+                    <div class="why-terminal-line">  <span class="why-terminal-ok">&check;</span> <span class="why-terminal-path">tailwind.config.ts</span> <span class="why-terminal-meta">theme.extend merged</span></div>
+                    <div class="why-terminal-line">  <span class="why-terminal-ok">&check;</span> <span class="why-terminal-path">src/components/</span> <span class="why-terminal-meta">34 components</span></div>
+                    <div class="why-terminal-line why-terminal-line--hint"><span class="why-terminal-arrow">&rarr;</span> Matching your system. Not inventing one.</div>
+                  </div>
+                </div>
+              </div>
               <h3 class="why-panel-title">Built to work inside real repositories.</h3>
               <p class="why-panel-body">Impeccable is not a detached sketchpad. It reads your source, respects existing tokens and components, scans rendered output, and makes changes in the stack you already use. It is meant for daily work on production code, not one-off mock generation.</p>
               <p class="why-panel-meta">Source-aware commands, detector checks, browser inspection, and focused diffs.</p>
             </article>
 
             <article class="why-panel" id="why-panel-3" role="tabpanel" data-index="3" aria-labelledby="why-tab-3" hidden>
+              <div class="why-visual why-visual--v2">
+                <div class="v2-side v2-side--old">
+                  <span class="v2-label">The old way</span>
+                  <div class="v2-canvas-chrome">
+                    <span class="v2-canvas-tool">Mock</span>
+                    <span class="v2-canvas-tool">Handoff</span>
+                    <span class="v2-canvas-tool">Comment</span>
+                  </div>
+                  <div class="v2-canvas-art">
+                    <span class="v2-canvas-file">Detached mock v7 final FINAL</span>
+                    <div class="v2-canvas-mock"></div>
+                    <span class="v2-canvas-stamp">drift discovered in QA</span>
+                  </div>
+                </div>
+                <div class="v2-side v2-side--new">
+                  <span class="v2-label">With Impeccable</span>
+                  <div class="v2-new-surface">
+                    <div class="v2-new-line">impeccable craft checkout</div>
+                    <div class="v2-new-browser">
+                      <div class="v2-new-browser-dots">
+                        <span class="v2-new-browser-dot"></span>
+                        <span class="v2-new-browser-dot"></span>
+                        <span class="v2-new-browser-dot"></span>
+                      </div>
+                      <div class="v2-new-browser-frame"></div>
+                    </div>
+                    <span class="v2-new-bar">pick &middot; prompt &middot; accept</span>
+                  </div>
+                </div>
+              </div>
               <h3 class="why-panel-title">Design where Codex already edits.</h3>
               <p class="why-panel-body">The useful loop is not canvas to handoff to implementation. It is brief, build, inspect, refine, commit. Impeccable fits Codex's local repository workflow: the skills live in the Codex plugin, the commands are typed with <code>$</code>, and the output is code you can test immediately.</p>
               <p class="why-panel-meta">Codex plugin source, marketplace metadata, and detector runtime stay in this repo.</p>
             </article>
 
             <article class="why-panel" id="why-panel-4" role="tabpanel" data-index="4" aria-labelledby="why-tab-4" hidden>
+              <div class="why-visual why-visual--designmd">
+                <div class="why-dm-header">
+                  <span class="why-dm-filename">DESIGN.md</span>
+                  <span class="why-dm-badge">Google Stitch spec</span>
+                </div>
+                <div class="why-dm-grid">
+                  <div class="why-dm-tile why-dm-tile--color" style="--c: oklch(60% 0.25 350);">
+                    <div class="why-dm-tile-meta"><span>Accent</span><span>oklch</span></div>
+                    <div class="why-dm-color-hero"></div>
+                    <div class="why-dm-color-ramp">
+                      <span style="background: oklch(20% .25 350)"></span>
+                      <span style="background: oklch(32% .25 350)"></span>
+                      <span style="background: oklch(44% .25 350)"></span>
+                      <span style="background: oklch(56% .25 350)"></span>
+                      <span style="background: oklch(68% .22 350)"></span>
+                      <span style="background: oklch(80% .15 350)"></span>
+                      <span style="background: oklch(90% .08 350)"></span>
+                      <span style="background: oklch(96% .02 350)"></span>
+                    </div>
+                  </div>
+                  <div class="why-dm-tile why-dm-tile--type">
+                    <div class="why-dm-tile-meta"><span>Display</span><span>Italic 400</span></div>
+                    <div class="why-dm-type-specimen">Aa</div>
+                    <div class="why-dm-type-family">Display family</div>
+                  </div>
+                  <div class="why-dm-tile why-dm-tile--type">
+                    <div class="why-dm-tile-meta"><span>Body</span><span>Regular 400</span></div>
+                    <div class="why-dm-type-specimen why-dm-type-specimen--sans">Aa</div>
+                    <div class="why-dm-type-family">Body family</div>
+                  </div>
+                  <div class="why-dm-tile why-dm-tile--components">
+                    <div class="why-dm-tile-meta"><span>Components</span><span>34</span></div>
+                    <div class="why-dm-comp-row">
+                      <span class="why-dm-comp-chip why-dm-comp-chip--primary">Primary</span>
+                      <span class="why-dm-comp-chip">Ghost</span>
+                    </div>
+                    <div class="why-dm-comp-input">Email address</div>
+                  </div>
+                </div>
+                <div class="why-dm-foot">Readable by every DESIGN.md-aware tool.</div>
+              </div>
               <h3 class="why-panel-title">Your design system becomes portable context.</h3>
               <p class="why-panel-body"><code>$impeccable document</code> writes <code>DESIGN.md</code> in the Google Stitch-compatible shape: colors, typography, elevation, components, and design do's and don'ts. That gives Codex durable visual memory without locking the project into a proprietary tool.</p>
               <p class="why-panel-meta">Strategic context in <code>PRODUCT.md</code>; visual context in <code>DESIGN.md</code>.</p>
             </article>
 
             <article class="why-panel" id="why-panel-5" role="tabpanel" data-index="5" aria-labelledby="why-tab-5" hidden>
+              <div class="why-visual why-visual--ci">
+                <div class="why-ci-window">
+                  <div class="why-ci-header">
+                    <span class="why-ci-branch">feat/pricing-page</span>
+                    <span class="why-ci-status why-ci-status--fail">&#x2717; failing</span>
+                  </div>
+                  <div class="why-ci-body">
+                    <div class="why-ci-line"><span class="why-ci-cmd">$</span> npx impeccable detect src/</div>
+                    <div class="why-ci-issue"><span class="why-ci-x">&#x2717;</span> <code>src/Hero.tsx:42</code> gradient-text</div>
+                    <div class="why-ci-issue"><span class="why-ci-x">&#x2717;</span> <code>src/Card.tsx:8</code> side-stripe-border</div>
+                    <div class="why-ci-issue"><span class="why-ci-x">&#x2717;</span> <code>src/Button.tsx:17</code> ai-color-palette</div>
+                    <div class="why-ci-summary">3 anti-patterns / exit 1</div>
+                  </div>
+                </div>
+              </div>
               <h3 class="why-panel-title">Block AI slop before it ships.</h3>
               <p class="why-panel-body">Run <code>npx impeccable detect src/</code> on a PR branch and get deterministic findings for purple gradients, nested cards, low contrast, gradient text, tiny body type, and more. No LLM required, no API key, and JSON output is ready for CI gates.</p>
               <p class="why-panel-meta"><code>--json</code> / <code>--fast</code> / exit codes for automation.</p>
             </article>
 
             <article class="why-panel" id="why-panel-6" role="tabpanel" data-index="6" aria-labelledby="why-tab-6" hidden>
+              <div class="why-visual why-visual--extension">
+                <div class="why-browser">
+                  <div class="why-browser-chrome">
+                    <span class="why-browser-dot"></span>
+                    <span class="why-browser-dot"></span>
+                    <span class="why-browser-dot"></span>
+                    <span class="why-browser-url">example.com</span>
+                  </div>
+                  <div class="why-browser-body">
+                    <div class="why-ext-popup">
+                      <div class="why-ext-popup-header">Impeccable / 4 issues</div>
+                      <div class="why-ext-popup-row"><span class="why-ext-sev">&#x2717;</span>Purple gradient hero</div>
+                      <div class="why-ext-popup-row"><span class="why-ext-sev">&#x2717;</span>Low contrast label</div>
+                      <div class="why-ext-popup-row"><span class="why-ext-sev">&#x2717;</span>Nested card</div>
+                      <div class="why-ext-popup-row"><span class="why-ext-sev">&#x2717;</span>Gradient text heading</div>
+                    </div>
+                    <div class="why-ext-overlay-a"></div>
+                    <div class="why-ext-overlay-b"></div>
+                  </div>
+                </div>
+              </div>
               <h3 class="why-panel-title">See the issues on the page.</h3>
               <p class="why-panel-body">The visual overlay highlights every detected anti-pattern in place, whether you open it through <code>$critique</code>, the local live server, or the Chrome extension. You do not have to map a terminal report back to the DOM by hand.</p>
               <p class="why-panel-meta"><a href="https://chromewebstore.google.com/detail/impeccable/bdkgmiklpdmaojlpflclinlofgjfpabf" target="_blank" rel="noopener">Install from the Chrome Web Store &rarr;</a></p>
