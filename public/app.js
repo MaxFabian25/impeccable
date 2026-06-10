@@ -219,10 +219,42 @@ function init() {
 	initFoundationGrid();
 	initSectionNav();
 	initWhyTabs();
+	initLanguageTabs();
 	initLiveDemo();
 	loadContent();
 
 	document.body.classList.add("loaded");
+}
+
+function initLanguageTabs() {
+	const toggle = document.querySelector(".language-view-toggle");
+	if (!toggle) return;
+
+	const tabs = Array.from(toggle.querySelectorAll(".language-view-tab"));
+	const panels = Array.from(document.querySelectorAll(".language-view[data-view-panel]"));
+	if (!tabs.length || !panels.length) return;
+
+	tabs.forEach((tab) => {
+		tab.addEventListener("click", () => {
+			const view = tab.dataset.view;
+
+			tabs.forEach((candidate) => {
+				const active = candidate === tab;
+				candidate.classList.toggle("is-active", active);
+				candidate.setAttribute("aria-selected", active ? "true" : "false");
+			});
+
+			panels.forEach((panel) => {
+				const active = panel.dataset.viewPanel === view;
+				panel.classList.toggle("is-active", active);
+				if (active) {
+					panel.removeAttribute("hidden");
+				} else {
+					panel.setAttribute("hidden", "");
+				}
+			});
+		});
+	});
 }
 
 function initWhyTabs() {
