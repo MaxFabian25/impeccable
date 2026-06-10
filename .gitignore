@@ -35,6 +35,9 @@ extension/detector/
 .impeccable.md
 .impeccable/hook.cache.json
 
+# Live annotation captures
+.impeccable-live/
+
 # Evals (private, commercial)
 evals/
 

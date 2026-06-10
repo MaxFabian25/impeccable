@@ -95,6 +95,11 @@ const IMPECCABLE_UI_SELECTOR = [
   '.impeccable-tooltip',
   '.impeccable-design-panel',
   '.impeccable-design-toggle',
+  '.impeccable-annot-overlay',
+  '.impeccable-annot-toolbar',
+  '.impeccable-annot-pin',
+  '.impeccable-annot-toast',
+  '.impeccable-annot-capture-layer',
 ].join(', ');
 
 function isBrandFontOnOwnDomain(font) {
@@ -2286,6 +2291,9 @@ if (IS_BROWSER) {
       return null;
     }
   })();
+  const LIVE_TOKEN = !EXTENSION_MODE
+    ? (_myScript?.dataset.impeccableLiveToken || window.__IMPECCABLE_LIVE_TOKEN__ || '')
+    : '';
 
   const BRAND_COLOR = 'oklch(55% 0.25 350)';
   const BRAND_COLOR_HOVER = 'oklch(45% 0.25 350)';
@@ -2480,6 +2488,115 @@ if (IS_BROWSER) {
       font-size: 12px;
       line-height: 1.45;
     }
+    .impeccable-annot-overlay {
+      position: fixed;
+      z-index: 100004;
+      display: none;
+      overflow: visible;
+      pointer-events: auto;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    .impeccable-annot-overlay[data-open="true"] {
+      display: block;
+    }
+    .impeccable-annot-toolbar {
+      position: absolute;
+      top: -38px;
+      right: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px;
+      border: 1px solid oklch(90% 0 0);
+      border-radius: 8px;
+      background: oklch(98% 0 0);
+      box-shadow: 0 12px 34px rgba(0,0,0,0.18);
+      font-family: system-ui, sans-serif;
+    }
+    .impeccable-annot-toolbar button,
+    .impeccable-annot-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 26px;
+      height: 24px;
+      padding: 0 7px;
+      border: 1px solid oklch(88% 0 0);
+      border-radius: 6px;
+      background: oklch(99% 0 0);
+      color: oklch(12% 0 0);
+      font: 700 12px/1 system-ui, sans-serif;
+      letter-spacing: 0;
+      cursor: pointer;
+    }
+    .impeccable-annot-toolbar button:hover,
+    .impeccable-annot-btn:hover {
+      color: white;
+      background: ${BRAND_COLOR};
+      border-color: ${BRAND_COLOR};
+    }
+    .impeccable-annot-toolbar button:disabled {
+      opacity: 0.55;
+      cursor: progress;
+    }
+    .impeccable-annot-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+    .impeccable-annot-pin-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .impeccable-annot-pin {
+      position: absolute;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      pointer-events: auto;
+      cursor: grab;
+      font-family: system-ui, sans-serif;
+    }
+    .impeccable-annot-dot {
+      width: 14px;
+      height: 14px;
+      flex: 0 0 14px;
+      border: 2px solid white;
+      border-radius: 999px;
+      background: ${BRAND_COLOR};
+      box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+    }
+    .impeccable-annot-input {
+      width: 170px;
+      min-height: 28px;
+      box-sizing: border-box;
+      padding: 6px 8px;
+      border: 1px solid oklch(86% 0 0);
+      border-radius: 6px;
+      background: oklch(99% 0 0);
+      color: oklch(12% 0 0);
+      font: 12px/1.35 system-ui, sans-serif;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      resize: vertical;
+    }
+    .impeccable-annot-toast {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      z-index: 100006;
+      max-width: min(380px, calc(100vw - 24px));
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: oklch(12% 0 0);
+      color: white;
+      font: 12px/1.4 system-ui, sans-serif;
+      box-shadow: 0 12px 38px rgba(0,0,0,0.22);
+    }
   `;
   (document.head || document.documentElement).appendChild(styleEl);
 
@@ -2592,7 +2709,10 @@ if (IS_BROWSER) {
   let resizeRAF;
   const onResize = () => {
     cancelAnimationFrame(resizeRAF);
-    resizeRAF = requestAnimationFrame(repositionOverlays);
+    resizeRAF = requestAnimationFrame(() => {
+      repositionOverlays();
+      positionAnnotationOverlay();
+    });
   };
   window.addEventListener('resize', onResize);
   // Reposition on scroll too -- catches sticky/parallax shifts
@@ -2679,7 +2799,7 @@ if (IS_BROWSER) {
       position: 'absolute', bottom: '100%', left: '-2px',
       display: 'flex', alignItems: 'center',
       whiteSpace: 'nowrap',
-      fontSize: '11px', fontWeight: '600', letterSpacing: '0.02em',
+      fontSize: '11px', fontWeight: '600', letterSpacing: '0',
       color: 'white', lineHeight: '14px',
       background: LABEL_BG,
       fontFamily: 'system-ui, sans-serif',
@@ -2690,6 +2810,28 @@ if (IS_BROWSER) {
     textSpan.style.padding = '3px 8px';
     textSpan.textContent = allText;
     label.appendChild(textSpan);
+
+    if (!EXTENSION_MODE && LIVE_BASE_URL) {
+      const annotateBtn = document.createElement('button');
+      annotateBtn.className = 'impeccable-annot-btn';
+      annotateBtn.type = 'button';
+      annotateBtn.title = 'Annotate and capture this element';
+      annotateBtn.textContent = '\u270e';
+      Object.assign(annotateBtn.style, {
+        marginLeft: '2px',
+        borderColor: 'rgba(255,255,255,0.28)',
+        background: 'rgba(255,255,255,0.14)',
+        color: 'white',
+        pointerEvents: 'auto',
+        height: '20px',
+      });
+      annotateBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        startAnnotation(el);
+      });
+      label.appendChild(annotateBtn);
+    }
 
     // State for cycling mode
     let cycleMode = false;
@@ -3103,6 +3245,514 @@ if (IS_BROWSER) {
     return String(value || '').replace(/[<>"'`\n\r]/g, '');
   }
 
+  const annotState = {
+    target: null,
+    overlay: null,
+    svg: null,
+    pinLayer: null,
+    toolbar: null,
+    captureBtn: null,
+    comments: [],
+    strokes: [],
+    pointer: null,
+    editingIndex: -1,
+    lastPinClick: { index: -1, time: 0 },
+    modernScreenshotPromise: null,
+  };
+
+  function startAnnotation(target) {
+    if (!target || !LIVE_BASE_URL) return;
+    ensureAnnotationOverlay();
+    annotState.target = target;
+    annotState.comments = [];
+    annotState.strokes = [];
+    annotState.pointer = null;
+    annotState.editingIndex = -1;
+    positionAnnotationOverlay();
+    redrawAnnotation();
+    annotState.overlay.dataset.open = 'true';
+    showAnnotationToast('Click to add a note. Drag to draw. Capture sends the annotated element to live mode.');
+  }
+
+  function closeAnnotation() {
+    if (annotState.overlay) annotState.overlay.dataset.open = 'false';
+    annotState.target = null;
+    annotState.pointer = null;
+    annotState.editingIndex = -1;
+  }
+
+  function ensureAnnotationOverlay() {
+    if (annotState.overlay) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'impeccable-annot-overlay';
+    overlay.setAttribute('aria-label', 'Impeccable annotation overlay');
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('impeccable-annot-svg');
+    overlay.appendChild(svg);
+
+    const pinLayer = document.createElement('div');
+    pinLayer.className = 'impeccable-annot-pin-layer';
+    overlay.appendChild(pinLayer);
+
+    const toolbar = document.createElement('div');
+    toolbar.className = 'impeccable-annot-toolbar';
+    const capture = document.createElement('button');
+    capture.type = 'button';
+    capture.textContent = '\u21e7';
+    capture.title = 'Capture annotations';
+    capture.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      captureAnnotation().catch((error) => showAnnotationToast(`Capture failed: ${error.message}`));
+    });
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.textContent = '\u232b';
+    clear.title = 'Clear annotations';
+    clear.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      annotState.comments = [];
+      annotState.strokes = [];
+      redrawAnnotation();
+    });
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.textContent = '\u00d7';
+    close.title = 'Close annotations';
+    close.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeAnnotation();
+    });
+    toolbar.appendChild(capture);
+    toolbar.appendChild(clear);
+    toolbar.appendChild(close);
+    overlay.appendChild(toolbar);
+
+    overlay.addEventListener('pointerdown', onAnnotationPointerDown);
+    overlay.addEventListener('pointermove', onAnnotationPointerMove);
+    overlay.addEventListener('pointerup', onAnnotationPointerUp);
+    overlay.addEventListener('pointercancel', onAnnotationPointerUp);
+
+    annotState.overlay = overlay;
+    annotState.svg = svg;
+    annotState.pinLayer = pinLayer;
+    annotState.toolbar = toolbar;
+    annotState.captureBtn = capture;
+    document.body.appendChild(overlay);
+  }
+
+  function positionAnnotationOverlay() {
+    if (!annotState.overlay || !annotState.target) return;
+    const rect = annotState.target.getBoundingClientRect();
+    Object.assign(annotState.overlay.style, {
+      top: `${rect.top}px`,
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+    });
+    annotState.svg.setAttribute('viewBox', `0 0 ${Math.max(rect.width, 1)} ${Math.max(rect.height, 1)}`);
+  }
+
+  function localAnnotationPoint(event) {
+    const rect = annotState.overlay.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
+      y: Math.max(0, Math.min(rect.height, event.clientY - rect.top)),
+    };
+  }
+
+  function onAnnotationPointerDown(event) {
+    if (!annotState.target) return;
+    if (event.target.closest?.('.impeccable-annot-toolbar')) return;
+
+    const strokeHit = event.target.closest?.('[data-impeccable-annot-stroke]');
+    if (strokeHit) {
+      const index = Number(strokeHit.dataset.impeccableAnnotStroke);
+      if (Number.isInteger(index)) {
+        annotState.strokes.splice(index, 1);
+        redrawAnnotation();
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    const pinHit = event.target.closest?.('[data-impeccable-annot-pin]');
+    if (pinHit) {
+      const index = Number(pinHit.dataset.impeccableAnnotPin);
+      if (!Number.isInteger(index)) return;
+      const now = Date.now();
+      if (annotState.lastPinClick.index === index && now - annotState.lastPinClick.time < 300) {
+        annotState.comments.splice(index, 1);
+        annotState.lastPinClick = { index: -1, time: 0 };
+        redrawAnnotation();
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      annotState.lastPinClick = { index, time: now };
+      const start = localAnnotationPoint(event);
+      const pin = annotState.comments[index];
+      annotState.pointer = {
+        kind: 'pin',
+        index,
+        start,
+        origin: { x: pin.x, y: pin.y },
+        moved: false,
+      };
+      annotState.overlay.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    finishEditingPin();
+    const start = localAnnotationPoint(event);
+    annotState.pointer = {
+      kind: 'new',
+      start,
+      moved: false,
+      points: [start],
+    };
+    annotState.overlay.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  function onAnnotationPointerMove(event) {
+    const pointer = annotState.pointer;
+    if (!pointer) return;
+    const point = localAnnotationPoint(event);
+
+    if (pointer.kind === 'pin') {
+      const dx = point.x - pointer.start.x;
+      const dy = point.y - pointer.start.y;
+      if (!pointer.moved && Math.hypot(dx, dy) < 5) return;
+      pointer.moved = true;
+      const pin = annotState.comments[pointer.index];
+      if (!pin) return;
+      pin.x = pointer.origin.x + dx;
+      pin.y = pointer.origin.y + dy;
+      redrawPins();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    const dx = point.x - pointer.start.x;
+    const dy = point.y - pointer.start.y;
+    if (!pointer.moved && Math.hypot(dx, dy) < 5) return;
+    pointer.moved = true;
+    pointer.points.push(point);
+    redrawStrokes([...annotState.strokes, { points: pointer.points }]);
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  function onAnnotationPointerUp(event) {
+    const pointer = annotState.pointer;
+    if (!pointer) return;
+    annotState.overlay.releasePointerCapture?.(event.pointerId);
+    annotState.pointer = null;
+
+    if (pointer.kind === 'pin') {
+      if (!pointer.moved) beginEditPin(pointer.index);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (pointer.moved) {
+      annotState.strokes.push({ points: pointer.points });
+      redrawAnnotation();
+    } else {
+      const index = annotState.comments.length;
+      annotState.comments.push({ x: pointer.start.x, y: pointer.start.y, text: '' });
+      redrawAnnotation();
+      beginEditPin(index);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  function redrawAnnotation() {
+    redrawStrokes(annotState.strokes);
+    redrawPins();
+  }
+
+  function redrawStrokes(strokes) {
+    while (annotState.svg?.firstChild) annotState.svg.removeChild(annotState.svg.firstChild);
+    for (const [index, stroke] of strokes.entries()) {
+      const pathData = pointsToPath(stroke.points);
+      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      hit.setAttribute('d', pathData);
+      hit.setAttribute('stroke', 'transparent');
+      hit.setAttribute('stroke-width', '16');
+      hit.setAttribute('stroke-linecap', 'round');
+      hit.setAttribute('stroke-linejoin', 'round');
+      hit.setAttribute('fill', 'none');
+      hit.setAttribute('pointer-events', 'stroke');
+      hit.dataset.impeccableAnnotStroke = String(index);
+      annotState.svg.appendChild(hit);
+
+      const visible = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      visible.setAttribute('d', pathData);
+      visible.setAttribute('stroke', BRAND_COLOR);
+      visible.setAttribute('stroke-width', '3');
+      visible.setAttribute('stroke-linecap', 'round');
+      visible.setAttribute('stroke-linejoin', 'round');
+      visible.setAttribute('fill', 'none');
+      visible.setAttribute('pointer-events', 'none');
+      annotState.svg.appendChild(visible);
+    }
+  }
+
+  function redrawPins() {
+    if (!annotState.pinLayer) return;
+    annotState.pinLayer.innerHTML = '';
+    for (const [index, comment] of annotState.comments.entries()) {
+      const pin = document.createElement('div');
+      pin.className = 'impeccable-annot-pin';
+      pin.dataset.impeccableAnnotPin = String(index);
+      Object.assign(pin.style, {
+        left: `${comment.x - 7}px`,
+        top: `${comment.y - 7}px`,
+      });
+      const dot = document.createElement('span');
+      dot.className = 'impeccable-annot-dot';
+      pin.appendChild(dot);
+
+      const input = document.createElement('textarea');
+      input.className = 'impeccable-annot-input';
+      input.value = comment.text || '';
+      input.placeholder = 'Note';
+      input.rows = 1;
+      input.addEventListener('input', () => {
+        annotState.comments[index].text = input.value;
+      });
+      input.addEventListener('blur', () => {
+        annotState.comments[index].text = input.value.trim();
+      });
+      input.addEventListener('pointerdown', (event) => event.stopPropagation());
+      pin.appendChild(input);
+      annotState.pinLayer.appendChild(pin);
+    }
+  }
+
+  function beginEditPin(index) {
+    annotState.editingIndex = index;
+    const input = annotState.pinLayer?.querySelector(`[data-impeccable-annot-pin="${index}"] textarea`);
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }
+
+  function finishEditingPin() {
+    if (annotState.editingIndex < 0) return;
+    const pin = annotState.comments[annotState.editingIndex];
+    if (pin) pin.text = String(pin.text || '').trim();
+    annotState.editingIndex = -1;
+  }
+
+  function pointsToPath(points) {
+    if (!Array.isArray(points) || points.length === 0) return '';
+    const [first, ...rest] = points;
+    return `M${first.x.toFixed(1)} ${first.y.toFixed(1)}`
+      + rest.map((p) => ` L${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join('');
+  }
+
+  async function loadModernScreenshot() {
+    if (window.modernScreenshot?.domToPng) return window.modernScreenshot;
+    if (annotState.modernScreenshotPromise) return annotState.modernScreenshotPromise;
+    annotState.modernScreenshotPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = `${LIVE_BASE_URL}/modern-screenshot.js`;
+      script.async = true;
+      script.onload = () => window.modernScreenshot?.domToPng
+        ? resolve(window.modernScreenshot)
+        : reject(new Error('modern-screenshot did not expose domToPng'));
+      script.onerror = () => reject(new Error('Could not load modern-screenshot'));
+      document.head.appendChild(script);
+    });
+    return annotState.modernScreenshotPromise;
+  }
+
+  function buildCaptureLayer() {
+    const layer = document.createElement('div');
+    layer.className = 'impeccable-annot-capture-layer';
+    Object.assign(layer.style, {
+      position: 'absolute',
+      inset: '0',
+      pointerEvents: 'none',
+      overflow: 'visible',
+      zIndex: '2147483647',
+    });
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', annotState.svg.getAttribute('viewBox') || '0 0 1 1');
+    Object.assign(svg.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', overflow: 'visible' });
+    for (const stroke of annotState.strokes) {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pointsToPath(stroke.points));
+      path.setAttribute('stroke', BRAND_COLOR);
+      path.setAttribute('stroke-width', '3');
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('stroke-linejoin', 'round');
+      path.setAttribute('fill', 'none');
+      svg.appendChild(path);
+    }
+    layer.appendChild(svg);
+
+    for (const comment of annotState.comments) {
+      const marker = document.createElement('div');
+      Object.assign(marker.style, {
+        position: 'absolute',
+        left: `${comment.x - 7}px`,
+        top: `${comment.y - 7}px`,
+        display: 'flex',
+        gap: '6px',
+        alignItems: 'flex-start',
+        fontFamily: 'system-ui, sans-serif',
+      });
+      const dot = document.createElement('span');
+      Object.assign(dot.style, {
+        width: '14px',
+        height: '14px',
+        flex: '0 0 14px',
+        border: '2px solid white',
+        borderRadius: '999px',
+        background: BRAND_COLOR,
+        boxShadow: '0 3px 12px rgba(0,0,0,0.28)',
+      });
+      marker.appendChild(dot);
+      if (comment.text) {
+        const note = document.createElement('span');
+        note.textContent = comment.text;
+        Object.assign(note.style, {
+          maxWidth: '190px',
+          padding: '6px 8px',
+          border: '1px solid oklch(86% 0 0)',
+          borderRadius: '6px',
+          background: 'oklch(99% 0 0)',
+          color: 'oklch(12% 0 0)',
+          font: '12px/1.35 system-ui, sans-serif',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+        });
+        marker.appendChild(note);
+      }
+      layer.appendChild(marker);
+    }
+    return layer;
+  }
+
+  async function captureAnnotation() {
+    if (!annotState.target) return;
+    finishEditingPin();
+    positionAnnotationOverlay();
+    annotState.captureBtn.disabled = true;
+    showAnnotationToast('Capturing annotated element...');
+
+    const modernScreenshot = await loadModernScreenshot();
+    const eventId = `annot-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const previousPosition = annotState.target.style.position;
+    const computedPosition = getComputedStyle(annotState.target).position;
+    const captureLayer = buildCaptureLayer();
+    if (computedPosition === 'static') annotState.target.style.position = 'relative';
+    annotState.target.appendChild(captureLayer);
+
+    try {
+      const rect = annotState.target.getBoundingClientRect();
+      const dataUrl = await modernScreenshot.domToPng(annotState.target, {
+        scale: Math.min(2, window.devicePixelRatio || 1),
+        width: Math.max(1, Math.ceil(rect.width)),
+        height: Math.max(1, Math.ceil(rect.height)),
+        backgroundColor: null,
+        timeout: 30000,
+        fetch: { bypassingCache: true },
+        font: { preferredFormat: 'woff2' },
+      });
+      const blob = dataUrlToBlob(dataUrl);
+      const upload = await fetch(`${LIVE_BASE_URL}/annotation?token=${encodeURIComponent(LIVE_TOKEN)}&eventId=${encodeURIComponent(eventId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'image/png' },
+        body: blob,
+      });
+      const uploadPayload = await upload.json().catch(() => null);
+      if (!upload.ok || !uploadPayload?.path) {
+        throw new Error(uploadPayload?.error || `upload HTTP ${upload.status}`);
+      }
+
+      const comments = annotState.comments
+        .map((comment) => ({ x: roundCoord(comment.x), y: roundCoord(comment.y), text: String(comment.text || '').trim() }))
+        .filter((comment) => comment.text || Number.isFinite(comment.x));
+      const strokes = annotState.strokes.map((stroke) => ({
+        points: stroke.points.map((point) => [roundCoord(point.x), roundCoord(point.y)]),
+      }));
+      const eventPayload = {
+        token: LIVE_TOKEN,
+        type: 'annotation',
+        id: eventId,
+        pageUrl: location.href,
+        screenshotPath: uploadPayload.path,
+        comments,
+        strokes,
+        element: {
+          selector: generateSelector(annotState.target),
+          tagName: annotState.target.tagName?.toLowerCase() || 'unknown',
+          outerHTML: annotState.target.outerHTML.slice(0, 20000),
+          boundingRect: rect.toJSON ? rect.toJSON() : {
+            x: rect.x, y: rect.y, width: rect.width, height: rect.height, top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left,
+          },
+        },
+      };
+      const eventRes = await fetch(`${LIVE_BASE_URL}/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventPayload),
+      });
+      const eventJson = await eventRes.json().catch(() => null);
+      if (!eventRes.ok) throw new Error(eventJson?.error || `event HTTP ${eventRes.status}`);
+      showAnnotationToast(`Captured annotations: ${uploadPayload.path}`);
+      console.info('[impeccable] annotation event', eventPayload);
+    } finally {
+      captureLayer.remove();
+      annotState.target.style.position = previousPosition;
+      annotState.captureBtn.disabled = false;
+    }
+  }
+
+  function dataUrlToBlob(dataUrl) {
+    const [meta, encoded] = dataUrl.split(',');
+    if (!/^data:image\/png;base64/i.test(meta || '') || !encoded) {
+      throw new Error('capture did not return a PNG data URL');
+    }
+    const binary = atob(encoded);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: 'image/png' });
+  }
+
+  function roundCoord(value) {
+    return Math.round(Number(value || 0) * 10) / 10;
+  }
+
+  function showAnnotationToast(message) {
+    let toast = document.querySelector('.impeccable-annot-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'impeccable-annot-toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    clearTimeout(toast._impeccableTimer);
+    toast._impeccableTimer = setTimeout(() => toast.remove(), 4200);
+  }
+
   // Heuristic for skipping CSS-in-JS hashed class names like "css-1a2b3c" or "_2x4hG_".
   // These change between builds and produce brittle, ugly selectors.
   function isLikelyHashedClass(c) {
@@ -3228,6 +3878,7 @@ if (IS_BROWSER) {
 
   let firstScanDone = false;
   const scan = function() {
+    if (annotState.overlay?.dataset.open === 'true') closeAnnotation();
     for (const o of overlays) o.remove();
     overlays.length = 0;
     visibilityObserver.disconnect();
@@ -3353,6 +4004,7 @@ if (IS_BROWSER) {
         visibilityObserver.disconnect();
         styleEl.remove();
         if (spotlightBackdrop) { spotlightBackdrop.remove(); spotlightBackdrop = null; }
+        closeAnnotation();
         document.body.classList.remove('impeccable-hidden');
       }
       if (e.data.action === 'highlight') {

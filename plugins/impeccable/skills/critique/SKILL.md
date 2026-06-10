@@ -84,7 +84,8 @@ The overlay is a **visual aid for the user**. It highlights issues directly in t
    ```
 6. Wait 2-3 seconds for the detector to render overlays
 7. **Read results from console** using `read_console_messages` with pattern `impeccable`. The detector logs all findings with the `[impeccable]` prefix. Do NOT scroll through the page to take screenshots of the overlays.
-8. **Cleanup**: Stop the live server when done:
+8. **If the user captures annotations** from an overlay, consume the next event from the poll command printed by `npx impeccable live`. The event includes `{screenshotPath, comments, strokes, element}`. Read `screenshotPath` first when present; comment `{x, y}` positions are element-local CSS pixels and should be applied to the sub-element at that point.
+9. **Cleanup**: Stop the live server when done:
    ```bash
    npx impeccable live stop
    ```
