@@ -26,28 +26,48 @@ This skill guides creation of distinctive, production-grade frontend interfaces 
 
 ## Context Gathering Protocol
 
-Design skills produce generic output without project context. You MUST have confirmed design context before doing any design work.
+Design skills produce generic output without project context. This protocol runs once at the start of a session before design work.
 
-Impeccable recognizes two complementary project-root context files:
+### Context Files
 
-- **PRODUCT.md**: strategic context: target users, product purpose, jobs to be done, brand personality, anti-references, and design principles. Use it for "who, what, and why".
-- **DESIGN.md**: visual design-system context: colors, typography, spacing, radius, components, layout rules, and do/don't guidance. Use it for "how it should look".
+- **PRODUCT.md** (strategic, required): target users, product purpose, jobs to be done, brand personality, anti-references, and design principles. Use it for "who, what, and why".
+- **DESIGN.md** (visual, optional but strongly recommended): colors, typography, spacing, radius, components, layout rules, and do/don't guidance. Use it for "how it should look".
 
-Filename matching is case-insensitive. When they overlap, **DESIGN.md wins on visual decisions; PRODUCT.md wins on strategy, voice, and audience decisions.**
+Filename matching is case-insensitive. Legacy `.impeccable.md` migrates to `PRODUCT.md` on first load. When files overlap, **DESIGN.md wins on visual decisions; PRODUCT.md wins on strategy, voice, and audience decisions.**
 
-**Required context** (every design skill needs at minimum):
-- **Target audience**: Who uses this product and in what context? Check PRODUCT.md.
-- **Use cases**: What jobs are they trying to get done? Check PRODUCT.md.
-- **Brand personality/tone**: How should the interface feel? Check PRODUCT.md, then DESIGN.md for visual atmosphere.
+### Session Cache
 
-Individual skills may require additional context. Check the skill's preparation section for specifics.
+If PRODUCT.md or DESIGN.md content is already in conversation history from this session, treat it as loaded. Do not re-run `load-context.mjs` just to fetch the same content again.
 
-**CRITICAL**: You cannot infer this context by reading the codebase. Code tells you what was built, not who it's for or what it should feel like. Only the creator can provide this context.
+Reload only when:
+- You just ran `$impeccable teach`.
+- You just ran `$impeccable document`.
+- The user says PRODUCT.md or DESIGN.md changed manually.
 
-**Gathering order:**
-1. **Check current instructions (instant)**: If your loaded instructions already contain a **Design Context** section, proceed immediately.
-2. **Load PRODUCT.md + DESIGN.md (fast)**: Run `node skills/impeccable/scripts/load-context.mjs` from the project root. If `migrated` is true, legacy `.impeccable.md` was renamed to `PRODUCT.md`; mention that once. If `hasProduct` is true, proceed. If `hasDesign` is false and the task needs visual consistency, briefly suggest `$impeccable document` after the current work.
-3. **Run impeccable teach (REQUIRED)**: If `hasProduct` is false, you MUST run $impeccable teach NOW before doing anything else. Do NOT skip this step. Do NOT attempt to infer strategic context from the codebase instead.
+### First Load
+
+When context is not already loaded, run the shared loader from the project root:
+
+```bash
+node skills/impeccable/scripts/load-context.mjs
+```
+
+Consume the full JSON output. Do not pipe it through `head`, `tail`, `grep`, or field-filtering `jq`; design work needs the complete product and design context.
+
+### Dispatch
+
+- If `hasProduct` is true and `product` is substantive (more than 200 characters and not mostly `[TODO]` placeholders), proceed.
+- If `hasDesign` is false and the current task needs visual consistency, say once: "Note: no DESIGN.md found. I'll use Impeccable's built-in design principles for now. For more on-brand output, run `$impeccable document` to generate DESIGN.md from the existing code."
+- If `hasProduct` is false, empty, or placeholder-only, tell the user: "I need PRODUCT.md before I can do this well. Running `$impeccable teach` now; I'll resume [original task] after." Then run `$impeccable teach`, reload context, and resume the original task.
+
+### Exceptions
+
+- `$impeccable teach` skips this protocol because it creates PRODUCT.md.
+- `$impeccable document` loads PRODUCT.md but does not block on missing DESIGN.md because it creates DESIGN.md.
+
+### Why This Matters
+
+PRODUCT.md prevents generic output by giving Codex audience, purpose, voice, and strategic constraints. DESIGN.md prevents visual drift by giving Codex current tokens, component patterns, and visual rules. Session caching keeps multi-command flows efficient without stale context.
 
 ---
 
@@ -391,6 +411,10 @@ If the project is empty or pre-implementation, skip DESIGN.md and tell the user 
 ### Step 6: Confirm
 
 Confirm what was written, summarize the 3-5 strategic principles, and note whether DESIGN.md exists or is still pending.
+
+Run `node skills/impeccable/scripts/load-context.mjs` one final time and consume the full JSON output so the freshly written PRODUCT.md is in session context for any follow-up command.
+
+If teach was invoked because another command needed context first, resume that original command now with the fresh PRODUCT.md loaded.
 
 ---
 

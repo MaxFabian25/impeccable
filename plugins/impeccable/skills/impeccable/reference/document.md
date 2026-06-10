@@ -154,6 +154,7 @@ After writing the file:
 2. Name any inferred choices that should be reviewed by the user.
 3. Mention whether PRODUCT.md influenced the visual interpretation.
 4. Offer a concise refinement pass for names, atmosphere language, or missing component categories.
+5. Run `node skills/impeccable/scripts/load-context.mjs` one final time and consume the full JSON output so the freshly written DESIGN.md is in session context for any follow-up command.
 
 ## Quality Bar
 
