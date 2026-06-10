@@ -1,8 +1,8 @@
 ---
 name: impeccable
-description: Create distinctive, production-grade frontend interfaces with high design quality. Generates creative, polished code that avoids generic AI aesthetics. Use when the user asks to build web components, pages, artifacts, posters, or applications, or when any design skill requires project context. Call with 'craft' for shape-then-build, 'teach' for design context setup, or 'extract' to pull reusable components and tokens into the design system.
+description: Create distinctive, production-grade frontend interfaces with high design quality. Generates creative, polished code that avoids generic AI aesthetics. Use when the user asks to build web components, pages, artifacts, posters, or applications, or when any design skill requires project context. Call with 'craft' for shape-then-build, 'teach' for product/design context setup, 'document' to generate DESIGN.md, or 'extract' to pull reusable components and tokens into the design system.
 version: 2.1.7
-argument-hint: "[craft|shape · audit|critique · animate|bolder|colorize|delight|layout|overdrive|quieter|typeset · adapt|clarify|distill · harden|onboard|optimize|polish · teach|extract] [target]"
+argument-hint: "[craft|shape · audit|critique · animate|bolder|colorize|delight|layout|overdrive|quieter|typeset · adapt|clarify|distill · harden|onboard|optimize|polish · teach|document|extract] [target]"
 license: Apache 2.0. Based on Anthropic's frontend-design skill. See NOTICE.md for attribution.
 ---
 
@@ -28,10 +28,17 @@ This skill guides creation of distinctive, production-grade frontend interfaces 
 
 Design skills produce generic output without project context. You MUST have confirmed design context before doing any design work.
 
+Impeccable recognizes two complementary project-root context files:
+
+- **PRODUCT.md**: strategic context: target users, product purpose, jobs to be done, brand personality, anti-references, and design principles. Use it for "who, what, and why".
+- **DESIGN.md**: visual design-system context: colors, typography, spacing, radius, components, layout rules, and do/don't guidance. Use it for "how it should look".
+
+Filename matching is case-insensitive. When they overlap, **DESIGN.md wins on visual decisions; PRODUCT.md wins on strategy, voice, and audience decisions.**
+
 **Required context** (every design skill needs at minimum):
-- **Target audience**: Who uses this product and in what context?
-- **Use cases**: What jobs are they trying to get done?
-- **Brand personality/tone**: How should the interface feel?
+- **Target audience**: Who uses this product and in what context? Check PRODUCT.md.
+- **Use cases**: What jobs are they trying to get done? Check PRODUCT.md.
+- **Brand personality/tone**: How should the interface feel? Check PRODUCT.md, then DESIGN.md for visual atmosphere.
 
 Individual skills may require additional context. Check the skill's preparation section for specifics.
 
@@ -39,8 +46,8 @@ Individual skills may require additional context. Check the skill's preparation 
 
 **Gathering order:**
 1. **Check current instructions (instant)**: If your loaded instructions already contain a **Design Context** section, proceed immediately.
-2. **Check project-root AGENTS.md (fast)**: If not in instructions, read `AGENTS.md` from the project root. If it exists and contains the required context, proceed.
-3. **Run impeccable teach (REQUIRED)**: If neither source has context, you MUST run $impeccable teach NOW before doing anything else. Do NOT skip this step. Do NOT attempt to infer context from the codebase instead.
+2. **Load PRODUCT.md + DESIGN.md (fast)**: Run `node skills/impeccable/scripts/load-context.mjs` from the project root. If `migrated` is true, legacy `.impeccable.md` was renamed to `PRODUCT.md`; mention that once. If `hasProduct` is true, proceed. If `hasDesign` is false and the task needs visual consistency, briefly suggest `$impeccable document` after the current work.
+3. **Run impeccable teach (REQUIRED)**: If `hasProduct` is false, you MUST run $impeccable teach NOW before doing anything else. Do NOT skip this step. Do NOT attempt to infer strategic context from the codebase instead.
 
 ---
 
@@ -295,9 +302,26 @@ If this skill is invoked with the argument "craft" (e.g., `$impeccable craft [fe
 
 ## Teach Mode
 
-If this skill is invoked with the argument "teach" (e.g., `$impeccable teach`), skip all design work above and instead run the teach flow below. This is a one-time setup that gathers design context for the project.
+If this skill is invoked with the argument "teach" (e.g., `$impeccable teach`), skip all design work above and instead run the teach flow below. This is a one-time setup that gathers strategic product context and writes `PRODUCT.md`.
 
-### Step 1: Explore the Codebase
+### Step 1: Load Current Context
+
+Run the shared loader from the project root:
+
+```bash
+node skills/impeccable/scripts/load-context.mjs
+```
+
+Use the result to choose the path:
+
+- If neither PRODUCT.md nor DESIGN.md exists, continue through this teach flow.
+- If PRODUCT.md exists and DESIGN.md is missing, ask whether to refresh PRODUCT.md or run `$impeccable document` for the visual file.
+- If both files exist, ask which one the user wants refreshed before editing anything.
+- If only DESIGN.md exists, continue through this teach flow to create PRODUCT.md.
+
+Never silently overwrite existing PRODUCT.md or DESIGN.md.
+
+### Step 2: Explore the Codebase
 
 Before asking questions, thoroughly scan the project to discover what you can:
 
@@ -310,7 +334,7 @@ Before asking questions, thoroughly scan the project to discover what you can:
 
 Note what you've learned and what remains unclear.
 
-### Step 2: Ask UX-Focused Questions
+### Step 3: Ask Strategic Questions
 
 Ask only about what you could not infer from the codebase:
 
@@ -324,40 +348,55 @@ Ask only about what you could not infer from the codebase:
 - Any reference sites or apps that capture the right feel? What specifically about them?
 - What should this explicitly NOT look like? Any anti-references?
 
-#### Aesthetic Preferences
-- Any strong preferences for visual direction? (minimal, bold, elegant, playful, technical, organic, etc.)
-- Light mode, dark mode, or both?
-- Any colors that must be used or avoided?
-
 #### Accessibility & Inclusion
 - Specific accessibility requirements? (WCAG level, known user needs)
 - Considerations for reduced motion, color blindness, or other accommodations?
 
-Skip questions where the answer is already clear from the codebase exploration.
+Skip questions where the answer is already clear from the codebase exploration. Do not ask about colors, fonts, radii, shadows, or component styling here. Those belong in DESIGN.md.
 
-### Step 3: Write Design Context
+### Step 4: Write PRODUCT.md
 
-Synthesize your findings and the user's answers into a `## Design Context` section:
+Synthesize your findings and the user's answers into a project-root `PRODUCT.md`:
 
 ```markdown
-## Design Context
+# Product
 
-### Users
+## Users
 [Who they are, their context, the job to be done]
 
-### Brand Personality
+## Product Purpose
+[What this product does, why it exists, and what success looks like]
+
+## Brand Personality
 [Voice, tone, 3-word personality, emotional goals]
 
-### Aesthetic Direction
-[Visual tone, references, anti-references, theme]
+## Anti-References
+[What this should not look like. Include specific bad examples or patterns to avoid.]
 
-### Design Principles
-[3-5 principles derived from the conversation that should guide all design decisions]
+## Design Principles
+[3-5 strategic principles derived from the conversation. These are not token rules.]
+
+## Accessibility & Inclusion
+[WCAG level, known user needs, motion/color considerations]
 ```
 
-Write this section to `AGENTS.md` in the project root. If the file already exists, update the Design Context section in place.
+Write the file to `PRODUCT.md` in the project root. If a legacy `.impeccable.md` was migrated by the loader, merge the new strategic structure into that content rather than discarding useful existing notes.
 
-Confirm completion and summarize the key design principles that will now guide all future work.
+### Step 5: Decide On DESIGN.md
+
+If the project has meaningful visual source to analyze, ask whether to run `$impeccable document` next. That flow generates `DESIGN.md` from CSS tokens, components, and rendered UI.
+
+If the project is empty or pre-implementation, skip DESIGN.md and tell the user to run `$impeccable document` after the first real interface exists.
+
+### Step 6: Confirm
+
+Confirm what was written, summarize the 3-5 strategic principles, and note whether DESIGN.md exists or is still pending.
+
+---
+
+## Document Mode
+
+If this skill is invoked with the argument "document" (e.g., `$impeccable document`), follow the [document flow](reference/document.md). Pass any additional arguments as the documentation target.
 
 ---
 

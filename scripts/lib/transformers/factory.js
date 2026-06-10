@@ -5,6 +5,7 @@ import { SKILL_CATEGORIES, CATEGORY_ORDER } from '../sub-pages-data.js';
 const IMPECCABLE_SUBCOMMANDS = {
   craft: 'create',
   teach: 'system',
+  document: 'system',
   extract: 'system',
 };
 
