@@ -1,9 +1,6 @@
 import { serve, file } from "bun";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import homepage from "../public/index.html";
-import cheatsheet from "../public/cheatsheet.html";
-import privacy from "../public/privacy.html";
 import {
   getSkills,
   getCommands,
@@ -40,9 +37,9 @@ const server = serve({
   port: process.env.PORT || 3000,
 
   routes: {
-    "/": homepage,
-    "/cheatsheet": cheatsheet,
-    "/privacy": privacy,
+    "/": () => serveGenerated(path.join(ROOT_DIR, "public/index.html")),
+    "/cheatsheet": () => serveGenerated(path.join(ROOT_DIR, "public/cheatsheet.html")),
+    "/privacy": () => serveGenerated(path.join(ROOT_DIR, "public/privacy.html")),
 
     // Generated sub-pages — served directly from the pre-generated files
     "/skills": () => serveGenerated(path.join(ROOT_DIR, "public/skills/index.html")),
