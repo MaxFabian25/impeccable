@@ -1,32 +1,27 @@
-// Interactive Live Mode demo loop. Plays when the section is in view,
-// pauses when out. Respects prefers-reduced-motion (freezes on a
-// representative frame).
+// Interactive Live Mode demo loop. Matches the real picker flow:
+// a persistent dark global bar at the bottom of the frame, plus a light
+// contextual bar that floats near the picked element during a session.
 //
-// Phases map to the `data-phase` attribute on the picker bar:
-// idle -> configuring -> generating -> cycling -> accepted -> (reset to idle)
+// Plays only while the section is in view. Respects prefers-reduced-motion.
 
 const PHASE = {
-	IDLE: 'idle',
+	HIDDEN: 'hidden',
 	CONFIGURING: 'configuring',
 	GENERATING: 'generating',
 	CYCLING: 'cycling',
 	ACCEPTED: 'accepted',
 };
 
-// Each step describes one action + how long to hold before the next step.
-// dt = delay BEFORE this step runs (ms). Total cycle is roughly the sum of all dt.
 const TIMELINE = [
 	{ dt: 400,  action: 'cursor-show' },
 	{ dt: 400,  action: 'cursor-to-target' },
 	{ dt: 900,  action: 'outline-show', caption: 'Hover to pick.' },
 	{ dt: 500,  action: 'cursor-click' },
-	{ dt: 200,  action: 'open-config', caption: 'Picked. Choose a command.' },
-	{ dt: 700,  action: 'cursor-to-cmd' },
-	{ dt: 400,  action: 'set-command', cmd: 'delight', caption: 'delight: add personality.' },
-	{ dt: 500,  action: 'cursor-to-input' },
-	{ dt: 300,  action: 'type', text: 'more playful', caption: 'Annotate. Comment. Stroke.' },
-	{ dt: 1400, action: 'draw-stroke' },
-	{ dt: 700,  action: 'cursor-to-go' },
+	{ dt: 200,  action: 'open-ctx', caption: 'Picked. Contextual bar appears.' },
+	{ dt: 700,  action: 'cursor-to-input' },
+	{ dt: 300,  action: 'type', text: 'more playful', caption: 'Type a refinement, or skip.' },
+	{ dt: 1200, action: 'draw-stroke', caption: 'Annotate on the page, if you want.' },
+	{ dt: 900,  action: 'cursor-to-go' },
 	{ dt: 300,  action: 'click-go', caption: 'Generating three variants...' },
 	{ dt: 1600, action: 'show-variant', n: 1, caption: 'Variant 1 of 3.' },
 	{ dt: 1400, action: 'show-variant', n: 2, caption: 'Variant 2 of 3.' },
@@ -45,18 +40,17 @@ export function initLiveDemo() {
 	const outline = root.querySelector('[data-demo-outline]');
 	const annotations = root.querySelector('[data-demo-annotations]');
 	const cursor = root.querySelector('[data-demo-cursor]');
-	const bar = root.querySelector('[data-demo-bar]');
-	const cmdName = root.querySelector('[data-demo-cmd-name]');
+	const ctx = root.querySelector('[data-demo-ctx]');
 	const inputText = root.querySelector('[data-demo-input-text]');
 	const counter = root.querySelector('[data-demo-counter]');
 	const captionLabel = root.querySelector('[data-demo-caption-label]');
 	const variants = Array.from(root.querySelectorAll('.live-demo-variant'));
 
-	if (!stage || !target || !bar) return;
+	if (!stage || !target || !ctx) return;
 
 	const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-	// Position outline over target whenever target moves.
+	// Position the outline around the target.
 	const positionOutline = () => {
 		const stageRect = stage.getBoundingClientRect();
 		const targetRect = target.getBoundingClientRect();
@@ -64,6 +58,27 @@ export function initLiveDemo() {
 		outline.style.top = (targetRect.top - stageRect.top - 4) + 'px';
 		outline.style.width = (targetRect.width + 8) + 'px';
 		outline.style.height = (targetRect.height + 8) + 'px';
+	};
+
+	const positionCtx = () => {
+		const stageRect = stage.getBoundingClientRect();
+		const targetRect = target.getBoundingClientRect();
+		const ctxRect = ctx.getBoundingClientRect();
+		const gap = 10;
+		const globalBarReserve = 60;
+		const belowTop = targetRect.bottom - stageRect.top + gap;
+		const aboveTop = targetRect.top - stageRect.top - ctxRect.height - gap;
+		let top;
+
+		if (belowTop + ctxRect.height + gap <= stage.clientHeight - globalBarReserve) {
+			top = belowTop;
+		} else if (aboveTop >= gap) {
+			top = aboveTop;
+		} else {
+			top = stage.clientHeight - ctxRect.height - globalBarReserve;
+		}
+
+		ctx.style.top = top + 'px';
 	};
 
 	// Move cursor to coordinates relative to the stage.
@@ -83,17 +98,25 @@ export function initLiveDemo() {
 			v.classList.toggle('is-active', match);
 		});
 		counter.textContent = n + ' / 3';
-		// Re-measure outline after layout settles.
-		requestAnimationFrame(positionOutline);
+		requestAnimationFrame(() => {
+			positionOutline();
+			positionCtx();
+		});
+	};
+
+	const setCtxPhase = (phase) => {
+		ctx.dataset.phase = phase;
+		if (phase !== PHASE.HIDDEN) {
+			requestAnimationFrame(positionCtx);
+		}
 	};
 
 	const reset = () => {
-		bar.dataset.phase = PHASE.IDLE;
+		setCtxPhase(PHASE.HIDDEN);
 		cursor.classList.remove('is-visible', 'is-click');
 		outline.classList.remove('is-visible');
 		annotations.classList.remove('is-visible', 'is-comment-visible');
 		inputText.textContent = '';
-		cmdName.textContent = 'delight';
 		showVariant(0);
 	};
 
@@ -130,14 +153,8 @@ export function initLiveDemo() {
 				cursor.classList.add('is-click');
 				setTimeout(() => cursor.classList.remove('is-click'), 260);
 				break;
-			case 'open-config':
-				bar.dataset.phase = PHASE.CONFIGURING;
-				break;
-			case 'cursor-to-cmd':
-				moveCursor(root.querySelector('[data-demo-cmd]'));
-				break;
-			case 'set-command':
-				cmdName.textContent = s.cmd;
+			case 'open-ctx':
+				setCtxPhase(PHASE.CONFIGURING);
 				break;
 			case 'cursor-to-input':
 				moveCursor(root.querySelector('[data-demo-input]'));
@@ -156,10 +173,12 @@ export function initLiveDemo() {
 				cursor.classList.add('is-click');
 				setTimeout(() => cursor.classList.remove('is-click'), 260);
 				annotations.classList.remove('is-visible', 'is-comment-visible');
-				bar.dataset.phase = PHASE.GENERATING;
+				setCtxPhase(PHASE.GENERATING);
 				break;
 			case 'show-variant':
-				if (bar.dataset.phase !== PHASE.CYCLING) bar.dataset.phase = PHASE.CYCLING;
+				if (ctx.dataset.phase !== PHASE.CYCLING) {
+					setCtxPhase(PHASE.CYCLING);
+				}
 				showVariant(s.n);
 				break;
 			case 'cursor-to-accept':
@@ -168,7 +187,7 @@ export function initLiveDemo() {
 			case 'click-accept':
 				cursor.classList.add('is-click');
 				setTimeout(() => cursor.classList.remove('is-click'), 260);
-				bar.dataset.phase = PHASE.ACCEPTED;
+				setCtxPhase(PHASE.ACCEPTED);
 				outline.classList.remove('is-visible');
 				break;
 			case 'reset':
@@ -201,14 +220,13 @@ export function initLiveDemo() {
 		cancelToken++;
 	};
 
-	// Start/stop based on visibility.
 	if (reduced) {
-		// Freeze on the "cycling, variant 3" frame for a representative still.
-		bar.dataset.phase = PHASE.CYCLING;
+		// Freeze on a representative still: cycling, variant 3.
 		showVariant(3);
 		counter.textContent = '3 / 3';
 		positionOutline();
 		outline.classList.add('is-visible');
+		setCtxPhase(PHASE.CYCLING);
 		setCaption('Three variants. Pick the one you want.');
 		return;
 	}
@@ -221,6 +239,8 @@ export function initLiveDemo() {
 	}, { threshold: 0.35 });
 	io.observe(root);
 
-	// Also re-measure outline on window resize since positions depend on layout.
-	window.addEventListener('resize', () => requestAnimationFrame(positionOutline));
+	window.addEventListener('resize', () => requestAnimationFrame(() => {
+		positionOutline();
+		positionCtx();
+	}));
 }
