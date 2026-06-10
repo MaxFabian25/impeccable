@@ -137,7 +137,7 @@ describe('createTransformer factory', () => {
 
     const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/impeccable/SKILL.md'), 'utf-8');
     const parsed = parseFrontmatter(content);
-    expect(parsed.frontmatter['argument-hint']).toBe('[craft|shape · audit · polish · teach|document|extract|pin|unpin] [target]');
+    expect(parsed.frontmatter['argument-hint']).toBe('[craft|shape · audit · polish · teach|document|extract|live|pin|unpin] [target]');
   });
 
   test('should apply bodyTransform after placeholder replacement', () => {

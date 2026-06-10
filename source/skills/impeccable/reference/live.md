@@ -1,0 +1,415 @@
+Interactive live variant mode: select elements in the browser, pick a design action, and get AI-generated HTML+CSS variants hot-swapped via the dev server's HMR.
+
+## Prerequisites
+
+A running dev server with hot module replacement (Vite, Next.js, Bun, etc.), OR a static HTML file open in the browser.
+
+## The contract (read once)
+
+Execute in order. No step skipped, no step reordered.
+
+1. `live.mjs` — boot.
+2. Navigate to the URL that serves `pageFile` (infer from `package.json`, docs, terminal output, or an open tab). If a browser tool is available, open the tab yourself before the first poll. Otherwise, tell the user once to open their dev/preview URL. Never use `serverPort` as that URL: it is the helper, not the app.
+3. Poll loop with the default long timeout (600000 ms). After every event or `--reply`, run `live-poll.mjs` again immediately. Never pass a short `--timeout=`.
+4. On `generate` — read screenshot if present; load the action's reference; plan three distinct directions; write all variants in one edit; `--reply done`; poll again.
+5. On `accept` / `discard` — the poll script already cleaned up; just poll again.
+6. On `exit` — run the cleanup at the bottom.
+
+Codex policy: run the poll in the foreground with the default long timeout. Do not background it, do not send it to a subagent, and do not shorten the timeout to end the chat turn. After each event or reply, immediately run `live-poll.mjs` again.
+
+Chat is overhead. No recap, no tutorial output, no pasting PRODUCT / DESIGN bodies. Spend tokens on tools and edits; on failure, one or two short sentences.
+
+## Start
+
+```bash
+node {{scripts_path}}/live.mjs
+```
+
+Output JSON: `{ ok, serverPort, serverToken, pageFiles, hasProduct, product, productPath, hasDesign, design, designPath, migrated }`. `pageFiles` is the list of HTML entries the live script was injected into. Keep PRODUCT.md and DESIGN.md in mind for variant generation: **DESIGN.md wins on visual decisions; PRODUCT.md wins on strategic/voice decisions.** If `migrated: true`, the loader auto-renamed legacy `.impeccable.md` to `PRODUCT.md`; mention this once and suggest `{{command_prefix}}impeccable document` for the matching DESIGN.md.
+
+`serverPort` and `serverToken` belong to the small **Impeccable live helper** HTTP server (serves `/live.js`, SSE, and `/poll`). That port is **not** your dev server and is usually not the URL you open to view the app. The browser page is whatever origin serves one of the `pageFiles` entries (Vite / Next / Bun / tunnel / LAN hostname).
+
+If output is `{ ok: false, error: "config_missing" | "config_invalid", path }`, this project hasn't been configured for live mode (or its config is stale). See **First-time setup** at the bottom.
+
+## Poll loop
+
+```
+LOOP:
+  node {{scripts_path}}/live-poll.mjs   # default long timeout; no --timeout=
+  Read JSON; dispatch on "type"
+
+  "generate"  → Handle Generate; reply done; LOOP
+  "accept"    → Handle Accept; LOOP
+  "discard"   → Handle Discard; LOOP
+  "prefetch"  → Handle Prefetch; LOOP
+  "timeout"   → LOOP
+  "exit"      → break → Cleanup
+```
+
+## Handle `generate`
+
+Event: `{id, action, freeformPrompt?, count, pageUrl, element, screenshotPath?, comments?, strokes?}`.
+
+Speed matters — the user is watching a spinner. Minimize tool calls by using the `wrap` helper and writing all variants in a single edit.
+
+### 1. Read the screenshot (if present)
+
+When the browser captured the element successfully, `event.screenshotPath` is an absolute path to a PNG showing the element as rendered, including any comment pins and drawn strokes the user placed before Go. **Read it before planning.** Annotations encode user intent not recoverable from `element.outerHTML` alone.
+
+`event.comments` and `event.strokes` carry structured metadata alongside the visual. Treat the screenshot as primary; use the structured data for specifics worth quoting (e.g. the exact text of a comment).
+
+Reading annotations precisely:
+
+- **Comment position is load-bearing.** Its `{x, y}` is element-local CSS px (same coord space as `element.boundingRect`). Find the child under that point and apply the comment text LOCALLY to that sub-element. A comment near the title is about the title, not a global description.
+- **Comments and strokes are independent annotations** unless clearly paired by overlap or tight proximity. Don't let the visual weight of a prominent stroke override the precise location of a textually-specific comment elsewhere.
+- **Strokes are gestures — read them by shape.** Closed loop = "this thing" (emphasis / focus); arrow = direction (move / point to); cross or slash = delete; free scribble = emphasis or delete depending on context. A loop around region X means "pay attention to X," not "only change pixels inside X."
+- **When a stroke's intent is ambiguous** (circle or arrow? emphasis or move?), state your reading in one sentence of rationale rather than silently guessing. If the uncertainty materially changes the brief, ask one short clarifying question before generating.
+
+### 2. Wrap the element
+
+```bash
+node {{scripts_path}}/live-wrap.mjs --id EVENT_ID --count EVENT_COUNT --element-id "ELEMENT_ID" --classes "class1,class2" --tag "div"
+```
+
+Flag mapping — keep them separate, don't collapse into `--query`:
+
+- `--element-id` ← `event.element.id`
+- `--classes` ← `event.element.classes` joined with commas
+- `--tag` ← `event.element.tagName`
+
+The helper searches ID first, then classes, then tag + class combo. If `event.pageUrl` implies the file (e.g. `/` is usually `index.html`), pass `--file PATH` to skip the search. `--query` is a fallback for raw text search only — do not use it for normal element lookups.
+
+Output on success: `{ file, insertLine, commentSyntax }`.
+
+**Fallback errors.** Wrap only writes into files it judges to be source (tracked by git, not marked GENERATED, not listed in config's `generatedFiles`). If it can't land on a source file, it errors without writing — accepting a variant into a generated file is silent data loss. Three shapes:
+
+- `{ error: "file_is_generated", file, hint }` — user-supplied `--file` points at a generated file.
+- `{ error: "element_not_in_source", generatedMatch, hint }` — element exists only in a generated file (the next build would wipe any edits).
+- `{ error: "element_not_found", hint }` — element isn't in any project file; likely runtime-injected (JS component, data-driven render).
+
+All three carry `fallback: "agent-driven"`. Follow **Handle fallback** below.
+
+### 3. Load the action's reference
+
+If `event.action` is `impeccable` (the default freeform action), use SKILL.md's shared laws plus the loaded register reference (`brand.md` or `product.md`). Do not load a sub-command reference.
+
+Any other `event.action` (`bolder`, `quieter`, `distill`, `polish`, `typeset`, `colorize`, `layout`, `adapt`, `animate`, `delight`, `overdrive`): Read `reference/<action>.md` before planning. Each sub-command encodes a specific discipline; skipping its reference produces generic output.
+
+### 4. Plan three genuinely distinct directions
+
+Before writing a single line of code, name each variant.
+
+**For freeform (`action` is `impeccable`, or the user supplied a free prompt):** each variant must anchor to a different **archetype** — a real-world design analogue specific enough to be recognizable at a glance. Not "modern landing page." Not "minimal product hero." Examples:
+
+- *Broadsheet masthead with rule-divided columns* (think NYT print edition)
+- *Klim Type Foundry specimen page* (dense, technical, catalog-driven)
+- *Japanese print-poster minimalism with a single oversize glyph*
+- *Bloomberg Terminal status bar*
+- *Condé Nast Traveler feature layout*
+
+Then commit each variant to a different **primary axis** of difference:
+
+1. **Hierarchy** — which element commands the eye?
+2. **Layout topology** — stacked / side-by-side / grid / asymmetric / overlay
+3. **Typographic system** — pairing, scale ratio, case/weight strategy
+4. **Color strategy** — Restrained / Committed / Full palette / Drenched
+5. **Density** — minimal / comfortable / dense
+6. **Structural decomposition** — merge, split, progressive disclosure
+
+Three variants → three DIFFERENT primary axes, not three riffs on color.
+
+**When the primary axis is color or theme, forbid the trio from sharing theme + dominant hue.** Two dark-plus-one-dark is not distinct. Aim for one dark-neutral-accent, one light-drenched, one full-palette-saturated — three color worlds, not three shades of the same.
+
+**The squint test (before writing code).** Write the three one-sentence descriptions side by side:
+
+> V1: Broadsheet masthead, ruled columns, 24px ink on cream.
+> V2: Enormous italic title, catalog spec rows, heavy monospace data.
+> V3: Card-framed poster with one oversize glyph, magenta veil.
+
+If two of them rhyme ("both use big type" / "both are stacks of sections" / "both feature the CTA prominently"), rework the offender. Freeform variants failing the squint test is the primary failure mode of this flow — three-of-the-same with minor styling tweaks.
+
+**For action-specific invocations**, each variant must vary along the dimension the action names:
+
+- `bolder` — amplify a different dimension per variant (scale / saturation / structural change). Not three "slightly bigger" variants.
+- `quieter` — pull back a different dimension (color / ornament / spacing).
+- `distill` — remove a different class of excess (visual noise / redundant content / nested structure).
+- `polish` — target a different refinement axis (rhythm / hierarchy / micro-details like corner radii, focus states, optical kerning).
+- `typeset` — different type pairing AND different scale ratio each. Not three riffs on one pairing.
+- `colorize` — different hue family each (not shades of one hue). Vary chroma and contrast strategy.
+- `layout` — different structural arrangement (stacked / side-by-side / grid / asymmetric). Not spacing tweaks.
+- `adapt` — different target context per variant (mobile-first / tablet / desktop / print or low-data). Don't make three mobile layouts.
+- `animate` — different motion vocabulary (cascade stagger / clip wipe / scale-and-focus / morph / parallax). Not three staggered fades.
+- `delight` — different flavor of personality (unexpected micro-interaction / typographic surprise / illustrated accent / sonic-or-haptic moment / easter-egg interaction).
+- `overdrive` — different convention broken (scale / structure / motion / input model / state transitions). Skip `overdrive.md`'s "propose and ask" step — live mode is non-interactive.
+
+### 5. Apply the freeform prompt (if present)
+
+`event.freeformPrompt` is the user's ceiling on direction — all variants must honor it — but still explore meaningfully different *interpretations*. "Make it feel like a newspaper front page" → variant 1 = broadsheet masthead + rule-divided columns, variant 2 = tabloid headline + single dominant image, variant 3 = minimalist editorial with oversized drop cap. Not three newspapers in the same voice.
+
+### 6. Write all variants in a single edit
+
+Complete HTML replacement of the original element for each variant, not a CSS-only patch. Consider the element's context (computed styles, parent structure, CSS variables from `event.element`).
+
+Write CSS + all variants in ONE edit at the `insertLine` reported by `wrap`. Colocate scoped CSS as a `<style>` tag inside the variant wrapper — `<style>` works anywhere in modern browsers and this ensures CSS and HTML arrive atomically (no FOUC).
+
+```html
+<!-- Variants: insert below this line -->
+<style data-impeccable-css="SESSION_ID">
+  @scope ([data-impeccable-variant="1"]) { ... }
+  @scope ([data-impeccable-variant="2"]) { ... }
+</style>
+<div data-impeccable-variant="1">
+  <!-- variant 1: full element replacement (single top-level element) -->
+</div>
+<div data-impeccable-variant="2" style="display: none">
+  <!-- variant 2: full element replacement -->
+</div>
+<div data-impeccable-variant="3" style="display: none">
+  <!-- variant 3: full element replacement -->
+</div>
+```
+
+**Each variant div contains exactly one top-level element — the full replacement for the original.** Use the same tag as the original (e.g. `<section>` if the user picked a `<section>`). Loose siblings (heading + paragraph + div as direct children of the variant div) break the outline tracking and the accept flow, which both assume one child.
+
+The first variant has no `display: none` (visible by default). All others do. If variants use only inline styles and no scoped CSS, omit the `<style>` tag entirely. Use `@scope` for CSS isolation (Chrome 118+ / Firefox 128+ / Safari 17.4+).
+
+One edit, all variants — the browser's MutationObserver picks everything up in one pass.
+
+### 7. Signal done
+
+```bash
+node {{scripts_path}}/live-poll.mjs --reply EVENT_ID done --file RELATIVE_PATH
+```
+
+`RELATIVE_PATH` is relative to project root (`public/index.html`, `src/App.tsx`, etc.) — the browser fetches source directly if the dev server lacks HMR.
+
+Then run `live-poll.mjs` again immediately.
+
+## Handle fallback
+
+When wrap returns `fallback: "agent-driven"`, the deterministic flow doesn't apply. Pick up here.
+
+The goal is the same: give the user three variants to choose from AND persist the accepted one in a place the next build won't wipe. The difference is that you have to pick the right source file yourself.
+
+### Step 1: Identify where the element actually lives
+
+Use the error payload:
+
+- `element_not_in_source` with `generatedMatch: "public/docs/foo.html"` — the served HTML is generated. Find the generator (grep for writers of that path, e.g. `scripts/build-sub-pages.js`, an Astro/Next template) and locate the template or partial that emits this element.
+- `element_not_found` — the element is runtime-injected. Look for the component that renders it (React/Vue/Svelte), the JS that assembles it, or the data source that feeds it.
+- `file_is_generated` with `file: "..."` — user pointed at a generated file explicitly. Same resolution as `element_not_in_source`.
+
+Read the candidate source until you're confident where a change to the element would belong. If the change is purely visual, that source might be a shared stylesheet, not the template.
+
+### Step 2: Show three variants in the DOM for preview
+
+The browser bar is waiting for variants. Even without a wrapper in source, you still need to show something:
+
+1. Manually write the wrapper scaffold into the **served** file (the one the browser actually loaded). Use the same structure `live-wrap.mjs` produces — `<!-- impeccable-variants-start ID --><div data-impeccable-variants="ID" data-impeccable-variant-count="3" style="display: contents">…</div><!-- end -->`.
+2. Insert your three variant divs inside it, same shape as the deterministic path.
+3. Signal done with `--reply EVENT_ID done --file <served file>`. The browser's no-HMR fallback will fetch and inject.
+
+This served-file edit is **temporary** — next regen wipes it, and that's fine. The real work happens on accept.
+
+### Step 3: On accept, write to true source
+
+When the accept event arrives (`_acceptResult.handled` will usually be `false` here because accept also refuses to persist into generated files — see Handle accept for the carbonize branch), extract the accepted variant's content and write it into the source you identified in Step 1:
+
+- Structural change → edit the template / component source.
+- Visual-only change → add or update rules in the appropriate stylesheet; remove the inline `<style>` scope.
+- Data-driven → update the data source or the render logic.
+
+Then remove the temporary wrapper from the served file if it's still there.
+
+### Step 4: On discard, clean up the served file
+
+Remove the wrapper you inserted in Step 2. Nothing else to do.
+
+## Handle `accept`
+
+Event: `{id, variantId, _acceptResult}`. The poll script already ran `live-accept.mjs` to handle the file operation deterministically; the browser DOM is already updated.
+
+- `_acceptResult.handled: true` and `carbonize: false` — nothing to do. Poll again.
+- `_acceptResult.handled: true` and `carbonize: true` — **post-accept cleanup is required before the next poll.** See the "Required after accept (carbonize)" section below. The `event._acceptResult.todo` field and a stderr banner both list the steps explicitly; neither is decorative.
+- `_acceptResult.handled: false, mode: "fallback"` — the session lived in a generated file and the script refused to persist there. You've already written the accepted variant into true source during Handle fallback Step 3; just clean up the temporary wrapper in the served file if any, and poll again.
+- `_acceptResult.handled: false` without `mode` — manual cleanup: read file, find markers, edit.
+
+### Required after accept (carbonize)
+
+When `_acceptResult.carbonize === true`, the accepted variant was stitched into source with helper markers and inline CSS so the browser can render it immediately with no visual gap. That stitch-in is **temporary**. The agent must rewrite it into permanent form before doing anything else. Skipping this leaves dead `@scope` rules for unaccepted variants, a pointless `data-impeccable-variant` wrapper, and `impeccable-carbonize-start/end` comment noise in the source file — all of which accumulate across sessions.
+
+Do these five steps in the current thread, synchronously, before the next poll. Do not poll again until the file is clean.
+
+1. **Locate the carbonize block** in the source file (`_acceptResult.file`). It is bracketed by `<!-- impeccable-carbonize-start SESSION_ID -->` and `<!-- impeccable-carbonize-end SESSION_ID -->` and contains a `<style data-impeccable-css="SESSION_ID">` element.
+2. **Move the CSS rules** into the project's real stylesheet. Which stylesheet depends on the project (e.g. `public/css/workflow.css` for this repo, or the component's co-located CSS file for a Vite/Next project — pick whichever already owns styling for the surrounding element).
+3. **Rewrite `@scope ([data-impeccable-variant="N"])` selectors** to target real, semantic classes on the accepted HTML. Example: `@scope ([data-impeccable-variant="2"]) { .v2-label { … } }` becomes `.why-visual--v2 .v2-label { … }` if the accepted element already carries `.why-visual--v2`, or pick/add a suitable class if it doesn't.
+4. **Unwrap the accepted content.** Delete the `<div data-impeccable-variant="N" style="display: contents">` that wraps it.
+5. **Delete the inline `<style>` block and both `<!-- impeccable-carbonize-start/end -->` markers.** Also drop any `@scope` rules for variants other than the accepted one — those are dead code now.
+
+Then poll again.
+
+The current thread is responsible for the rewrite and for verifying the five steps are complete before issuing the next poll. In practice, inline is usually faster and less error-prone.
+
+## Handle `discard`
+
+Event: `{id, _acceptResult}`. The poll script already restored the original and removed all variant markers. Nothing to do. Poll again.
+
+## Handle `prefetch`
+
+Event: `{pageUrl}`. The browser fires this the first time the user selects an element on a given route, as a latency shortcut — it signals the user is likely about to Go on a page you haven't read yet.
+
+Resolve `pageUrl` to the underlying file:
+
+- Root `/` → the `pageFile` returned by `live.mjs` (usually `public/index.html` or equivalent).
+- Sub-routes (e.g. `/docs`, `/docs/live`) → the generated or source file for that route. Use your knowledge of the project layout (multi-page static sites often resolve `/foo` → `public/foo/index.html`; SPAs may map all routes to a single entry).
+
+Read the file into context, then poll again. No `--reply` — this is speculative pre-work; Go will come later. If you can't confidently resolve the route to a file, skip and poll again.
+
+Dedupe is the browser's job (one prefetch per unique pathname per session) — trust it. If the same file shows up twice from different routes mapping to the same file, the second Read is cached anyway.
+
+## Exit
+
+The user can stop live mode by:
+- Saying "stop live mode" / "exit live" in chat
+- Closing the browser tab (SSE drops, poll returns `exit` after 8s)
+- The browser's exit button
+
+When the poll returns `exit`, proceed to cleanup. If the poll is still running as a background task, kill it first.
+
+## Cleanup
+
+```bash
+node {{scripts_path}}/live-server.mjs stop
+```
+
+Stops the HTTP server and runs `live-inject.mjs --remove` to strip `localhost:…/live.js` from the HTML entry. To stop the server but keep the inject tag (for a quick restart), use `stop --keep-inject`. `config.json` persists for future sessions.
+
+Then:
+- Remove any leftover variant wrappers (search for `impeccable-variants-start` markers).
+- Remove any leftover carbonize blocks (search for `impeccable-carbonize-start` markers).
+
+## First-time setup (config missing or invalid)
+
+If `live.mjs` outputs `{ ok: false, error: "config_missing" | "config_invalid", path }`, write `config.json` at the reported path.
+
+Schema:
+
+```json
+{
+  "files": ["<path>", "<path>", ...],
+  "insertBefore": "</body>",
+  "commentSyntax": "html",
+  "cspChecked": true
+}
+```
+
+`cspChecked` tracks whether the CSP detection step below has already run. Absent on first setup; set to `true` after CSP is checked (whether patched, declined, or not needed).
+
+`files` is the inject target — **the HTML files the browser actually loads**, not necessarily source. Tracked or generated doesn't matter here; wrap has its own generated-file guard and routes accepts through the fallback flow.
+
+| Framework | `files` | `insertBefore` | `commentSyntax` |
+|-----------|---------|----------------|-----------------|
+| SPA with single shell (Vite / React / Plain HTML) | `["index.html"]` | `</body>` | `html` |
+| Next.js (App Router) | `["app/layout.tsx"]` | `</body>` | `jsx` |
+| Next.js (Pages) | `["pages/_document.tsx"]` | `</body>` | `jsx` |
+| Nuxt | `["app.vue"]` | `</body>` | `html` |
+| Svelte / SvelteKit | `["src/app.html"]` | `</body>` | `html` |
+| Astro | `[" <root layout .astro>"]` | `</body>` | `html` |
+| Multi-page (separate HTML per route) | Every HTML file the dev server serves — glob the output dir, e.g. `public/**/*.html` | `</body>` | `html` |
+
+Pick an anchor that exists in every file (`</body>` almost always works). Use `insertAfter` if the anchor should match **after** a specific line.
+
+For multi-page sites whose pages are *rebuilt* by a generator (Astro, static-site generators, custom scripts like `build-sub-pages.js`), the inject survives only until the next regeneration. Re-run `live.mjs` after each build. Accept is unaffected — it writes to true source via the fallback flow.
+
+### CSP detection (first-time only)
+
+If `config.cspChecked === true`, skip this entire section. You already asked this user once; the answer sticks.
+
+Otherwise, run the detection helper:
+
+```bash
+node {{scripts_path}}/detect-csp.mjs
+```
+
+Output: `{ shape, signals }` where `shape` is one of `append-arrays`, `append-string`, `middleware`, `meta-tag`, or `null`. The shape is named by *patch mechanism*, so one template covers many frameworks.
+
+- **`null`** — no CSP; skip to writing `config.json` with `cspChecked: true`.
+- **`append-arrays`** — CSP defined as structured directive arrays. Auto-patchable. See *append-arrays* below. Covers:
+  - Monorepo helpers with `additionalScriptSrc` / `additionalConnectSrc` options (Next.js + shared config package)
+  - SvelteKit `kit.csp.directives`
+  - Nuxt `nuxt-security` module's `contentSecurityPolicy`
+- **`append-string`** — CSP written as a literal value string. Auto-patchable. See *append-string* below. Covers:
+  - Inline `next.config.*` `headers()` with a CSP literal
+  - Nuxt `routeRules` / `nitro.routeRules` headers
+- **`middleware`** or **`meta-tag`** — rarer. Detected but not auto-patched in v1. Show the user the detected files and ask them to add `http://localhost:8400` to `script-src` and `connect-src` manually, then mark `cspChecked: true` and proceed.
+
+#### Consent prompt template
+
+Use this phrasing so the experience is consistent across agents:
+
+> **CSP patch needed.** I detected a Content Security Policy in your project that blocks `http://localhost:8400` — the live picker won't load without an allowance. Here's the change I'd make:
+>
+> ```diff
+> [file: <patchTarget>]
+> [exact diff, 2–5 lines]
+> ```
+>
+> It's guarded by `NODE_ENV === "development"` so the extra entry only appears in dev and never reaches production. You can remove it any time by reverting this file. Apply? [y/n]
+
+On "no": skip the patch, mention live won't work until the user adds the allowance manually, still write `cspChecked: true` (the question's been asked).
+
+On "yes": apply the Shape-specific patch below, then write `cspChecked: true`.
+
+#### append-arrays
+
+CSP expressed as structured directive arrays. Patch mechanism: declare a dev-only array, spread it into the script-src and connect-src arrays.
+
+**Declare near the top of the file that holds the CSP arrays:**
+
+```ts
+// Dev-only allowance so impeccable live mode can load. Guarded by NODE_ENV.
+const __impeccableLiveDev =
+  process.env.NODE_ENV === "development" ? ["http://localhost:8400"] : [];
+```
+
+**Append `...__impeccableLiveDev` to the script-src and connect-src directive arrays.** Per-framework specifics:
+
+- **Next.js + monorepo helper** — edit the *app's* `next.config.*` (not the shared helper), appending to `additionalScriptSrc` and `additionalConnectSrc` passed into `createBaseNextConfig` (or equivalent). Keeps the shared package clean.
+- **SvelteKit** — edit `svelte.config.js`, appending to `kit.csp.directives['script-src']` and `kit.csp.directives['connect-src']`.
+- **Nuxt + nuxt-security** — edit `nuxt.config.*`, appending to `security.headers.contentSecurityPolicy['script-src']` and `['connect-src']`.
+
+Reference outputs:
+- `tests/framework-fixtures/nextjs-turborepo/expected-after-patch.ts` (Next.js)
+- `tests/framework-fixtures/sveltekit-csp/expected-after-patch.js` (SvelteKit)
+
+Idempotency: if `__impeccableLiveDev` already exists in the file, the patch is already applied; skip asking and just mark `cspChecked: true`.
+
+#### append-string
+
+CSP built as a literal value string. Two-point patch: declare a dev-only string near the top, interpolate it into the CSP at the `script-src` and `connect-src` directives.
+
+```ts
+// Dev-only allowance so impeccable live mode can load.
+const __impeccableLiveDev =
+  process.env.NODE_ENV === "development" ? " http://localhost:8400" : "";
+```
+
+Then in the CSP value string:
+- `script-src 'self' 'unsafe-inline'` → `` `script-src 'self' 'unsafe-inline'${__impeccableLiveDev}` ``
+- `connect-src 'self'` → `` `connect-src 'self'${__impeccableLiveDev}` ``
+
+(Leading space on the dev string so it concatenates cleanly into the existing value. Convert the literal CSP directives into template strings as part of the edit if they aren't already.)
+
+Per-framework specifics:
+- **Next.js inline `headers()`** — edit `next.config.*`, splicing the variable into the CSP value.
+- **Nuxt `routeRules`** — edit `nuxt.config.*`, splicing into the CSP in `routeRules['/**'].headers['Content-Security-Policy']`.
+
+Reference outputs:
+- `tests/framework-fixtures/nextjs-inline-csp/expected-after-patch.js` (Next.js)
+- `tests/framework-fixtures/nuxt-csp/expected-after-patch.ts` (Nuxt)
+
+### Troubleshooting
+
+If a user says "no" to the CSP patch at setup time and later complains that live doesn't work: their dev CSP blocks `http://localhost:8400`. Fix: delete `cspChecked` from `config.json` and re-run `live.mjs` — setup will ask again.
+
+Then re-run `live.mjs`.

@@ -7,6 +7,7 @@ const IMPECCABLE_SUBCOMMANDS = {
   teach: 'system',
   document: 'system',
   extract: 'system',
+  live: 'system',
   pin: 'system',
   unpin: 'system',
 };

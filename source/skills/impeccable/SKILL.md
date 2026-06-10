@@ -1,6 +1,6 @@
 ---
 name: impeccable
-description: "Create distinctive, production-grade frontend interfaces with high design quality. Generates creative, polished code that avoids generic AI aesthetics. Use when the user asks to build web components, pages, artifacts, posters, or applications, or when any design skill requires project context. Call with 'craft' for shape-then-build, 'teach' for product/design context setup, 'document' to generate DESIGN.md, 'extract' to pull reusable components and tokens into the design system, or 'pin'/'unpin' to manage local shortcuts."
+description: "Create distinctive, production-grade frontend interfaces with high design quality. Generates creative, polished code that avoids generic AI aesthetics. Use when the user asks to build web components, pages, artifacts, posters, or applications, or when any design skill requires project context. Call with 'craft' for shape-then-build, 'teach' for product/design context setup, 'document' to generate DESIGN.md, 'extract' to pull reusable components and tokens into the design system, 'live' for browser-based variant iteration, or 'pin'/'unpin' to manage local shortcuts."
 argument-hint: "[{{command_hint}}] [target]"
 user-invocable: true
 license: Apache 2.0. Based on Anthropic's frontend-design skill. See NOTICE.md for attribution.
@@ -474,6 +474,12 @@ If this skill is invoked with the argument "document" (e.g., `{{command_prefix}}
 ## Extract Mode
 
 If this skill is invoked with the argument "extract" (e.g., `{{command_prefix}}impeccable extract [target]`), follow the [extract flow](reference/extract.md). Pass any additional arguments as the extraction target.
+
+---
+
+## Live Mode
+
+If this skill is invoked with the argument "live" (e.g., `{{command_prefix}}impeccable live`), follow the [live variant flow](reference/live.md). This mode starts the local helper, injects the browser picker into the configured page file, then uses `live-poll.mjs` as the foreground event loop while Codex writes and accepts source-backed variants.
 
 ---
 
