@@ -31,12 +31,36 @@ export function loadContext(cwd = process.cwd()) {
   return {
     hasProduct: Boolean(product),
     product,
+    register: extractRegister(product),
     productPath: productPath ? path.relative(cwd, productPath) : null,
     hasDesign: Boolean(design),
     design,
+    designIsSeed: isSeedDesign(design),
     designPath: designPath ? path.relative(cwd, designPath) : null,
     migrated,
   };
+}
+
+function extractRegister(markdown) {
+  if (!markdown) return null;
+  const lines = markdown.split(/\r?\n/);
+  const start = lines.findIndex((line) => /^##\s+Register\s*$/i.test(line.trim()));
+  if (start === -1) return null;
+
+  const sectionLines = [];
+  for (const line of lines.slice(start + 1)) {
+    if (/^##\s+/.test(line.trim())) break;
+    sectionLines.push(line);
+  }
+
+  const value = sectionLines
+    .map((line) => line.trim().replace(/^[-*]\s+/, '').toLowerCase())
+    .find(Boolean);
+  return value === 'editorial' || value === 'product' ? value : null;
+}
+
+function isSeedDesign(markdown) {
+  return Boolean(markdown && /<!--\s*SEED\b/i.test(markdown));
 }
 
 function findCaseInsensitive(cwd, targetName) {

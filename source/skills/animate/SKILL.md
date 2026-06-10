@@ -13,6 +13,14 @@ Invoke {{command_prefix}}impeccable — it contains design principles, anti-patt
 
 ---
 
+## Register
+
+Editorial: animation can choreograph attention and create a signature moment. One confident page-load, scroll, or typographic sequence is stronger than scattered effects.
+
+Product: animation must communicate state, feedback, relationship, or progress. Keep it fast, reversible, and quiet enough that repeated users do not wait on it.
+
+---
+
 ## Assess Animation Opportunities
 
 Analyze where motion would improve the experience:

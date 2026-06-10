@@ -13,6 +13,14 @@ Invoke {{command_prefix}}impeccable — it contains design principles, anti-patt
 
 ---
 
+## Register
+
+Editorial: bolder can mean a stronger point of view: scale, color commitment, art direction, typography, or pacing. It should become more memorable, not merely louder.
+
+Product: bolder means clearer hierarchy and stronger affordances inside the task. Increase confidence and legibility before adding spectacle.
+
+---
+
 ## Assess Current State
 
 Analyze what makes the design feel too safe or boring:

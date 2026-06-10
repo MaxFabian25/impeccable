@@ -5,7 +5,16 @@ Generate or refresh a project-root `DESIGN.md` that captures the current visual 
 - PRODUCT.md answers who, what, why, voice, and strategic principles.
 - DESIGN.md answers colors, typography, spacing, shape, components, layout, and visual do/don't guidance.
 
-Follow the Stitch-style shape: machine-readable YAML front matter for tokens, then a markdown body explaining how to use them.
+Follow the Google Stitch DESIGN.md shape. The markdown body must use these six top-level sections in this order:
+
+1. `## Overview`
+2. `## Colors`
+3. `## Typography`
+4. `## Elevation`
+5. `## Components`
+6. `## Do's and Don'ts`
+
+Optional YAML front matter is allowed for compact token metadata, but the six sections are the durable contract. Do not rename or reorder them.
 
 ## When To Run
 
@@ -13,8 +22,14 @@ Follow the Stitch-style shape: machine-readable YAML front matter for tokens, th
 - A command noticed `PRODUCT.md` exists but `DESIGN.md` is missing.
 - The visual design has drifted and the file needs a refresh.
 - Before a larger redesign, so the current system is captured before changing it.
+- The project is pre-implementation and needs a seed `DESIGN.md` before the first serious interface is built.
 
 If `DESIGN.md` already exists, do not silently overwrite it. Read it, summarize what is already there, and ask whether to refresh, merge, or leave it alone.
+
+## Choose A Path
+
+- **Scan mode**: Use when there is an existing visual system to inspect. Extract real colors, typography, spacing, elevation, and components from source and rendered UI. Write both `DESIGN.md` and `DESIGN.json`.
+- **Seed mode**: Use when the project has little or no implemented UI. Ask a short visual-direction interview, write a starter `DESIGN.md` marked as seed, and skip `DESIGN.json` until there is real source to scan.
 
 ## Step 1: Load Context
 
@@ -26,7 +41,11 @@ node {{scripts_path}}/load-context.mjs
 
 Use PRODUCT.md to understand users, purpose, voice, anti-references, and strategic design principles. If `hasProduct` is false, pause and run `$impeccable teach` first unless the user explicitly wants a visual-only extraction.
 
-## Step 2: Find Design Sources
+If the project has meaningful visual source, use scan mode. If there is no implemented UI yet, use seed mode.
+
+## Scan Mode
+
+### Step 2: Find Design Sources
 
 Search the project in this order:
 
@@ -39,7 +58,7 @@ Search the project in this order:
 
 Record both the token values and where they came from. Prefer values used repeatedly over one-off styling.
 
-## Step 3: Extract Token Candidates
+### Step 3: Extract Token Candidates
 
 Build a draft model:
 
@@ -75,7 +94,7 @@ Extraction rules:
 - Rounded and shadows: document repeated radii and elevation/depth treatments.
 - Components: document stable component patterns, not every page-specific variant.
 
-## Step 4: Ask For Human Visual Language
+### Step 4: Ask For Human Visual Language
 
 Some parts cannot be extracted reliably from code. Ask only for what is missing:
 
@@ -87,9 +106,9 @@ Some parts cannot be extracted reliably from code. Ask only for what is missing:
 
 Keep this to one short interaction when possible. Offer concrete suggestions based on the extracted system.
 
-## Step 5: Write DESIGN.md
+### Step 5: Write DESIGN.md
 
-Write `DESIGN.md` at the project root with YAML front matter plus markdown explanation:
+Write `DESIGN.md` at the project root. Use optional YAML front matter for compact token metadata, then the six fixed Stitch sections:
 
 ```markdown
 ---
@@ -127,11 +146,8 @@ components:
 ## Typography
 - **Body**: [family, size, weight, character, usage]
 
-## Layout
-[Grid, max-widths, spacing rhythm, density, responsive behavior.]
-
-## Shapes, Elevation & Depth
-[Radii, borders, shadows, layering.]
+## Elevation
+[Radii, borders, shadows, layering, density, and depth rules.]
 
 ## Components
 - **Buttons**: [shape, padding, color, hover/focus states]
@@ -144,9 +160,9 @@ components:
 - Don't [specific visual anti-pattern].
 ```
 
-Omit sections that truly do not apply, but keep the order above for sections that are present.
+Keep all six sections even if one is short. Put layout guidance in Overview or Components unless the project has a separate layout token system. The parser and live panel expect the six-section shape.
 
-## Step 5b: Write DESIGN.json
+### Step 5b: Write DESIGN.json
 
 After `DESIGN.md` is written, also write a machine-readable sidecar at project-root `DESIGN.json`. The live design panel reads this file to render color swatches, type specimens, shadows, spacing, and self-contained component previews.
 
@@ -212,6 +228,26 @@ Component previews must be self-contained. Expand Tailwind utilities or CSS-in-J
 
 If the project has no component library yet, synthesize 3-5 canonical primitives from the documented tokens: primary button, input, chip, card, and navigation.
 
+## Seed Mode
+
+Use seed mode when the project has no meaningful visual implementation yet. The output is a direction scaffold, not extracted truth.
+
+Ask only the missing questions:
+
+1. **Color strategy**: Restrained, Committed, Full palette, or Drenched?
+2. **Theme scene**: Who uses the product, where, under what ambient light, and in what state of mind?
+3. **Typography direction**: system/product, editorial display plus body, technical, warm, dense, refined, or another concrete lane?
+4. **Motion energy**: none, functional only, calm, expressive, or cinematic?
+5. **References and anti-reference**: 2-3 named visual anchors and one thing this must not resemble.
+
+Then write `DESIGN.md` with this marker near the top:
+
+```markdown
+<!-- SEED - refresh with scan mode after the first real interface exists. -->
+```
+
+Use the same six sections, but label uncertain choices as direction rather than extracted tokens. Do not write `DESIGN.json` in seed mode; the live design panel should wait for scan mode so it does not present guesses as system facts.
+
 ## Step 6: Confirm
 
 After writing the file:
@@ -219,7 +255,7 @@ After writing the file:
 1. Summarize the extracted token sources.
 2. Name any inferred choices that should be reviewed by the user.
 3. Mention whether PRODUCT.md influenced the visual interpretation.
-4. Mention that `DESIGN.json` was written or refreshed for the live design panel.
+4. Mention whether `DESIGN.json` was written/refreshed for the live design panel, or skipped because this was seed mode.
 5. Offer a concise refinement pass for names, atmosphere language, or missing component categories.
 6. Run `node {{scripts_path}}/load-context.mjs` one final time and consume the full JSON output so the freshly written DESIGN.md is in session context for any follow-up command.
 

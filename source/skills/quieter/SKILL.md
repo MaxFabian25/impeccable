@@ -13,6 +13,14 @@ Invoke {{command_prefix}}impeccable — it contains design principles, anti-patt
 
 ---
 
+## Register
+
+Editorial: quieter means more restraint, more air, fewer competing gestures, and a clearer point of view. Do not erase the voice.
+
+Product: quieter means less visual noise, fewer decorative accents, calmer motion, and clearer task focus.
+
+---
+
 ## Assess Current State
 
 Analyze what makes the design feel too intense:

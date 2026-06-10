@@ -13,6 +13,14 @@ Invoke $impeccable — it contains design principles, anti-patterns, and the **C
 
 ---
 
+## Register
+
+Editorial: delight can be expressive, surprising, and memorable when it strengthens the brand story.
+
+Product: delight should reduce friction, reward completion, clarify state, or make repeated work feel smoother. Keep the task primary.
+
+---
+
 ## Assess Delight Opportunities
 
 Identify where delight would enhance (not distract from) the experience:

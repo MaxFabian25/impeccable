@@ -13,6 +13,14 @@ Invoke $impeccable — it contains design principles, anti-patterns, and the **C
 
 ---
 
+## Register
+
+Editorial: choose an explicit color strategy. Committed, Full palette, or Drenched can all be valid when color is part of the voice.
+
+Product: default to Restrained. Use color for state, selection, hierarchy, and meaning before decoration.
+
+---
+
 ## Assess Color Opportunity
 
 Analyze the current state and identify opportunities:

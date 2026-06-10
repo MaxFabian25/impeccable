@@ -13,6 +13,14 @@ Invoke {{command_prefix}}impeccable — it contains design principles, anti-patt
 
 ---
 
+## Register
+
+Editorial: run the root font selection procedure. Prefer a distinctive display plus refined body pairing and a fluid heading scale with visible contrast.
+
+Product: system fonts and familiar sans stacks can be correct. Prefer one tuned family, fixed `rem` sizes, and a tighter ratio across dense UI roles.
+
+---
+
 ## Assess Current Typography
 
 Analyze what's weak or generic about the current type:

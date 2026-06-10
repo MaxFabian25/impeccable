@@ -30,7 +30,7 @@ Design skills produce generic output without project context. This protocol runs
 
 ### Context Files
 
-- **PRODUCT.md** (strategic, required): target users, product purpose, jobs to be done, brand personality, anti-references, and design principles. Use it for "who, what, and why".
+- **PRODUCT.md** (strategic, required): default register, target users, product purpose, jobs to be done, brand personality, anti-references, and design principles. Use it for "who, what, and why".
 - **DESIGN.md** (visual, optional but strongly recommended): colors, typography, spacing, radius, components, layout rules, and do/don't guidance. Use it for "how it should look".
 
 Filename matching is case-insensitive. Legacy `.impeccable.md` migrates to `PRODUCT.md` on first load. When files overlap, **DESIGN.md wins on visual decisions; PRODUCT.md wins on strategy, voice, and audience decisions.**
@@ -60,6 +60,23 @@ Consume the full JSON output. Do not pipe it through `head`, `tail`, `grep`, or 
 - If `hasDesign` is false and the current task needs visual consistency, say once: "Note: no DESIGN.md found. I'll use Impeccable's built-in design principles for now. For more on-brand output, run `$impeccable document` to generate DESIGN.md from the existing code."
 - If `hasProduct` is false, empty, or placeholder-only, tell the user: "I need PRODUCT.md before I can do this well. Running `$impeccable teach` now; I'll resume [original task] after." Then run `$impeccable teach`, reload context, and resume the original task.
 
+### Register
+
+Every design task is either **editorial** or **product**:
+
+- **Editorial**: marketing, landing, brand, content, campaign, portfolio, or any surface where design is the product.
+- **Product**: app UI, admin, dashboard, settings, data table, tool, authenticated surface, or any surface where design serves a task.
+
+Identify the register before designing. Priority order:
+
+1. The task itself, such as "landing page" or "dashboard".
+2. The concrete surface in focus, such as route, component, file, screenshot, or DOM selection.
+3. The `## Register` field in PRODUCT.md.
+
+If PRODUCT.md is legacy and lacks `## Register`, infer the likely default once from its users, product purpose, and codebase signals. Use that inference for the session and suggest `$impeccable teach` to make it explicit.
+
+Load the matching reference when the register matters: [editorial](reference/editorial.md) for editorial work, [product](reference/product.md) for product work. The shared laws below apply to both.
+
 ### Exceptions
 
 - `$impeccable teach` skips this protocol because it creates PRODUCT.md.
@@ -76,6 +93,10 @@ PRODUCT.md prevents generic output by giving Codex audience, purpose, voice, and
 Commit to a BOLD aesthetic direction:
 - **Purpose**: What problem does this interface solve? Who uses it?
 - **Tone**: Pick an extreme: brutally minimal, maximalist chaos, retro-futuristic, organic/natural, luxury/refined, playful/toy-like, editorial/magazine, brutalist/raw, art deco/geometric, soft/pastel, industrial/utilitarian, etc. There are so many flavors to choose from. Use these for inspiration but design one that is true to the aesthetic direction.
+- **Register**: Decide whether this task is editorial or product, then use the matching reference to calibrate typography, color, density, motion, and risk.
+- **Color strategy**: Pick Restrained, Committed, Full palette, or Drenched. Editorial can earn any of them; product starts Restrained unless the surface has a specific reason to go further.
+- **Theme scene**: Write a one-sentence physical scene for use context: who uses this, where, under what ambient light, and in what state of mind. Let that scene choose light vs dark instead of defaulting.
+- **Anchors**: Name 2-3 concrete product, brand, object, publication, or interface references. Avoid abstract words like "modern" or "clean".
 - **Constraints**: Technical requirements (framework, performance, accessibility).
 - **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
 
@@ -166,6 +187,15 @@ DO NOT set long body passages in uppercase. Reserve all-caps for short labels an
 → *Consult [color reference](reference/color-and-contrast.md) for the deeper material on contrast, accessibility, and palette construction.*
 
 Commit to a cohesive palette. Dominant colors with sharp accents outperform timid, evenly-distributed palettes.
+
+Pick one explicit color strategy before writing CSS:
+
+- **Restrained**: neutrals carry the interface, accent appears only where it changes hierarchy or state.
+- **Committed**: one color is a structural brand material, not a small accent.
+- **Full palette**: several related hues carry sections, categories, or narrative turns.
+- **Drenched**: one dominant color controls the atmosphere across a major surface.
+
+Editorial surfaces can use Committed, Full palette, or Drenched when the reference and audience justify it. Product surfaces default to Restrained unless a specific screen earns more color, such as onboarding, an empty state, a report cover, or a brand moment inside the product.
 
 <color_principles>
 Always apply these — do not consult a reference, just do them:
@@ -336,6 +366,7 @@ Use the result to choose the path:
 
 - If neither PRODUCT.md nor DESIGN.md exists, continue through this teach flow.
 - If PRODUCT.md exists and DESIGN.md is missing, ask whether to refresh PRODUCT.md or run `$impeccable document` for the visual file.
+- If PRODUCT.md exists but lacks a `## Register` section, infer a register hypothesis from the codebase, confirm it with the user, and add the section.
 - If both files exist, ask which one the user wants refreshed before editing anything.
 - If only DESIGN.md exists, continue through this teach flow to create PRODUCT.md.
 
@@ -352,16 +383,29 @@ Before asking questions, thoroughly scan the project to discover what you can:
 - **Design tokens / CSS variables**: Existing color palettes, font stacks, spacing scales
 - **Any style guides or brand documentation**
 
+Also form a **register hypothesis** from what you find:
+
+- Editorial signals: marketing home pages, pricing, about pages, blogs, docs, hero sections, campaign pages, portfolios, large typographic moments, scroll-driven narrative sections.
+- Product signals: app shells, dashboards, settings, forms, data tables, authenticated routes, side or top navigation, repeated task flows.
+
+Register is a hypothesis at this point, not a decision. Step 3 confirms it.
+
 Note what you've learned and what remains unclear.
 
 ### Step 3: Ask Strategic Questions
 
 Ask only about what you could not infer from the codebase:
 
+#### Register
+- Should the primary surface be treated as **editorial** (design is the product) or **product** (design serves a task)?
+- If the codebase signal is clear, lead with it: "This looks like a [product/editorial] surface; does that match your intent?"
+- If the project has both, choose the default for PRODUCT.md. Individual tasks can override it later.
+
 #### Users & Purpose
 - Who uses this? What's their context when using it?
 - What job are they trying to get done?
-- What emotions should the interface evoke? (confidence, delight, calm, urgency, etc.)
+- For editorial, what emotions should the interface evoke? (confidence, delight, calm, urgency, etc.)
+- For product, what workflow are users in? What's the primary task on a typical screen?
 
 #### Brand & Personality
 - How would you describe the brand personality in 3 words?
@@ -380,6 +424,9 @@ Synthesize your findings and the user's answers into a project-root `PRODUCT.md`
 
 ```markdown
 # Product
+
+## Register
+[editorial or product]
 
 ## Users
 [Who they are, their context, the job to be done]
@@ -406,7 +453,7 @@ Write the file to `PRODUCT.md` in the project root. If a legacy `.impeccable.md`
 
 If the project has meaningful visual source to analyze, ask whether to run `$impeccable document` next. That flow generates `DESIGN.md` from CSS tokens, components, and rendered UI.
 
-If the project is empty or pre-implementation, skip DESIGN.md and tell the user to run `$impeccable document` after the first real interface exists.
+If the project is empty or pre-implementation, offer `$impeccable document` in seed mode. Seed mode asks a few visual direction questions and writes a starter DESIGN.md without a DESIGN.json sidecar. Tell the user to refresh it after the first real interface exists.
 
 ### Step 6: Confirm
 

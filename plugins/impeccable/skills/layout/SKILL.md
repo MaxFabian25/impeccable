@@ -13,6 +13,14 @@ Invoke $impeccable — it contains design principles, anti-patterns, and the **C
 
 ---
 
+## Register
+
+Editorial: layout can take risks with asymmetry, pacing, and one-idea-per-fold composition.
+
+Product: layout should make tasks faster through predictable grids, clear grouping, stable density, and familiar navigation structure.
+
+---
+
 ## Assess Current Layout
 
 Analyze what's weak about the current spatial design:
