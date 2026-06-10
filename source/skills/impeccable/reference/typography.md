@@ -26,7 +26,9 @@ Popular ratios: 1.25 (major third), 1.333 (perfect fourth), 1.5 (perfect fifth).
 
 Use `ch` units for character-based measure (`max-width: 65ch`). Line-height scales inversely with line length—narrow columns need tighter leading, wide columns need more.
 
-**Non-obvious**: Increase line-height for light text on dark backgrounds. The perceived weight is lighter, so text needs more breathing room. Add 0.05-0.1 to your normal line-height.
+**Non-obvious**: Light text on dark backgrounds needs compensation on three axes, not just one. Bump line-height by 0.05-0.1, add a touch of letter-spacing (0.01-0.02em), and optionally step the body weight up one notch (regular to medium). The perceived weight drops across all three; fix all three.
+
+**Paragraph rhythm**: Pick either space between paragraphs OR first-line indentation. Never both. Digital usually wants space; editorial or long-form pages can justify indent-only.
 
 ## Font Selection & Pairing
 
@@ -91,6 +93,12 @@ body {
 
 Tools like [Fontaine](https://github.com/unjs/fontaine) calculate these overrides automatically.
 
+**`swap` vs `optional`**: `swap` shows fallback text immediately and swaps in the web font when it arrives. `optional` uses the fallback if the web font misses a small load budget and avoids the shift entirely. Pick `optional` when zero layout shift matters more than showing the branded font on slow networks.
+
+**Preload the critical weight only**: Usually this is the regular-weight body font used above the fold. Preloading every weight costs more bandwidth than it saves.
+
+**Variable fonts for 3+ weights or styles**: A single variable font file is usually smaller than three static weight files, gives fractional weight control, and pairs well with `font-optical-sizing: auto`. For 1-2 weights, static is fine.
+
 ## Modern Web Typography
 
 ### Fluid Type
@@ -100,6 +108,10 @@ Fluid typography via `clamp(min, preferred, max)` scales text smoothly with the 
 **Use fluid type for**: Headings and display text on marketing/content pages where text dominates the layout and needs to breathe across viewport sizes.
 
 **Use fixed `rem` scales for**: App UIs, dashboards, and data-dense interfaces. No major app design system (Material, Polaris, Primer, Carbon) uses fluid type in product UI — fixed scales with optional breakpoint adjustments give the spatial predictability that container-based layouts need. Body text should also be fixed even on marketing pages, since the size difference across viewports is too small to warrant it.
+
+**Bound your `clamp()`**: Keep `max-size` less than or equal to about 2.5x `min-size`. Wider ratios break browser zoom and reflow behavior and make large viewports feel like the page is shouting.
+
+**Scale container width and font size together** so effective character measure stays in the 45-75ch band at every viewport. A heading that widens faster than its container drifts out of comfortable measure at the top end.
 
 ### OpenType Features
 
@@ -123,6 +135,21 @@ body { font-kerning: normal; }
 ```
 
 Check what features your font supports at [Wakamai Fondue](https://wakamaifondue.com/).
+
+### Rendering Polish
+
+```css
+/* Even out heading line lengths */
+h1, h2, h3 { text-wrap: balance; }
+
+/* Reduce orphans and ragged endings in long prose */
+article p { text-wrap: pretty; }
+
+/* Variable fonts: pick the right optical-size master automatically */
+body { font-optical-sizing: auto; }
+```
+
+**All-caps tracking**: Capitals sit too close at default spacing. Add 5-12% letter-spacing (`letter-spacing: 0.05em` to `0.12em`) to short all-caps labels, eyebrows, and small headings. Real small caps via `font-variant-caps` need the same treatment, slightly gentler.
 
 ## Typography System Architecture
 
