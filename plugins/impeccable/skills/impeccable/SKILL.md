@@ -432,7 +432,15 @@ If this skill is invoked with the argument "extract" (e.g., `$impeccable extract
 
 ## Pin / Unpin Mode
 
-If this skill is invoked with `pin <command>` or `unpin <command>` (e.g., `$impeccable pin craft`), follow [pin / unpin](reference/pin.md), then run:
+If this skill is invoked with `pin <command>` or `unpin <command>` (e.g., `$impeccable pin craft`):
+
+- **Pin** creates a managed project-local shortcut so `$<command>` invokes `$impeccable <command>` directly.
+- **Unpin** removes only shortcuts created by the Impeccable pin script.
+- Valid targets are root-only commands that do not already ship as standalone Codex skills: `craft`, `teach`, `document`, `extract`.
+- Do not pin standalone commands such as `$audit`, `$polish`, or `$layout`. They already ship directly in the Codex plugin.
+- The script writes only to `skills/<command>/SKILL.md` in the current project and refuses to overwrite or remove unmanaged skill files.
+
+Run:
 
 ```bash
 node skills/impeccable/scripts/pin.mjs <pin|unpin> <command>
