@@ -217,9 +217,50 @@ function init() {
 	initFrameworkViz();
 	initFoundationGrid();
 	initSectionNav();
+	initWhyTabs();
 	loadContent();
 
 	document.body.classList.add("loaded");
+}
+
+function initWhyTabs() {
+	const container = document.querySelector(".why-layout");
+	if (!container) return;
+
+	const tabs = Array.from(container.querySelectorAll(".why-tab"));
+	const panels = Array.from(container.querySelectorAll(".why-panel"));
+	if (!tabs.length || !panels.length) return;
+
+	const activate = (index) => {
+		tabs.forEach((tab, i) => {
+			const active = i === index;
+			tab.classList.toggle("is-active", active);
+			tab.setAttribute("aria-selected", active ? "true" : "false");
+		});
+
+		panels.forEach((panel, i) => {
+			const active = i === index;
+			panel.classList.toggle("is-active", active);
+			if (active) {
+				panel.removeAttribute("hidden");
+			} else {
+				panel.setAttribute("hidden", "");
+			}
+		});
+	};
+
+	tabs.forEach((tab, index) => {
+		tab.addEventListener("click", () => activate(index));
+		tab.addEventListener("keydown", (event) => {
+			if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+
+			event.preventDefault();
+			const direction = event.key === "ArrowDown" ? 1 : -1;
+			const next = (index + direction + tabs.length) % tabs.length;
+			tabs[next].focus();
+			activate(next);
+		});
+	});
 }
 
 if (document.readyState === "loading") {
