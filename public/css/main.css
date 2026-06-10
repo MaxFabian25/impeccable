@@ -3162,18 +3162,23 @@ code {
 }
 
 /* ============================================
-   ANTIDOTE SECTION
+   ANTIDOTE CARDS
    ============================================ */
 
-.antidote-section {
-  padding: var(--spacing-2xl) 0;
-  border-top: 1px solid var(--color-mist);
+.why-panel--antidote {
+  max-width: none;
 }
 
-/* Visual-first Antidote wall */
-.antidote-content .section-lead {
-  max-width: 54ch;
-  margin-bottom: var(--spacing-xl);
+.why-visual--antidote {
+  display: block;
+  min-height: 0;
+  overflow: visible;
+}
+
+.why-visual--antidote .antidote-wall {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
 }
 
 .antidote-wall {
