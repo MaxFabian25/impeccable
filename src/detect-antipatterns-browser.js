@@ -254,6 +254,16 @@ const ANTIPATTERNS = [
     skillSection: 'Typography',
     skillGuideline: 'tiny uppercase tracked label above the hero headline',
   },
+  {
+    id: 'repeated-section-kickers',
+    category: 'slop',
+    severity: 'advisory',
+    name: 'Repeated section kicker labels',
+    description:
+      'Repeating tiny uppercase tracked labels above section headings turns a brand page into AI editorial scaffolding. Replace them with stronger structure, artifacts, imagery, or a deliberate brand system.',
+    skillSection: 'Typography',
+    skillGuideline: 'repeated eyebrow or kicker labels as section scaffolding',
+  },
 
   // ── Quality: general design and accessibility issues ──
   {
@@ -305,6 +315,13 @@ const ANTIPATTERNS = [
     name: 'Cramped padding',
     description:
       'Text is too close to the edge of its container. Add at least 8px (ideally 12-16px) of padding inside bordered or colored containers.',
+  },
+  {
+    id: 'body-text-viewport-edge',
+    category: 'quality',
+    name: 'Body text touching viewport edge',
+    description:
+      'Body paragraphs render flush against the left or right viewport edge with no container providing horizontal padding. Wrap content in a container with at least 16px (ideally 24-32px) of horizontal padding, or apply max-width with mx-auto.',
   },
   {
     id: 'tight-leading',
@@ -544,7 +561,10 @@ function checkColors(opts) {
       const isLargeText = fontSize >= 18 || (fontSize >= 14 && fontWeight >= 700) || isHeading;
       const threshold = isLargeText ? 3.0 : 4.5;
       if (ratio < threshold) {
-        findings.push({ id: 'low-contrast', snippet: `${ratio.toFixed(1)}:1 (need ${threshold}:1) — text ${colorToHex(textColor)} on ${colorToHex(bgs[worstIdx])}` });
+        const isAlphaFallbackFP = !IS_BROWSER && !effectiveBg && (textColor.a != null && textColor.a < 1);
+        if (!isAlphaFallbackFP) {
+          findings.push({ id: 'low-contrast', snippet: `${ratio.toFixed(1)}:1 (need ${threshold}:1) — text ${colorToHex(textColor)} on ${colorToHex(bgs[worstIdx])}` });
+        }
       }
     }
 
@@ -678,33 +698,81 @@ function checkItalicSerif(opts) {
   }];
 }
 
+function isAccentColor(cssColor) {
+  if (!cssColor) return false;
+  const s = String(cssColor).trim();
+  const rgbStrict = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(s);
+  if (rgbStrict) {
+    const r = +rgbStrict[1], g = +rgbStrict[2], b = +rgbStrict[3];
+    return (Math.max(r, g, b) - Math.min(r, g, b)) >= 40;
+  }
+  const hexM = /^#([0-9a-f]{3,8})\b/i.exec(s);
+  if (hexM) {
+    let h = hexM[1];
+    if (h.length === 3 || h.length === 4) h = h.split('').map((c) => c + c).join('').slice(0, 6);
+    else h = h.slice(0, 6);
+    if (h.length === 6) {
+      const r = parseInt(h.slice(0, 2), 16);
+      const g = parseInt(h.slice(2, 4), 16);
+      const b = parseInt(h.slice(4, 6), 16);
+      return (Math.max(r, g, b) - Math.min(r, g, b)) >= 40;
+    }
+  }
+  if (/^oklch\(/i.test(s)) {
+    const nums = s.match(/\d*\.\d+|\d+/g);
+    if (nums && nums.length >= 2) {
+      const c = parseFloat(nums[1]);
+      return !Number.isNaN(c) && c >= 0.05;
+    }
+  }
+  const hslM = /hsla?\(\s*[\d.]+\s*,\s*([\d.]+)%/i.exec(s);
+  if (hslM) {
+    const sat = parseFloat(hslM[1]);
+    return !Number.isNaN(sat) && sat >= 20;
+  }
+  return false;
+}
+
 function checkHeroEyebrow(opts) {
   const {
     headingTag, headingText, headingFontSize,
     siblingTag, siblingText, siblingTextTransform,
     siblingFontSize, siblingLetterSpacing,
+    siblingFontWeight, siblingColor,
   } = opts;
   if (headingTag !== 'h1') return [];
-  if (!headingFontSize || headingFontSize < 48) return [];
   if (!siblingTag) return [];
   if (HEADING_TAGS.has(siblingTag)) return [];
 
   const text = (siblingText || '').trim();
-  if (text.length < 2 || text.length > 30) return [];
+  if (text.length < 2 || text.length > 60) return [];
+  if (!(siblingFontSize > 0 && siblingFontSize <= 14)) return [];
 
   const isUppercased = siblingTextTransform === 'uppercase'
     || (/[A-Z]/.test(text) && !/[a-z]/.test(text));
-  if (!isUppercased) return [];
+  const isClassicTracked = isUppercased && siblingLetterSpacing >= 1.6;
 
-  if (!(siblingLetterSpacing >= 1.6)) return [];
-  if (!(siblingFontSize > 0 && siblingFontSize <= 14)) return [];
+  const weight = Number(siblingFontWeight) || 400;
+  const isAccentBold = weight >= 700 && isAccentColor(siblingColor || '');
+
+  if (!isClassicTracked && !isAccentBold) return [];
 
   const headingTextSnippet = (headingText || '').trim().slice(0, 60);
   const eyebrowSnippet = text.slice(0, 40);
+  const style = isClassicTracked ? 'tracked-caps' : 'accent-bold';
   return [{
     id: 'hero-eyebrow-chip',
-    snippet: `eyebrow chip "${eyebrowSnippet}" above ${headingTag} "${headingTextSnippet}"`,
+    snippet: `eyebrow chip (${style}) "${eyebrowSnippet}" above ${headingTag} "${headingTextSnippet}"`,
   }];
+}
+
+function checkRepeatedSectionKickers(opts) {
+  const { candidates, minCount = 3 } = opts;
+  if (!Array.isArray(candidates) || candidates.length < minCount) return [];
+  return candidates.map(candidate => ({
+    id: 'repeated-section-kickers',
+    snippet: `repeated section kicker "${candidate.kickerText}" before ${candidate.headingTag} "${candidate.headingText}" (${candidates.length} on page)`,
+  }));
 }
 
 const LAYOUT_TRANSITION_PROPS = new Set([
@@ -939,42 +1007,35 @@ function readOwnBackgroundColor(el, computedStyle) {
   return { r: parseInt(h[0] + h[0], 16), g: parseInt(h[1] + h[1], 16), b: parseInt(h[2] + h[2], 16), a: 1 };
 }
 
-function resolveBackground(el, win) {
+function resolveBackground(el, win, customPropMap) {
   let current = el;
   while (current && current.nodeType === 1) {
     const style = IS_BROWSER ? getComputedStyle(current) : win.getComputedStyle(current);
-
-    // If this element has a background-image (gradient or url), it's visually
-    // opaque but we can't determine the effective color — bail out so callers
-    // don't get a false solid-color answer.
     const bgImage = style.backgroundImage || '';
-    if (bgImage && bgImage !== 'none' && (/gradient/i.test(bgImage) || /url\s*\(/i.test(bgImage))) {
-      return null;
-    }
+    const hasGradientOrUrl = bgImage && bgImage !== 'none' && (/gradient/i.test(bgImage) || /url\s*\(/i.test(bgImage));
 
     let bg = parseRgb(style.backgroundColor);
     if (!IS_BROWSER && (!bg || bg.a < 0.1)) {
-      // jsdom doesn't decompose background shorthand — parse raw style attr
-      const rawStyle = current.getAttribute?.('style') || '';
-      const bgMatch = rawStyle.match(/background(?:-color)?\s*:\s*([^;]+)/i);
-      const inlineBg = bgMatch ? bgMatch[1].trim() : '';
-      // Check for gradient or url() image in inline style too
-      if (/gradient/i.test(inlineBg) || /url\s*\(/i.test(inlineBg)) return null;
-      bg = parseRgb(inlineBg);
-      if (!bg && inlineBg) {
-        const hexMatch = inlineBg.match(/#([0-9a-f]{6}|[0-9a-f]{3})\b/i);
-        if (hexMatch) {
-          const h = hexMatch[1];
-          if (h.length === 6) {
-            bg = { r: parseInt(h.slice(0,2), 16), g: parseInt(h.slice(2,4), 16), b: parseInt(h.slice(4,6), 16), a: 1 };
-          } else {
-            bg = { r: parseInt(h[0]+h[0], 16), g: parseInt(h[1]+h[1], 16), b: parseInt(h[2]+h[2], 16), a: 1 };
-          }
+      if (customPropMap) {
+        bg = parseColorResolved(style.backgroundColor, customPropMap);
+      }
+      if (!bg || bg.a < 0.1) {
+        const rawStyle = current.getAttribute?.('style') || '';
+        const bgMatch = rawStyle.match(/background(?:-color)?\s*:\s*([^;]+)/i);
+        const inlineBg = bgMatch ? bgMatch[1].trim() : '';
+        if (inlineBg && !/gradient/i.test(inlineBg) && !/url\s*\(/i.test(inlineBg)) {
+          bg = parseColorResolved(inlineBg, customPropMap) || parseAnyColor(inlineBg);
         }
       }
     }
     if (bg && bg.a > 0.1) {
       if (IS_BROWSER || bg.a >= 0.5) return bg;
+    }
+    if (hasGradientOrUrl) {
+      if (current.tagName === 'BODY' || current.tagName === 'HTML') {
+        return { r: 255, g: 255, b: 255, a: 1 };
+      }
+      return null;
     }
     current = current.parentElement;
   }
@@ -1114,7 +1175,223 @@ function checkElementHeroEyebrowDOM(el) {
     siblingTextTransform: sibStyle.textTransform || '',
     siblingFontSize: parseFloat(sibStyle.fontSize) || 0,
     siblingLetterSpacing: parseFloat(sibStyle.letterSpacing) || 0,
+    siblingFontWeight: sibStyle.fontWeight || '',
+    siblingColor: sibStyle.color || '',
   });
+}
+
+function buildCustomPropMap(document) {
+  const map = new Map();
+  let sheets;
+  try { sheets = Array.from(document.styleSheets || []); }
+  catch { return map; }
+  for (const sheet of sheets) {
+    let rules;
+    try { rules = Array.from(sheet.cssRules || []); }
+    catch { continue; }
+    for (const rule of rules) {
+      if (rule.type === 4 || rule.type === 12) {
+        try { rules.push(...Array.from(rule.cssRules || [])); } catch { /* ignore */ }
+        continue;
+      }
+      if (rule.type !== 1) continue;
+      const sel = rule.selectorText || '';
+      if (!/(^|,\s*)(:root|html|:host)\b/i.test(sel)) continue;
+      const style = rule.style;
+      if (!style) continue;
+      for (let i = 0; i < style.length; i++) {
+        const prop = style[i];
+        if (!prop || !prop.startsWith('--')) continue;
+        const val = style.getPropertyValue(prop).trim();
+        if (val) map.set(prop, val);
+      }
+    }
+  }
+  return map;
+}
+
+function resolveVarRefs(raw, customPropMap, depth = 0) {
+  if (typeof raw !== 'string' || !raw.includes('var(')) return raw;
+  if (depth > 8) return raw;
+  return raw.replace(/var\(\s*(--[a-zA-Z0-9_-]+)\s*(?:,\s*([^)]+))?\)/g, (_m, name, fallback) => {
+    const v = customPropMap?.get?.(name);
+    if (v != null) return resolveVarRefs(v, customPropMap, depth + 1);
+    return fallback ? resolveVarRefs(fallback.trim(), customPropMap, depth + 1) : _m;
+  });
+}
+
+function oklchToRgb(L, C, H) {
+  const hRad = (H * Math.PI) / 180;
+  const a = C * Math.cos(hRad);
+  const b = C * Math.sin(hRad);
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+  const lc = l_ * l_ * l_;
+  const mc = m_ * m_ * m_;
+  const sc = s_ * s_ * s_;
+  const rLin = 4.0767416621 * lc - 3.3077115913 * mc + 0.2309699292 * sc;
+  const gLin = -1.2684380046 * lc + 2.6097574011 * mc - 0.3413193965 * sc;
+  const bLin = -0.0041960863 * lc - 0.7034186147 * mc + 1.7076147010 * sc;
+  const enc = (x) => {
+    const c = Math.max(0, Math.min(1, x));
+    return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+  };
+  return {
+    r: Math.round(enc(rLin) * 255),
+    g: Math.round(enc(gLin) * 255),
+    b: Math.round(enc(bLin) * 255),
+    a: 1,
+  };
+}
+
+function parseAnyColor(s) {
+  if (!s || typeof s !== 'string') return null;
+  const str = s.trim();
+  if (str === 'transparent' || str === 'currentcolor' || str === 'inherit') return null;
+  let m = str.match(/rgba?\(\s*(\d+(?:\.\d+)?)\s*,?\s*(\d+(?:\.\d+)?)\s*,?\s*(\d+(?:\.\d+)?)(?:\s*[,/]\s*([\d.]+))?\s*\)/);
+  if (m) {
+    return {
+      r: Math.round(+m[1]),
+      g: Math.round(+m[2]),
+      b: Math.round(+m[3]),
+      a: m[4] !== undefined ? +m[4] : 1,
+    };
+  }
+  m = str.match(/^#([0-9a-f]{3,8})$/i);
+  if (m) {
+    const h = m[1];
+    if (h.length === 3 || h.length === 4) {
+      return {
+        r: parseInt(h[0] + h[0], 16),
+        g: parseInt(h[1] + h[1], 16),
+        b: parseInt(h[2] + h[2], 16),
+        a: h.length === 4 ? parseInt(h[3] + h[3], 16) / 255 : 1,
+      };
+    }
+    if (h.length === 6 || h.length === 8) {
+      return {
+        r: parseInt(h.slice(0, 2), 16),
+        g: parseInt(h.slice(2, 4), 16),
+        b: parseInt(h.slice(4, 6), 16),
+        a: h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1,
+      };
+    }
+  }
+  m = str.match(/oklch\(\s*([\d.]+)(%?)\s*[\s,]*\s*([\d.]+)\s*[\s,]+\s*([-\d.]+)(?:deg)?\s*\)/i);
+  if (m) {
+    const Lnum = parseFloat(m[1]);
+    const L = m[2] === '%' ? Lnum / 100 : Lnum;
+    return oklchToRgb(L, parseFloat(m[3]), parseFloat(m[4]));
+  }
+  return null;
+}
+
+function parseColorResolved(str, customPropMap) {
+  if (!str) return null;
+  const resolved = customPropMap ? resolveVarRefs(str, customPropMap) : str;
+  return parseAnyColor(resolved);
+}
+
+const REPEATED_KICKER_SKIP_SELECTOR = [
+  'nav',
+  'form',
+  'table',
+  'thead',
+  'tbody',
+  'tfoot',
+  'figure',
+  'figcaption',
+  'ol',
+  'ul',
+  'li',
+  '[role="navigation"]',
+  '[aria-label*="breadcrumb" i]',
+  '[class*="breadcrumb" i]',
+  '[data-impeccable-allow-kickers]',
+].join(',');
+
+function cleanInlineText(el) {
+  return [...el.childNodes]
+    .filter(n => n.nodeType === 3)
+    .map(n => n.textContent)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isRepeatedKickerCandidate(opts) {
+  const {
+    headingTag,
+    headingText,
+    headingFontSize,
+    kickerTag,
+    kickerText,
+    kickerTextTransform,
+    kickerFontSize,
+    kickerLetterSpacing,
+  } = opts;
+  if (!['h2', 'h3', 'h4'].includes(headingTag)) return false;
+  if (!headingText || headingText.length < 3) return false;
+  if (!(headingFontSize >= 20)) return false;
+  if (!kickerTag || HEADING_TAGS.has(kickerTag)) return false;
+  if (!['p', 'span', 'div', 'small'].includes(kickerTag)) return false;
+  if (!kickerText || kickerText.length < 2 || kickerText.length > 34) return false;
+  if (/^step\s*\d+/i.test(kickerText) || /^\d{1,2}$/.test(kickerText)) return false;
+
+  const isUppercased = kickerTextTransform === 'uppercase'
+    || (/[A-Z]/.test(kickerText) && !/[a-z]/.test(kickerText));
+  if (!isUppercased) return false;
+  if (!(kickerFontSize > 0 && kickerFontSize <= 14)) return false;
+  const minTrackedSpacing = Math.max(1, kickerFontSize * 0.08);
+  if (!(kickerLetterSpacing >= minTrackedSpacing)) return false;
+  return true;
+}
+
+function collectRepeatedSectionKickerCandidates(doc, getStyle, resolveCssLength) {
+  const candidates = [];
+  for (const heading of doc.querySelectorAll('h2, h3, h4')) {
+    if (heading.closest?.(REPEATED_KICKER_SKIP_SELECTOR)) continue;
+    const kicker = heading.previousElementSibling;
+    if (!kicker || kicker.closest?.(REPEATED_KICKER_SKIP_SELECTOR)) continue;
+
+    const headingStyle = getStyle(heading);
+    const kickerStyle = getStyle(kicker);
+    const headingText = (heading.textContent || '').replace(/\s+/g, ' ').trim();
+    const kickerText = cleanInlineText(kicker) || (kicker.textContent || '').replace(/\s+/g, ' ').trim();
+    const headingFontSize = resolveCssLength(headingStyle.fontSize || '', 16) || parseFloat(headingStyle.fontSize) || 0;
+    const kickerFontSize = resolveCssLength(kickerStyle.fontSize || '', 16) || parseFloat(kickerStyle.fontSize) || 0;
+    const kickerLetterSpacing = resolveCssLength(kickerStyle.letterSpacing || '', kickerFontSize);
+
+    if (!isRepeatedKickerCandidate({
+      headingTag: heading.tagName.toLowerCase(),
+      headingText,
+      headingFontSize,
+      kickerTag: kicker.tagName.toLowerCase(),
+      kickerText,
+      kickerTextTransform: kickerStyle.textTransform || '',
+      kickerFontSize,
+      kickerLetterSpacing,
+    })) {
+      continue;
+    }
+
+    candidates.push({
+      headingTag: heading.tagName.toLowerCase(),
+      headingText: headingText.replace(/^"|"$/g, '').slice(0, 60),
+      kickerText: kickerText.slice(0, 40),
+    });
+  }
+  return candidates;
+}
+
+function checkRepeatedSectionKickersDOM() {
+  const candidates = collectRepeatedSectionKickerCandidates(
+    document,
+    (el) => getComputedStyle(el),
+    (value, fontSize) => resolveLengthPx(value, fontSize) || 0,
+  );
+  return checkRepeatedSectionKickers({ candidates });
 }
 
 function checkElementMotionDOM(el) {
@@ -1267,7 +1544,7 @@ function resolveLengthPx(value, fontSizePx) {
 // Both adapters resolve font-size, line-height and letter-spacing to pixels
 // before calling this so the pure function only deals with numbers.
 function checkQuality(opts) {
-  const { el, tag, style, hasDirectText, textLen, fontSize, lineHeightPx, letterSpacingPx, rect, lineMax = 80 } = opts;
+  const { el, tag, style, hasDirectText, textLen, fontSize, lineHeightPx, letterSpacingPx, rect, lineMax = 80, viewportWidth = 0 } = opts;
   const findings = [];
   // Skip browser extension injected elements
   const elId = el.id || '';
@@ -1315,6 +1592,23 @@ function checkQuality(opts) {
       } else if (hMin < hThresh) {
         findings.push({ id: 'cramped-padding', snippet: `${hMin}px horizontal padding (need ≥${hThresh.toFixed(1)}px for ${fontSize}px text)` });
       }
+    }
+  }
+
+  if (rect && hasDirectText && textLen > 40 && ['P', 'LI'].includes(tag.toUpperCase()) && viewportWidth > 0) {
+    const inNavHeader = el.closest && (el.closest('nav') || el.closest('header'));
+    const hasOwnBg = style.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== 'transparent';
+    const isPositioned = ['fixed', 'absolute'].includes(style.position || '');
+    const widthRatio = rect.width / viewportWidth;
+    const leftClose = rect.left < 16;
+    const rightClose = rect.right > viewportWidth - 16;
+    if (!inNavHeader && !hasOwnBg && !isPositioned && widthRatio > 0.5 && (leftClose || rightClose)) {
+      const which = leftClose && rightClose
+        ? `left ${Math.round(rect.left)}px / right ${Math.round(viewportWidth - rect.right)}px`
+        : leftClose
+          ? `left ${Math.round(rect.left)}px`
+          : `right ${Math.round(viewportWidth - rect.right)}px`;
+      findings.push({ id: 'body-text-viewport-edge', snippet: `<${tag.toLowerCase()}> with ${textLen}-char body bleeds to viewport edge (${which})` });
     }
   }
 
@@ -1379,7 +1673,8 @@ function checkElementQualityDOM(el) {
   const letterSpacingPx = resolveLengthPx(style.letterSpacing, fontSize);
   const rect = el.getBoundingClientRect();
   const lineMax = (typeof window !== 'undefined' && window.__IMPECCABLE_CONFIG__?.lineLengthMax) || 80;
-  return checkQuality({ el, tag, style, hasDirectText, textLen, fontSize, lineHeightPx, letterSpacingPx, rect, lineMax });
+  const viewportWidth = (typeof window !== 'undefined' ? window.innerWidth : 0) || 0;
+  return checkQuality({ el, tag, style, hasDirectText, textLen, fontSize, lineHeightPx, letterSpacingPx, rect, lineMax, viewportWidth });
 }
 
 // Pure page-level skipped-heading walk. Takes a Document so it works in both
@@ -1448,14 +1743,37 @@ function checkElementBorders(tag, style, overrides) {
   return checkBorders(tag, widths, colors, radius);
 }
 
-function checkElementColors(el, style, tag, window) {
+function checkElementColors(el, style, tag, window, customPropMap, hasAnchorInheritRule) {
   const directText = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('');
   const hasDirectText = directText.trim().length > 0;
 
-  const effectiveBg = resolveBackground(el, window);
+  const effectiveBg = resolveBackground(el, window, customPropMap);
+  let textColor = customPropMap ? parseColorResolved(style.color, customPropMap) : null;
+  if (!textColor) textColor = parseRgb(style.color);
+
+  if (
+    hasAnchorInheritRule &&
+    textColor &&
+    textColor.r === 0 && textColor.g === 0 && textColor.b === 238 &&
+    (tag === 'a' || el.closest?.('a'))
+  ) {
+    let cur = el.parentElement;
+    while (cur && cur.tagName !== 'HTML') {
+      if (cur.tagName !== 'A') {
+        const parentStyle = window.getComputedStyle(cur);
+        const inherited = (customPropMap ? parseColorResolved(parentStyle.color, customPropMap) : null) || parseRgb(parentStyle.color);
+        if (inherited && !(inherited.r === 0 && inherited.g === 0 && inherited.b === 238)) {
+          textColor = inherited;
+          break;
+        }
+      }
+      cur = cur.parentElement;
+    }
+  }
+
   return checkColors({
     tag,
-    textColor: parseRgb(style.color),
+    textColor,
     bgColor: readOwnBackgroundColor(el, style),
     effectiveBg,
     effectiveBgStops: effectiveBg ? null : resolveGradientStops(el, window),
@@ -1518,22 +1836,38 @@ function checkElementItalicSerif(el, style, tag) {
   });
 }
 
-function checkElementHeroEyebrow(el, style, tag, window) {
+function checkElementHeroEyebrow(el, style, tag, window, customPropMap) {
   if (tag !== 'h1') return [];
   const sibling = el.previousElementSibling;
   if (!sibling) return [];
   const sibStyle = window.getComputedStyle(sibling);
-  const siblingFontSize = parseFloat(sibStyle.fontSize) || 0;
+  const fontSizeRaw = customPropMap ? resolveVarRefs(sibStyle.fontSize, customPropMap) : sibStyle.fontSize;
+  const fontWeightRaw = customPropMap ? resolveVarRefs(sibStyle.fontWeight, customPropMap) : sibStyle.fontWeight;
+  const letterSpacingRaw = customPropMap ? resolveVarRefs(sibStyle.letterSpacing, customPropMap) : sibStyle.letterSpacing;
+  const colorRaw = customPropMap ? resolveVarRefs(sibStyle.color, customPropMap) : sibStyle.color;
+  const headingFontSizeRaw = customPropMap ? resolveVarRefs(style.fontSize, customPropMap) : style.fontSize;
+  const siblingFontSize = parseFloat(fontSizeRaw) || 0;
   return checkHeroEyebrow({
     headingTag: tag,
     headingText: el.textContent || '',
-    headingFontSize: parseFloat(style.fontSize) || 0,
+    headingFontSize: parseFloat(headingFontSizeRaw) || 0,
     siblingTag: sibling.tagName.toLowerCase(),
     siblingText: sibling.textContent || '',
     siblingTextTransform: sibStyle.textTransform || '',
     siblingFontSize,
-    siblingLetterSpacing: resolveLengthPx(sibStyle.letterSpacing, siblingFontSize) || 0,
+    siblingLetterSpacing: resolveLengthPx(letterSpacingRaw, siblingFontSize) || 0,
+    siblingFontWeight: fontWeightRaw || '',
+    siblingColor: colorRaw || '',
   });
+}
+
+function checkRepeatedSectionKickersFromDoc(doc, win) {
+  const candidates = collectRepeatedSectionKickerCandidates(
+    doc,
+    (el) => win.getComputedStyle(el),
+    (value, fontSize) => resolveLengthPx(value, fontSize) || 0,
+  );
+  return checkRepeatedSectionKickers({ candidates });
 }
 
 function checkElementMotion(tag, style) {
@@ -2389,6 +2723,7 @@ if (IS_BROWSER) {
         return {
           type: f.type || f.id,
           category: ap ? ap.category : 'quality',
+          severity: ap?.severity || 'warning',
           detail: f.detail || f.snippet,
           name: ap ? ap.name : (f.type || f.id),
           description: ap ? ap.description : '',
@@ -2458,6 +2793,14 @@ if (IS_BROWSER) {
     if (typoFindings.length > 0) {
       pageLevelFindings.push(...typoFindings);
       allFindings.push({ el: document.body, findings: typoFindings });
+    }
+
+    const sectionKickerFindings = checkRepeatedSectionKickersDOM()
+      .map(f => ({ type: f.id, detail: f.snippet }))
+      .filter(f => _ruleOk(f.type));
+    if (sectionKickerFindings.length > 0) {
+      pageLevelFindings.push(...sectionKickerFindings);
+      allFindings.push({ el: document.body, findings: sectionKickerFindings });
     }
 
     const layoutFindings = checkLayout().filter(f => _ruleOk(f.type));

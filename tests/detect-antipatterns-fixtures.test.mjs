@@ -338,14 +338,14 @@ describe('detectHtml — hero-eyebrow-chip', () => {
     'Span Eyebrow Above Hero',
     'Pill Chip Above Hero',
     'Already Uppercase Text',
+    'Body-Sized Heading Below Eyebrow',
+    'Long Uppercase Sentence Above Hero',
   ];
   const SHOULD_PASS = [
     'Eyebrow With Normal Tracking',
-    'Body-Sized Heading Below Eyebrow',
     'Uppercase Caption Far From Hero',
     'Hero With No Eyebrow',
     'Heading Above Heading',
-    'Long Uppercase Sentence Above Hero',
   ];
 
   it('hero-eyebrow-chip: flags only the should-flag column', async () => {
@@ -362,6 +362,41 @@ describe('detectHtml — hero-eyebrow-chip', () => {
     }
     for (const text of SHOULD_PASS) {
       assert.ok(!flagged.has(text), `"${text}" should NOT be flagged as hero-eyebrow-chip`);
+    }
+  });
+});
+
+describe('detectHtml — repeated-section-kickers', () => {
+  const SHOULD_FLAG = [
+    'The Future Is Admitted',
+    'A Private Rehearsal',
+    'Reviewed, Not Sold',
+    'Touch the Future',
+  ];
+  const SHOULD_PASS = [
+    'Breadcrumb Before Heading',
+    'Form Heading Is Separate',
+    'Step Indicator',
+    'Figure Caption Label',
+    'Normal Case Kicker',
+    'Intentional Brand Label',
+  ];
+
+  it('repeated-section-kickers: flags only repeated section scaffolding', async () => {
+    const f = await detectHtml(path.join(FIXTURES, 'repeated-section-kickers.html'));
+    const flagged = new Set();
+    for (const r of f) {
+      if (r.antipattern !== 'repeated-section-kickers') continue;
+      assert.equal(r.severity, 'advisory');
+      const matches = [...(r.snippet || '').matchAll(/"([^"]+)"/g)];
+      if (matches.length) flagged.add(matches[matches.length - 1][1]);
+    }
+
+    for (const text of SHOULD_FLAG) {
+      assert.ok(flagged.has(text), `expected "${text}" to be flagged as repeated-section-kickers`);
+    }
+    for (const text of SHOULD_PASS) {
+      assert.ok(!flagged.has(text), `"${text}" should NOT be flagged as repeated-section-kickers`);
     }
   });
 });

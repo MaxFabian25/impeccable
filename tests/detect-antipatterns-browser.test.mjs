@@ -116,6 +116,12 @@ if (browserUrlScanningAvailable) {
       assert.equal(f.filter(r => r.antipattern === 'line-length').length, 1);
     });
 
+    it('body-text-viewport-edge: 3 flag paragraphs/list-items, 0 pass cases', async () => {
+      const f = await detectUrl(`${BASE}/fixtures/antipatterns/body-text-viewport-edge.html`);
+      const edges = f.filter(r => r.antipattern === 'body-text-viewport-edge');
+      assert.equal(edges.length, 3, `expected 3 body-text-viewport-edge findings, got ${edges.length}: ${JSON.stringify(edges.map(e => e.snippet))}`);
+    });
+
     it('waits for async content before scanning live URLs', async () => {
       const f = await detectUrl(`${BASE}/fixtures/antipatterns/async-line-length.html`);
       assert.equal(f.filter(r => r.antipattern === 'line-length').length, 1);
