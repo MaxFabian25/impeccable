@@ -1,5 +1,12 @@
 import path from 'path';
 import { cleanDir, ensureDir, writeFile, generateYamlFrontmatter, replacePlaceholders, PROVIDER_PLACEHOLDERS } from '../utils.js';
+import { SKILL_CATEGORIES, CATEGORY_ORDER } from '../sub-pages-data.js';
+
+const IMPECCABLE_SUBCOMMANDS = {
+  craft: 'create',
+  teach: 'system',
+  extract: 'system',
+};
 
 /**
  * Map from frontmatter field name to extraction spec.
@@ -38,6 +45,27 @@ const FIELD_SPECS = {
     yamlKey: 'allowed-tools',
   },
 };
+
+function buildCommandHint(skills) {
+  const commandCategories = new Map(Object.entries(IMPECCABLE_SUBCOMMANDS));
+
+  for (const skill of skills) {
+    if (!skill.userInvocable || skill.name === 'impeccable') continue;
+    const category = SKILL_CATEGORIES[skill.name];
+    if (!category) {
+      throw new Error(`Cannot build command hint: missing category for ${skill.name}`);
+    }
+    commandCategories.set(skill.name, category);
+  }
+
+  return [...CATEGORY_ORDER, 'system']
+    .map((category) => [...commandCategories.entries()]
+      .filter(([, commandCategory]) => commandCategory === category)
+      .map(([command]) => command)
+      .join('|'))
+    .filter(Boolean)
+    .join(' · ');
+}
 
 /**
  * Create a transformer function for a given provider config.
@@ -89,6 +117,13 @@ export function createTransformer(config) {
         if (spec.condition && !spec.condition(skill)) continue;
         const val = spec.value ? spec.value(skill) : skill[spec.sourceKey];
         if (val) frontmatterObj[spec.yamlKey] = val;
+      }
+
+      if (frontmatterObj['argument-hint']?.includes('{{command_hint}}')) {
+        frontmatterObj['argument-hint'] = frontmatterObj['argument-hint'].replace(
+          '{{command_hint}}',
+          buildCommandHint(skills)
+        );
       }
 
       const frontmatter = generateYamlFrontmatter(frontmatterObj);

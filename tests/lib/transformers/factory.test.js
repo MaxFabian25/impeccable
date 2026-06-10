@@ -118,6 +118,28 @@ describe('createTransformer factory', () => {
     expect(parsed.frontmatter['argument-hint']).toBeUndefined();
   });
 
+  test('should expand command hint from local Codex commands', () => {
+    const config = { ...baseConfig, frontmatterFields: ['argument-hint'] };
+    const transform = createTransformer(config);
+    const skills = [
+      {
+        name: 'impeccable',
+        description: 'Main skill',
+        userInvocable: true,
+        argumentHint: '[{{command_hint}}] [target]',
+        body: 'Body'
+      },
+      { name: 'shape', description: 'Shape', userInvocable: true, body: 'Body' },
+      { name: 'audit', description: 'Audit', userInvocable: true, body: 'Body' },
+      { name: 'polish', description: 'Polish', userInvocable: true, body: 'Body' },
+    ];
+    transform(skills, TEST_DIR);
+
+    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/impeccable/SKILL.md'), 'utf-8');
+    const parsed = parseFrontmatter(content);
+    expect(parsed.frontmatter['argument-hint']).toBe('[craft|shape · audit · polish · teach|extract] [target]');
+  });
+
   test('should apply bodyTransform after placeholder replacement', () => {
     const config = {
       ...baseConfig,
