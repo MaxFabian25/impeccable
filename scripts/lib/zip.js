@@ -49,12 +49,11 @@ export async function createProviderZip(providerDir, distDir, providerName) {
 }
 
 /**
- * Create ZIP files for the default and prefixed Codex bundles.
+ * Create ZIP files for the canonical Codex bundle.
  * @param {string} distDir - Path to dist directory
  */
 export async function createAllZips(distDir) {
   console.log('\n📦 Creating ZIP bundles...');
 
   await createProviderZip(path.join(distDir, 'codex'), distDir, 'codex');
-  await createProviderZip(path.join(distDir, 'codex-prefixed'), distDir, 'codex-prefixed');
 }

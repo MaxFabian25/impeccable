@@ -127,6 +127,9 @@ DO vary your font choices across projects. If you used a serif display font on t
 DO NOT use overused fonts like Inter, Roboto, Arial, Open Sans, or system defaults — but also do not simply switch to your second-favorite. Every font in the reflex_fonts_to_reject list above is banned. Look further.
 DO NOT use monospace typography as lazy shorthand for "technical/developer" vibes.
 DO NOT put large icons with rounded corners above every heading. They rarely add value and make sites look templated.
+DO NOT use an oversized italic serif as the hero headline unless the brand explicitly demands that editorial register.
+DO NOT use a tiny uppercase tracked label above the hero headline as default hero scaffolding.
+DO NOT use repeated eyebrow or kicker labels as section scaffolding. Let headings, spacing, and structure carry hierarchy instead.
 DO NOT use only one font family for the entire page. Pair a distinctive display font with a refined body font.
 DO NOT use a flat type hierarchy where sizes are too close together. Aim for at least a 1.25 ratio between steps.
 DO NOT set long body passages in uppercase. Reserve all-caps for short labels and headings.

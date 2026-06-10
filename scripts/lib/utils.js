@@ -126,7 +126,8 @@ export function readSourceFiles(rootDir) {
   const skills = [];
 
   if (fs.existsSync(skillsDir)) {
-    const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
+    const entries = fs.readdirSync(skillsDir, { withFileTypes: true })
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     for (const entry of entries) {
       const entryPath = path.join(skillsDir, entry.name);
@@ -142,7 +143,9 @@ export function readSourceFiles(rootDir) {
           const references = [];
           const referenceDir = path.join(entryPath, 'reference');
           if (fs.existsSync(referenceDir)) {
-            const refFiles = fs.readdirSync(referenceDir).filter(f => f.endsWith('.md'));
+            const refFiles = fs.readdirSync(referenceDir)
+              .filter(f => f.endsWith('.md'))
+              .sort((a, b) => a.localeCompare(b));
             for (const refFile of refFiles) {
               const refPath = path.join(referenceDir, refFile);
               const refContent = fs.readFileSync(refPath, 'utf-8');
@@ -158,7 +161,9 @@ export function readSourceFiles(rootDir) {
           const scripts = [];
           const scriptsDir = path.join(entryPath, 'scripts');
           if (fs.existsSync(scriptsDir)) {
-            const scriptFiles = fs.readdirSync(scriptsDir).filter(f => fs.statSync(path.join(scriptsDir, f)).isFile());
+            const scriptFiles = fs.readdirSync(scriptsDir)
+              .filter(f => fs.statSync(path.join(scriptsDir, f)).isFile())
+              .sort((a, b) => a.localeCompare(b));
             for (const scriptFile of scriptFiles) {
               const scriptPath = path.join(scriptsDir, scriptFile);
               const scriptContent = fs.readFileSync(scriptPath, 'utf-8');
@@ -333,50 +338,14 @@ export const PROVIDER_PLACEHOLDERS = {
 /**
  * Replace all {{placeholder}} tokens with provider-specific values
  */
-/**
- * Prefix skill cross-references in body text.
- * Replaces patterns like `/skillname` and `the skillname skill` with prefixed versions.
- *
- * @param {string} content - The skill body text
- * @param {string} prefix - The prefix to add (e.g., 'i-')
- * @param {string[]} skillNames - Array of all skill names
- * @param {string} commandPrefix - The command invocation prefix (e.g., '/' or '$')
- */
-export function prefixSkillReferences(content, prefix, skillNames, commandPrefix = '/') {
-  if (!prefix || !skillNames || skillNames.length === 0) return content;
-
-  let result = content;
-  // Sort by length descending to avoid partial matches (e.g. 'teach-impeccable' before 'teach')
-  const sorted = [...skillNames].sort((a, b) => b.length - a.length);
-
-  for (const name of sorted) {
-    const prefixed = `${prefix}${name}`;
-
-    // Replace command invocations (e.g., `/skillname` or `$skillname`) with prefixed versions
-    const escapedPrefix = escapeRegex(commandPrefix);
-    result = result.replace(
-      new RegExp(`${escapedPrefix}(?=${escapeRegex(name)}(?:[^a-zA-Z0-9_-]|$))`, 'g'),
-      `${commandPrefix}${prefix}`
-    );
-
-    // Replace `the skillname skill` references
-    result = result.replace(
-      new RegExp(`(the) ${escapeRegex(name)} skill`, 'gi'),
-      (_, article) => `${article} ${prefixed} skill`
-    );
-  }
-
-  return result;
-}
-
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 const EXCLUDED_FROM_SUGGESTIONS = new Set([
-  'impeccable', 'i-impeccable',               // foundational skill, not a steering command
-  'teach-impeccable', 'i-teach-impeccable',    // deprecated shim
-  'frontend-design', 'i-frontend-design',      // deprecated shim
+  'impeccable',         // foundational skill, not a steering command
+  'teach-impeccable',   // deprecated shim
+  'frontend-design',    // deprecated shim
 ]);
 
 export function replacePlaceholders(content, provider, commandNames = [], allSkillNames = []) {

@@ -53,12 +53,11 @@ for (const [key, config] of Object.entries(PROVIDERS)) {
       expect(content).toContain(`See ${expected}.`);
     });
 
-    test('should support prefix option', () => {
+    test('should reject prefix options', () => {
       const skills = [{ name: 'audit', description: 'Audit', userInvocable: true, body: 'Body' }];
-      transform(skills, TEST_DIR, { prefix: 'i-', outputSuffix: '-prefixed' });
-      expect(fs.existsSync(skillPath(config, 'i-audit', '-prefixed'))).toBe(true);
-      const content = fs.readFileSync(skillPath(config, 'i-audit', '-prefixed'), 'utf-8');
-      expect(content).toContain('name: i-audit');
+      expect(() => transform(skills, TEST_DIR, { prefix: 'i-', outputSuffix: '-prefixed' }))
+        .toThrow(/Prefixed Codex bundles are no longer supported/);
+      expect(fs.existsSync(providerTestDir(config.provider, '-prefixed'))).toBe(false);
     });
 
     test('should copy reference files', () => {

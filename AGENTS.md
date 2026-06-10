@@ -9,9 +9,7 @@ This fork is Codex-only. The repository maintains one authored skill source and 
 1. Author and edit skills in `source/skills/<name>/SKILL.md`
 2. Run the build to generate:
    - `dist/codex/skills/`
-   - `dist/codex-prefixed/skills/`
    - `dist/codex.zip`
-   - `dist/codex-prefixed.zip`
 3. Sync the generated Codex skills back into the plugin source at `plugins/impeccable/skills/`
 
 ## Key Paths

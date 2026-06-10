@@ -30,8 +30,7 @@ Manual options:
 cp -R plugins/impeccable/skills plugins/impeccable/.codex-plugin /path/to/your-project/
 
 # Or download a bundle from impeccable.style
-# Default bundle: $audit, $polish, ...
-# Prefixed bundle: $i-audit, $i-polish, ...
+# Canonical bundle: $audit, $polish, ...
 ```
 
 ## Use in Codex

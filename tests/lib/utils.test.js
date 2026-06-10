@@ -10,8 +10,7 @@ import {
   writeFile,
   generateYamlFrontmatter,
   readPatterns,
-  replacePlaceholders,
-  prefixSkillReferences
+  replacePlaceholders
 } from '../../scripts/lib/utils.js';
 
 // Temporary test directory
@@ -673,19 +672,9 @@ describe('replacePlaceholders', () => {
     expect(result).toBe('Commands: $audit, $polish');
   });
 
-  test('should exclude i-impeccable from {{available_commands}}', () => {
-    const result = replacePlaceholders('Commands: {{available_commands}}', 'codex', ['i-audit', 'i-impeccable', 'i-polish']);
-    expect(result).toBe('Commands: $i-audit, $i-polish');
-  });
-
   test('should exclude legacy teach-impeccable from {{available_commands}}', () => {
     const result = replacePlaceholders('Commands: {{available_commands}}', 'codex', ['audit', 'teach-impeccable', 'polish']);
     expect(result).toBe('Commands: $audit, $polish');
-  });
-
-  test('should exclude legacy i-teach-impeccable from {{available_commands}}', () => {
-    const result = replacePlaceholders('Commands: {{available_commands}}', 'codex', ['i-audit', 'i-teach-impeccable', 'i-polish']);
-    expect(result).toBe('Commands: $i-audit, $i-polish');
   });
 
   test('should produce empty string for {{available_commands}} with no commands', () => {
@@ -706,61 +695,5 @@ describe('replacePlaceholders', () => {
   test('should fall back to codex placeholders for unknown provider', () => {
     const result = replacePlaceholders('{{model}} {{config_file}}', 'unknown-provider');
     expect(result).toBe('GPT AGENTS.md');
-  });
-});
-
-describe('prefixSkillReferences', () => {
-  test('should prefix /skillname command references', () => {
-    const result = prefixSkillReferences('Run /audit to check.', 'i-', ['audit', 'polish']);
-    expect(result).toBe('Run /i-audit to check.');
-  });
-
-  test('should prefix "the skillname skill" references', () => {
-    const result = prefixSkillReferences('Use the audit skill for checks.', 'i-', ['audit', 'polish']);
-    expect(result).toBe('Use the i-audit skill for checks.');
-  });
-
-  test('should prefix multiple different references', () => {
-    const result = prefixSkillReferences('Run /audit then /polish. The audit skill is great.', 'i-', ['audit', 'polish']);
-    expect(result).toContain('/i-audit');
-    expect(result).toContain('/i-polish');
-    expect(result).toContain('The i-audit skill');
-  });
-
-  test('should not partially match longer skill names', () => {
-    const result = prefixSkillReferences('Run /teach-impeccable command.', 'i-', ['teach', 'teach-impeccable']);
-    expect(result).toBe('Run /i-teach-impeccable command.');
-  });
-
-  test('should handle case-insensitive "the X skill" matching', () => {
-    const result = prefixSkillReferences('The audit skill is useful.', 'i-', ['audit']);
-    expect(result).toBe('The i-audit skill is useful.');
-  });
-
-  test('should return content unchanged with empty prefix', () => {
-    const result = prefixSkillReferences('Run /audit.', '', ['audit']);
-    expect(result).toBe('Run /audit.');
-  });
-
-  test('should return content unchanged with empty skill names', () => {
-    const result = prefixSkillReferences('Run /audit.', 'i-', []);
-    expect(result).toBe('Run /audit.');
-  });
-
-  test('should not match /skillname inside longer words', () => {
-    const result = prefixSkillReferences('The /auditing process.', 'i-', ['audit']);
-    // 'auditing' starts with 'audit' but has trailing letters — should NOT match
-    expect(result).toBe('The /auditing process.');
-  });
-
-  test('should match /skillname at end of string', () => {
-    const result = prefixSkillReferences('Run /audit', 'i-', ['audit']);
-    expect(result).toBe('Run /i-audit');
-  });
-
-  test('should match /skillname before punctuation', () => {
-    const result = prefixSkillReferences('Try /audit, /polish.', 'i-', ['audit', 'polish']);
-    expect(result).toContain('/i-audit,');
-    expect(result).toContain('/i-polish.');
   });
 });

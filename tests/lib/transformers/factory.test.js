@@ -131,15 +131,12 @@ describe('createTransformer factory', () => {
     expect(content).toContain('TRANSFORMED content');
   });
 
-  test('should support prefix option', () => {
+  test('should reject prefix options', () => {
     const transform = createTransformer(baseConfig);
     const skills = [{ name: 'audit', description: 'Audit', userInvocable: true, body: 'Body' }];
-    transform(skills, TEST_DIR, { prefix: 'i-', outputSuffix: '-prefixed' });
-
-    const outputPath = path.join(TEST_DIR, 'codex-prefixed/test-skills/i-audit/SKILL.md');
-    expect(fs.existsSync(outputPath)).toBe(true);
-    const content = fs.readFileSync(outputPath, 'utf-8');
-    expect(content).toContain('name: i-audit');
+    expect(() => transform(skills, TEST_DIR, { prefix: 'i-', outputSuffix: '-prefixed' }))
+      .toThrow(/Prefixed Codex bundles are no longer supported/);
+    expect(fs.existsSync(path.join(TEST_DIR, 'codex-prefixed'))).toBe(false);
   });
 
   test('should copy reference files', () => {

@@ -57,7 +57,7 @@ This is a test skill body.`
     expect(distEntries).toEqual(['codex']);
   });
 
-  test('transformCodex applies codex placeholders and prefixing', () => {
+  test('transformCodex applies codex placeholders without prefixing', () => {
     const auditDir = path.join(TEST_DIR, 'source/skills/audit');
     fs.mkdirSync(auditDir, { recursive: true });
     fs.writeFileSync(
@@ -103,15 +103,16 @@ Make the details feel intentional.`
     const distDir = path.join(TEST_DIR, 'dist');
     const { skills } = readSourceFiles(TEST_DIR);
 
-    transformCodex(skills, distDir, { prefix: 'i-', outputSuffix: '-prefixed' });
+    transformCodex(skills, distDir);
 
-    const auditPath = path.join(distDir, 'codex-prefixed/skills/i-audit/SKILL.md');
+    const auditPath = path.join(distDir, 'codex/skills/audit/SKILL.md');
     const content = fs.readFileSync(auditPath, 'utf8');
 
-    expect(content).toContain('name: i-audit');
+    expect(content).toContain('name: audit');
     expect(content).toContain('argument-hint: "[area]"');
-    expect(content).toContain('$i-impeccable');
+    expect(content).toContain('$impeccable');
     expect(content).toContain('GPT');
-    expect(content).toContain('$i-polish');
+    expect(content).toContain('$polish');
+    expect(fs.existsSync(path.join(distDir, 'codex-prefixed'))).toBe(false);
   });
 });

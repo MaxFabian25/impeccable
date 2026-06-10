@@ -7,9 +7,6 @@ import {
   SKILLS_DIR_NAME,
   installBundleIntoRoot,
   isAlreadyInstalled,
-  detectPrefix,
-  renameSkillsWithPrefix,
-  undoPrefix,
   isUpToDate,
 } from '../bin/commands/skills.mjs';
 
@@ -71,90 +68,9 @@ describe('codex-only installer contract', () => {
     expect(isAlreadyInstalled(tmp)).toBe(null);
   });
 
-  test('renames codex skills with a prefix and updates references', () => {
-    createFakeCodexSkills(tmp);
-
-    const renamed = renameSkillsWithPrefix(tmp, 'i-');
-
-    expect(renamed).toBe(3);
-    expect(readdirSync(join(tmp, 'skills')).sort()).toEqual([
-      'i-audit',
-      'i-impeccable',
-      'i-polish',
-    ]);
-
-    const content = readFileSync(join(tmp, 'skills', 'i-audit', 'SKILL.md'), 'utf8');
-    expect(content).toContain('name: i-audit');
-    expect(content).toContain('$i-audit');
-    expect(content).toContain('$i-polish');
-    expect(content).toContain('the i-impeccable skill');
-
-    const impeccableContent = readFileSync(join(tmp, 'skills', 'i-impeccable', 'SKILL.md'), 'utf8');
-    expect(impeccableContent).toContain('node skills/i-impeccable/scripts/cleanup-deprecated.mjs');
-  });
-
-  test('rejects unsafe prefixes before mutating skills', () => {
-    createFakeCodexSkills(tmp);
-
-    expect(() => renameSkillsWithPrefix(tmp, '../x-')).toThrow(/prefix/i);
-    expect(readdirSync(join(tmp, 'skills')).sort()).toEqual([
-      'audit',
-      'impeccable',
-      'polish',
-    ]);
-  });
-
-  test('detects the active prefix from codex skills', () => {
-    createFakeCodexSkills(tmp);
-    renameSkillsWithPrefix(tmp, 'x-');
-
-    expect(detectPrefix(tmp)).toBe('x-');
-  });
-
-  test('undoPrefix restores the canonical codex skill names', () => {
-    createFakeCodexSkills(tmp);
-    renameSkillsWithPrefix(tmp, 'x-');
-
-    undoPrefix(tmp, 'x-');
-
-    expect(readdirSync(join(tmp, 'skills')).sort()).toEqual([
-      'audit',
-      'impeccable',
-      'polish',
-    ]);
-
-    const content = readFileSync(join(tmp, 'skills', 'audit', 'SKILL.md'), 'utf8');
-    expect(content).toContain('name: audit');
-    expect(content).toContain('$audit');
-    expect(content).toContain('$polish');
-    expect(content).toContain('the impeccable skill');
-  });
-
-  test('prefixing only mutates the codex skill tree', () => {
-    createFakeCodexSkills(tmp, ['audit']);
-    const otherSkillDir = join(tmp, '.legacy', 'skills', 'audit');
-    mkdirSync(otherSkillDir, { recursive: true });
-    writeFileSync(join(otherSkillDir, 'SKILL.md'), '---\nname: audit\n---\n');
-
-    renameSkillsWithPrefix(tmp, 'i-');
-
-    expect(existsSync(join(tmp, '.legacy', 'skills', 'audit', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(tmp, '.legacy', 'skills', 'i-audit', 'SKILL.md'))).toBe(false);
-  });
-
-  test('prefixing can be scoped to bundle-managed skills only', () => {
-    createFakeCodexSkills(tmp, ['audit', 'impeccable']);
-    const customSkillDir = join(tmp, 'skills', 'custom');
-    mkdirSync(customSkillDir, { recursive: true });
-    writeFileSync(join(customSkillDir, 'SKILL.md'), '---\nname: custom\n---\nRun $custom.\n');
-
-    const renamed = renameSkillsWithPrefix(tmp, 'i-', ['audit', 'impeccable']);
-
-    expect(renamed).toBe(2);
-    expect(existsSync(join(tmp, 'skills', 'i-audit', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(tmp, 'skills', 'i-impeccable', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(tmp, 'skills', 'custom', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(tmp, 'skills', 'i-custom', 'SKILL.md'))).toBe(false);
+  test('does not treat prefixed legacy skills as an installed canonical bundle', () => {
+    createFakeCodexSkills(tmp, ['i-impeccable']);
+    expect(isAlreadyInstalled(tmp)).toBe(null);
   });
 
   test('plugin manifest drift marks the install as outdated', () => {
@@ -201,11 +117,11 @@ describe('codex-only installer contract', () => {
     expect(isUpToDate(tmp, bundleRoot)).toBe(false);
   });
 
-  test('cli install rejects unsafe prefixes without creating a Codex skill tree', () => {
+  test('cli install rejects prefix flags without creating a Codex skill tree', () => {
     const result = runSkillsCli(tmp, ['install', '--yes', '--prefix=../x-']);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('Install failed');
+    expect(result.stderr).toContain('prefixed Codex installs are no longer supported');
     expect(existsSync(join(tmp, 'skills'))).toBe(false);
   });
 
@@ -226,10 +142,7 @@ describe('codex-only installer contract', () => {
     expect(existsSync(join(tmp, 'skills', 'impeccable'))).toBe(false);
   });
 
-  test('bundle install preserves custom unprefixed skill names when managed skills are prefixed', () => {
-    createFakeCodexSkills(tmp, ['audit', 'impeccable']);
-    renameSkillsWithPrefix(tmp, 'i-', ['audit', 'impeccable']);
-
+  test('bundle install refuses to overwrite custom canonical skill names', () => {
     const customSkillDir = join(tmp, 'skills', 'audit');
     mkdirSync(customSkillDir, { recursive: true });
     writeFileSync(join(customSkillDir, 'SKILL.md'), '---\nname: audit\n---\nRun $audit.\n');
@@ -237,8 +150,7 @@ describe('codex-only installer contract', () => {
     const bundleRoot = join(tmp, 'bundle');
     createFakeCodexSkills(bundleRoot, ['audit', 'impeccable']);
 
-    expect(() => installBundleIntoRoot(tmp, bundleRoot, 'i-')).not.toThrow();
-    expect(existsSync(join(tmp, 'skills', 'audit', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(tmp, 'skills', 'i-audit', 'SKILL.md'))).toBe(true);
+    expect(() => installBundleIntoRoot(tmp, bundleRoot)).toThrow(/existing custom skill/);
+    expect(readFileSync(join(tmp, 'skills', 'audit', 'SKILL.md'), 'utf8')).toContain('Run $audit.');
   });
 });

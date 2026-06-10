@@ -4,7 +4,6 @@
  * Codex-only contract:
  * - installs project-local plugin skills into `skills`
  * - downloads Codex bundles from impeccable.style
- * - optionally prefixes command names after install/update
  */
 
 import {
@@ -15,7 +14,6 @@ import {
   mkdirSync,
   writeFileSync,
   rmSync,
-  renameSync,
   createWriteStream,
 } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -35,8 +33,6 @@ export const SKILLS_DIR_NAME = 'skills';
 export const SKILLS_DIR_RELATIVE = SKILLS_DIR_NAME;
 const PLUGIN_DIR_RELATIVE = '.codex-plugin';
 const MARKETPLACE_DIR_RELATIVE = '.agents/plugins';
-const DEFAULT_PREFIX = 'i-';
-const SAFE_PREFIX_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*-$/i;
 const RETIRED_MANAGED_SKILL_NAMES = [
   'frontend-design',
   'teach-impeccable',
@@ -52,20 +48,6 @@ function ask(question) {
     rl.close();
     resolve(answer.trim().toLowerCase());
   }));
-}
-
-function assertValidPrefix(prefix) {
-  if (!prefix) return;
-
-  if (!SAFE_PREFIX_PATTERN.test(prefix)) {
-    throw new Error(
-      'Prefix must contain only letters, numbers, and hyphens, and must end with a hyphen (for example "i-").'
-    );
-  }
-}
-
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function getSkillsDir(root) {
@@ -94,68 +76,13 @@ function getSkillNames(skillsDir) {
   return readdirSync(skillsDir).filter((name) => isSkillDir(skillsDir, name)).sort();
 }
 
-function prefixSkillContent(content, prefix, allSkillNames) {
-  let result = content.replace(/^name:\s*(.+)$/m, (_, name) => `name: ${prefix}${name.trim()}`);
-  const sortedNames = [...allSkillNames].sort((a, b) => b.length - a.length);
-
-  for (const name of sortedNames) {
-    const prefixedName = `${prefix}${name}`;
-    const scriptsPath = `${SKILLS_DIR_RELATIVE}/${name}/scripts`;
-    const prefixedScriptsPath = `${SKILLS_DIR_RELATIVE}/${prefixedName}/scripts`;
-
-    result = result.replace(new RegExp(escapeRegex(scriptsPath), 'g'), prefixedScriptsPath);
-    result = result.replace(
-      new RegExp(`\\$(?=${escapeRegex(name)}(?:[^a-zA-Z0-9_-]|$))`, 'g'),
-      `$${prefix}`
-    );
-    result = result.replace(
-      new RegExp(`(the) ${escapeRegex(name)} skill`, 'gi'),
-      (_, article) => `${article} ${prefix}${name} skill`
-    );
-  }
-
-  return result;
+function normalizeForHash(content) {
+  return content.replace(/^version:\s*.+$/m, 'version: NORMALIZED');
 }
 
-function unprefixSkillContent(content, prefix, prefixedSkillNames) {
-  let result = content.replace(new RegExp(`^name:\\s*${escapeRegex(prefix)}`, 'm'), 'name: ');
-  const sortedNames = [...prefixedSkillNames].sort((a, b) => b.length - a.length);
-
-  for (const prefixedName of sortedNames) {
-    const unprefixedName = prefixedName.slice(prefix.length);
-    const prefixedScriptsPath = `${SKILLS_DIR_RELATIVE}/${prefixedName}/scripts`;
-    const scriptsPath = `${SKILLS_DIR_RELATIVE}/${unprefixedName}/scripts`;
-
-    result = result.replace(new RegExp(escapeRegex(prefixedScriptsPath), 'g'), scriptsPath);
-    result = result.replace(
-      new RegExp(`\\$${escapeRegex(prefixedName)}(?=[^a-zA-Z0-9_-]|$)`, 'g'),
-      `$${unprefixedName}`
-    );
-    result = result.replace(
-      new RegExp(`(the) ${escapeRegex(prefixedName)} skill`, 'gi'),
-      `$1 ${unprefixedName} skill`
-    );
-  }
-
-  return result;
-}
-
-function normalizeForHash(content, prefix = '') {
-  let normalized = content.replace(/^version:\s*.+$/m, 'version: NORMALIZED');
-
-  if (prefix) {
-    normalized = normalized
-      .replace(new RegExp(`^name:\\s*${escapeRegex(prefix)}`, 'm'), 'name: ')
-      .replace(new RegExp(`\\$${escapeRegex(prefix)}`, 'g'), '$')
-      .replace(new RegExp(`(the) ${escapeRegex(prefix)}`, 'gi'), '$1 ');
-  }
-
-  return normalized;
-}
-
-function hashContent(content, prefix = '') {
+function hashContent(content) {
   return createHash('sha256')
-    .update(normalizeForHash(content, prefix))
+    .update(normalizeForHash(content))
     .digest('hex');
 }
 
@@ -210,16 +137,11 @@ function removeManagedSkillDirs(root, managedSkillNames) {
   if (!existsSync(skillsDir) || managedSkillNames.length === 0) return;
   if (!isAlreadyInstalled(root)) return;
 
-  const existingPrefix = detectPrefix(root);
   const candidates = new Set();
   const removableNames = [...new Set([...managedSkillNames, ...RETIRED_MANAGED_SKILL_NAMES])];
 
   for (const skillName of removableNames) {
-    if (existingPrefix) {
-      candidates.add(`${existingPrefix}${skillName}`);
-    } else {
-      candidates.add(skillName);
-    }
+    candidates.add(skillName);
   }
 
   for (const candidate of candidates) {
@@ -259,13 +181,9 @@ function hasRetiredManagedSkills(root) {
   const skillsDir = getSkillsDir(root);
   if (!existsSync(skillsDir)) return false;
 
-  const prefixes = [''];
-  const activePrefix = detectPrefix(root);
-  if (activePrefix) prefixes.push(activePrefix);
-
-  return RETIRED_MANAGED_SKILL_NAMES.some((skillName) => prefixes.some((prefix) => (
-    isSkillDir(skillsDir, `${prefix}${skillName}`)
-  )));
+  return RETIRED_MANAGED_SKILL_NAMES.some((skillName) => (
+    isSkillDir(skillsDir, skillName) || isSkillDir(skillsDir, `i-${skillName}`)
+  ));
 }
 
 function assertPluginManifestIsCompatible(localPluginDir, bundlePluginDir) {
@@ -311,7 +229,7 @@ function isBundleDirSubsetUpToDate(localDir, bundleDir) {
   return true;
 }
 
-function isSkillDirUpToDate(localSkillDir, bundleSkillDir, prefix = '') {
+function isSkillDirUpToDate(localSkillDir, bundleSkillDir) {
   if (!existsSync(localSkillDir) || !existsSync(bundleSkillDir)) return false;
 
   const localFiles = listRelativeFiles(localSkillDir);
@@ -326,7 +244,7 @@ function isSkillDirUpToDate(localSkillDir, bundleSkillDir, prefix = '') {
     if (relativePath === 'SKILL.md') {
       const localContent = readFileSync(localPath, 'utf8');
       const bundleContent = readFileSync(bundlePath, 'utf8');
-      if (hashContent(localContent, prefix) !== hashContent(bundleContent)) {
+      if (hashContent(localContent) !== hashContent(bundleContent)) {
         return false;
       }
       continue;
@@ -351,9 +269,7 @@ async function downloadAndExtractBundle(bundleName = 'codex') {
   return extractDir;
 }
 
-export function installBundleIntoRoot(root, bundleDir, prefix = '') {
-  assertValidPrefix(prefix);
-
+export function installBundleIntoRoot(root, bundleDir) {
   const bundleSkillsDir = join(bundleDir, SKILLS_DIR_RELATIVE);
   const localSkillsDir = getSkillsDir(root);
   const bundlePluginDir = join(bundleDir, PLUGIN_DIR_RELATIVE);
@@ -369,21 +285,14 @@ export function installBundleIntoRoot(root, bundleDir, prefix = '') {
   mkdirSync(localSkillsDir, { recursive: true });
   removeManagedSkillDirs(root, bundleSkillNames);
   for (const skillName of bundleSkillNames) {
-    const targetName = prefix ? `${prefix}${skillName}` : skillName;
-    const targetDir = join(localSkillsDir, targetName);
+    const targetDir = join(localSkillsDir, skillName);
     if (existsSync(targetDir)) {
       throw new Error(
-        `Found an existing custom skill at ${SKILLS_DIR_RELATIVE}/${targetName}. Rename it or use a different prefix before installing Impeccable.`
+        `Found an existing custom skill at ${SKILLS_DIR_RELATIVE}/${skillName}. Rename it before installing Impeccable.`
       );
     }
 
     copyDirSync(join(bundleSkillsDir, skillName), targetDir);
-
-    if (prefix) {
-      const skillPath = join(targetDir, 'SKILL.md');
-      const content = readFileSync(skillPath, 'utf8');
-      writeFileSync(skillPath, prefixSkillContent(content, prefix, bundleSkillNames));
-    }
   }
 
   if (existsSync(bundlePluginDir)) {
@@ -415,76 +324,11 @@ export function isAlreadyInstalled(root) {
   if (!existsSync(skillsDir)) return null;
 
   const entries = readdirSync(skillsDir);
-  if (entries.some((entry) => entry === 'impeccable' || entry.endsWith('-impeccable'))) {
+  if (entries.some((entry) => entry === 'impeccable')) {
     return SKILLS_DIR_NAME;
   }
 
   return null;
-}
-
-export function detectPrefix(root) {
-  const skillsDir = getSkillsDir(root);
-  if (!existsSync(skillsDir)) return '';
-
-  for (const name of readdirSync(skillsDir)) {
-    if (name === 'impeccable') return '';
-    if (name.endsWith('-impeccable')) return name.slice(0, -'impeccable'.length);
-  }
-
-  return '';
-}
-
-export function renameSkillsWithPrefix(root, prefix, managedSkillNames = null) {
-  if (!prefix) return 0;
-  assertValidPrefix(prefix);
-
-  const skillsDir = getSkillsDir(root);
-  const allSkillNames = managedSkillNames ? [...managedSkillNames] : getSkillNames(skillsDir);
-  let renamedCount = 0;
-
-  for (const name of allSkillNames) {
-    if (name.startsWith(prefix)) continue;
-    if (!isSkillDir(skillsDir, name)) continue;
-
-    const src = join(skillsDir, name);
-    const dest = join(skillsDir, `${prefix}${name}`);
-    if (existsSync(dest)) {
-      throw new Error(`Cannot prefix ${name}: ${prefix}${name} already exists in ${SKILLS_DIR_RELATIVE}.`);
-    }
-    renameSync(src, dest);
-
-    const skillPath = join(dest, 'SKILL.md');
-    const content = readFileSync(skillPath, 'utf8');
-    writeFileSync(skillPath, prefixSkillContent(content, prefix, allSkillNames));
-    renamedCount++;
-  }
-
-  return renamedCount;
-}
-
-export function undoPrefix(root, prefix, managedSkillNames = null) {
-  if (!prefix) return;
-  assertValidPrefix(prefix);
-
-  const skillsDir = getSkillsDir(root);
-  const prefixedNames = managedSkillNames
-    ? managedSkillNames
-        .map((name) => `${prefix}${name}`)
-        .filter((name) => isSkillDir(skillsDir, name))
-    : getSkillNames(skillsDir).filter((name) => name.startsWith(prefix));
-
-  for (const name of prefixedNames) {
-    const src = join(skillsDir, name);
-    const dest = join(skillsDir, name.slice(prefix.length));
-    if (existsSync(dest)) {
-      throw new Error(`Cannot remove prefix from ${name}: ${dest.slice(skillsDir.length + 1)} already exists.`);
-    }
-    renameSync(src, dest);
-
-    const skillPath = join(dest, 'SKILL.md');
-    const content = readFileSync(skillPath, 'utf8');
-    writeFileSync(skillPath, unprefixSkillContent(content, prefix, prefixedNames));
-  }
 }
 
 export function isUpToDate(root, bundleDir) {
@@ -494,18 +338,15 @@ export function isUpToDate(root, bundleDir) {
   const bundlePluginDir = join(bundleDir, PLUGIN_DIR_RELATIVE);
   const localMarketplaceDir = getMarketplaceDir(root);
   const bundleMarketplaceDir = join(bundleDir, MARKETPLACE_DIR_RELATIVE);
-  const prefix = detectPrefix(root);
   const bundleSkillNames = getBundleSkillNames(bundleDir);
 
   if (!existsSync(localSkillsDir) || bundleSkillNames.length === 0) return false;
   if (hasRetiredManagedSkills(root)) return false;
 
   for (const bundleName of bundleSkillNames) {
-    const localName = prefix ? `${prefix}${bundleName}` : bundleName;
     if (!isSkillDirUpToDate(
-      join(localSkillsDir, localName),
-      join(bundleSkillsDir, bundleName),
-      prefix
+      join(localSkillsDir, bundleName),
+      join(bundleSkillsDir, bundleName)
     )) {
       return false;
     }
@@ -516,7 +357,7 @@ export function isUpToDate(root, bundleDir) {
 }
 
 function getSkillsVersion(root) {
-  const skillPath = join(getSkillsDir(root), `${detectPrefix(root)}impeccable`, 'SKILL.md');
+  const skillPath = join(getSkillsDir(root), 'impeccable', 'SKILL.md');
   if (!existsSync(skillPath)) return null;
   const content = readFileSync(skillPath, 'utf8');
   const match = content.match(/^version:\s*(.+)$/m);
@@ -596,9 +437,13 @@ async function check() {
 async function install(flags) {
   const root = findProjectRoot();
   const force = flags.includes('--force');
-  const yes = flags.includes('-y') || flags.includes('--yes');
-  const prefixFlag = flags.find((flag) => flag.startsWith('--prefix='));
+  const prefixFlag = flags.find((flag) => flag === '--prefix' || flag.startsWith('--prefix='));
   const existing = isAlreadyInstalled(root);
+
+  if (prefixFlag) {
+    console.error('Install failed: prefixed Codex installs are no longer supported. Use canonical $audit, $polish, and $impeccable commands.');
+    process.exit(1);
+  }
 
   if (existing && !force) {
     console.log(`Impeccable skills are already installed (found in ${existing}/).`);
@@ -606,40 +451,20 @@ async function install(flags) {
     process.exit(0);
   }
 
-  let prefix = '';
-  if (prefixFlag) {
-    prefix = prefixFlag.split('=')[1] || DEFAULT_PREFIX;
-  } else if (!yes) {
-    const wantsPrefix = await ask(`Prefix commands to avoid conflicts? e.g. $${DEFAULT_PREFIX}audit (y/N) `);
-    if (wantsPrefix === 'y' || wantsPrefix === 'yes') {
-      const customPrefix = await ask(`Prefix (default: ${DEFAULT_PREFIX}): `);
-      prefix = customPrefix || DEFAULT_PREFIX;
-    }
-  }
   console.log('Installing Codex bundle...\n');
 
   let bundleDir;
-  let bundleSkillNames = [];
   try {
-    assertValidPrefix(prefix);
-
     if (hasLocalBundle()) {
       const localBundleRoot = getLocalBundleRoot();
-      bundleSkillNames = getBundleSkillNames(localBundleRoot);
-      installBundleIntoRoot(root, localBundleRoot, prefix);
+      installBundleIntoRoot(root, localBundleRoot);
     } else {
       bundleDir = await downloadAndExtractBundle('codex');
-      bundleSkillNames = getBundleSkillNames(bundleDir);
-      installBundleIntoRoot(root, bundleDir, prefix);
+      installBundleIntoRoot(root, bundleDir);
       rmSync(bundleDir, { recursive: true, force: true });
     }
 
-    if (prefix && bundleSkillNames.length > 0) {
-      console.log(`Installed ${bundleSkillNames.length} skills with "${prefix}" prefix.`);
-      console.log(`Commands are now available as $${prefix}<command> (for example $${prefix}audit).`);
-    }
-
-    console.log(`\nDone! Run $${prefix}impeccable teach in Codex CLI to set up design context.\n`);
+    console.log(`\nDone! Run $impeccable teach in Codex CLI to set up design context.\n`);
   } catch (error) {
     if (bundleDir) rmSync(bundleDir, { recursive: true, force: true });
     console.error(`Install failed: ${error.message}`);
@@ -662,7 +487,6 @@ async function update(flags = []) {
   let bundleDir;
   try {
     bundleDir = await downloadAndExtractBundle('codex');
-    const bundleSkillNames = getBundleSkillNames(bundleDir);
 
     if (isUpToDate(root, bundleDir)) {
       const version = getSkillsVersion(root);
@@ -680,13 +504,8 @@ async function update(flags = []) {
       }
     }
 
-    const prefix = detectPrefix(root);
-    installBundleIntoRoot(root, bundleDir, prefix);
+    installBundleIntoRoot(root, bundleDir);
     rmSync(bundleDir, { recursive: true, force: true });
-
-    if (prefix) {
-      console.log(`Re-applied "${prefix}" prefix to the Codex skills.`);
-    }
 
     const version = getSkillsVersion(root);
     console.log(`Updated Codex skills${version ? ` to v${version}` : ''}.`);

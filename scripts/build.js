@@ -5,8 +5,7 @@
  *
  * Produces:
  * - `dist/codex/skills/`
- * - `dist/codex-prefixed/skills/`
- * - matching ZIP bundles for direct download/installation
+ * - `dist/codex.zip` for direct download/installation
  *
  * The website and download API read from those generated outputs.
  */
@@ -369,19 +368,14 @@ async function buildStaticSite(extraEntrypoints = []) {
  * Prepare a visible bundle README and optional Codex plugin metadata
  * inside each generated Codex distribution directory.
  */
-function prepareCodexBundle(distDir, outputName, { prefixed = false } = {}) {
+function prepareCodexBundle(distDir, outputName) {
   const bundleDir = path.join(distDir, outputName);
   if (!fs.existsSync(bundleDir)) return;
-
-  const prefixNote = prefixed
-    ? '\nSkills in this bundle are prefixed with i- (for example `$i-audit`) to avoid command name conflicts.\n'
-    : '';
 
   fs.writeFileSync(
     path.join(bundleDir, 'README.txt'),
 `Impeccable for Codex CLI
 https://impeccable.style
-${prefixNote}
 This bundle contains:
 
   skills/         → Codex plugin skills
@@ -402,8 +396,7 @@ Install by extracting this bundle into your project root.
     copyDirSync(marketplacePath, path.join(bundleDir, '.agents'));
   }
 
-  const label = prefixed ? ' (prefixed)' : '';
-  console.log(`✓ Prepared codex bundle${label}`);
+  console.log('✓ Prepared codex bundle');
 }
 
 /**
@@ -579,17 +572,17 @@ async function build() {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf-8'));
   const skillsVersion = packageJson.version;
 
-  // Transform for the Codex provider (unprefixed + prefixed)
+  if (fs.existsSync(DIST_DIR)) fs.rmSync(DIST_DIR, { recursive: true, force: true });
+
+  // Transform for the canonical Codex provider.
   for (const config of Object.values(PROVIDERS)) {
     const transform = createTransformer(config);
     transform(skills, DIST_DIR, { skillsVersion });
-    transform(skills, DIST_DIR, { prefix: 'i-', outputSuffix: '-prefixed', skillsVersion });
   }
 
   prepareCodexBundle(DIST_DIR, 'codex');
-  prepareCodexBundle(DIST_DIR, 'codex-prefixed', { prefixed: true });
 
-  // Create ZIP bundles for the default and prefixed Codex distributions
+  // Create the canonical Codex distribution ZIP.
   await createAllZips(DIST_DIR);
 
   // Generate static API data and Cloudflare Pages config
