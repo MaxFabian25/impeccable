@@ -82,10 +82,12 @@ Add color systematically across these dimensions:
 - **Comparison**: Color coding for different datasets or timeframes
 
 ### Borders & Accents
-- **Accent borders**: Add colored left/top borders to cards or sections
+- **Hairline borders**: Use 1px colored borders on the full perimeter of cards or sections, not heavy side stripes
 - **Underlines**: Color underlines for emphasis or active states
 - **Dividers**: Subtle colored dividers instead of gray lines
 - **Focus rings**: Colored focus indicators matching brand
+- **Surface tints**: Use a 4-8% background wash of the accent color instead of a stripe
+- **Leading marks**: Use a small glyph, icon, dot, or numbered prefix when an item needs a colored marker
 
 ### Typography Color
 - **Colored headings**: Use brand colors for section headings (maintain contrast)
@@ -126,6 +128,7 @@ Ensure color addition improves rather than overwhelms:
 - Use pure black (`#000`) or pure white (`#fff`) for large areas
 - Violate WCAG contrast requirements
 - Use color as the only indicator (accessibility issue)
+- Use `border-left` or `border-right` greater than 1px as a colored accent stripe
 - Make everything colorful (defeats the purpose)
 - Default to purple-blue gradients (AI slop aesthetic)
 
