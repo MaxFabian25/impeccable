@@ -2109,8 +2109,6 @@ code {
   flex-direction: column;
   align-self: stretch;
   gap: var(--spacing-md);
-  padding: var(--spacing-md) 0 0;
-  border-top: 1px solid var(--color-ink);
 }
 .live-demo-support-cell {
   display: grid;
@@ -2135,6 +2133,14 @@ code {
   font-size: 14px;
   line-height: 1.55;
   color: var(--color-ink);
+}
+.live-demo-support-v code {
+  padding: 1px 6px;
+  background: var(--color-mist);
+  border-radius: 3px;
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 0.875em;
 }
 
 @media (max-width: 760px) {

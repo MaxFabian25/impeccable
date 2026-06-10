@@ -122,7 +122,7 @@ export function initLiveDemo() {
 	};
 
 	const setCaption = (text) => {
-		if (text) captionLabel.textContent = text;
+		if (text && captionLabel) captionLabel.textContent = text;
 	};
 
 	const typeText = (text, duration) => new Promise((resolve) => {
