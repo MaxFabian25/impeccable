@@ -161,6 +161,27 @@ describe('generateYamlFrontmatter', () => {
     expect(result).toContain('description: "Make interfaces production-ready: error handling and empty states"');
   });
 
+  test('should quote strings starting with YAML flow indicators', () => {
+    const data = {
+      name: 'test',
+      'argument-hint': '[command] [target]'
+    };
+
+    const result = generateYamlFrontmatter(data);
+    expect(result).toContain('argument-hint: "[command] [target]"');
+  });
+
+  test('should not quote plain strings without special chars', () => {
+    const data = {
+      name: 'simple',
+      description: 'A plain description with no colons or hashes'
+    };
+
+    const result = generateYamlFrontmatter(data);
+    expect(result).toContain('description: A plain description with no colons or hashes');
+    expect(result).not.toContain('"A plain');
+  });
+
   test('should roundtrip: generate and parse back', () => {
     const original = {
       name: 'roundtrip-test',

@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# npm lockfile (project uses bun.lock; npm may regenerate this as a side
+# effect of npm subprocesses, but it should not be tracked)
+package-lock.json
+
 # Generated files
 dist/
 build/

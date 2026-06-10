@@ -1556,18 +1556,19 @@ function checkPageTypography(doc, win) {
   return findings;
 }
 
-function isCardLike(el, win) {
+function isCardLike(el, win, styleOverrides) {
   const tag = el.tagName.toLowerCase();
   if (SAFE_TAGS.has(tag) || ['input', 'select', 'textarea', 'img', 'video', 'canvas', 'picture'].includes(tag)) return false;
 
   const style = win.getComputedStyle(el);
+  const override = styleOverrides?.get(el);
   const rawStyle = el.getAttribute?.('style') || '';
   const cls = el.getAttribute?.('class') || '';
 
   const hasShadow = (style.boxShadow && style.boxShadow !== 'none') ||
     /\bshadow(?:-sm|-md|-lg|-xl|-2xl)?\b/.test(cls) || /box-shadow/i.test(rawStyle);
   const hasBorder = /\bborder\b/.test(cls);
-  const hasRadius = (parseFloat(style.borderRadius) || 0) > 0 ||
+  const hasRadius = resolveRadius(style.borderRadius, override?.radius?.value) > 0 ||
     /\brounded(?:-sm|-md|-lg|-xl|-2xl|-full)?\b/.test(cls) || /border-radius/i.test(rawStyle);
   const hasBg = /\bbg-(?:white|gray-\d+|slate-\d+)\b/.test(cls) ||
     /background(?:-color)?\s*:\s*(?!transparent)/i.test(rawStyle);
@@ -1575,14 +1576,14 @@ function isCardLike(el, win) {
   return isCardLikeFromProps(hasShadow, hasBorder, hasRadius, hasBg);
 }
 
-function checkPageLayout(doc, win) {
+function checkPageLayout(doc, win, styleOverrides) {
   const findings = [];
 
   // Nested cards
   const allEls = doc.querySelectorAll('*');
   const flaggedEls = new Set();
   for (const el of allEls) {
-    if (!isCardLike(el, win)) continue;
+    if (!isCardLike(el, win, styleOverrides)) continue;
     if (flaggedEls.has(el)) continue;
 
     const tag = el.tagName.toLowerCase();
@@ -1597,7 +1598,7 @@ function checkPageLayout(doc, win) {
     // Walk up to find card-like ancestor
     let parent = el.parentElement;
     while (parent) {
-      if (isCardLike(parent, win)) {
+      if (isCardLike(parent, win, styleOverrides)) {
         flaggedEls.add(el);
         break;
       }

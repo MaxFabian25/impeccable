@@ -405,32 +405,43 @@ export function replacePlaceholders(content, provider, commandNames = [], allSki
 /**
  * Generate YAML frontmatter string
  */
+function yamlNeedsQuoting(value) {
+  if (typeof value !== 'string') return false;
+  if (value === '') return true;
+  if (/^\s|\s$/.test(value)) return true;
+  if (/^[\[\]{},&*!|>'"%@`#]/.test(value)) return true;
+  if (/^[?:-](\s|$)/.test(value)) return true;
+  if (/: |\s#|:$/.test(value)) return true;
+  if (/^(true|false|null|yes|no|on|off|~)$/i.test(value)) return true;
+  if (/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(value)) return true;
+  return false;
+}
+
+function formatYamlScalar(value) {
+  if (typeof value !== 'string') return String(value);
+  if (!yamlNeedsQuoting(value)) return value;
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
 export function generateYamlFrontmatter(data) {
   const lines = ['---'];
-
-  const renderScalar = (value) => {
-    if (typeof value !== 'string') return value;
-    const needsQuoting = /^[\[{]/.test(value) || /[:#]\s/.test(value) || /\n/.test(value);
-    if (!needsQuoting) return value;
-    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-  };
 
   for (const [key, value] of Object.entries(data)) {
     if (Array.isArray(value)) {
       lines.push(`${key}:`);
       for (const item of value) {
         if (typeof item === 'object') {
-          lines.push(`  - name: ${item.name}`);
-          if (item.description) lines.push(`    description: ${item.description}`);
+          lines.push(`  - name: ${formatYamlScalar(item.name)}`);
+          if (item.description) lines.push(`    description: ${formatYamlScalar(item.description)}`);
           if (item.required !== undefined) lines.push(`    required: ${item.required}`);
         } else {
-          lines.push(`  - ${item}`);
+          lines.push(`  - ${formatYamlScalar(item)}`);
         }
       }
     } else if (typeof value === 'boolean') {
       lines.push(`${key}: ${value}`);
     } else {
-      lines.push(`${key}: ${renderScalar(value)}`);
+      lines.push(`${key}: ${formatYamlScalar(value)}`);
     }
   }
 
