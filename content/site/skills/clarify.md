@@ -19,7 +19,7 @@ The skill rewrites text across the surfaces where most UX copy problems live:
 5. **Tooltips and helper text**: add information the label cannot carry, never restate it.
 6. **Confirmation dialogs**: name the consequences, not the action.
 
-The skill uses the audience and mental state from the Design Context in `AGENTS.md` to tune voice. Technical audience gets precise language. Consumer audience gets plain speech. Rushed users get short text. Anxious users (payment, delete) get reassurance.
+The skill uses the audience and mental state from `PRODUCT.md` to tune voice. Technical audience gets precise language. Consumer audience gets plain speech. Rushed users get short text. Anxious users (payment, delete) get reassurance.
 
 ## Try it
 
@@ -38,5 +38,5 @@ Before and after, typical:
 ## Pitfalls
 
 - **Writing cleverer, not clearer.** Clarify is not for voice upgrades. If the copy is already clear, do not reach for this skill. Use `$delight` instead when you want personality.
-- **Skipping the audience question.** Clarify needs to know who is reading. If `AGENTS.md` does not specify the audience's technical level, the rewrites will be generic.
+- **Skipping the audience question.** Clarify needs to know who is reading. If `PRODUCT.md` does not specify the audience's technical level, the rewrites will be generic.
 - **Running clarify on marketing copy.** Clarify is for functional UX text: labels, errors, instructions. Marketing copy needs a different set of moves and a human writer.

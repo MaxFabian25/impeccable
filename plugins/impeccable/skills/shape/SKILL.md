@@ -128,7 +128,7 @@ What this is, who it's for, what it needs to accomplish.
 The single most important thing a user should do or understand here.
 
 **3. Design Direction**
-Register, color strategy, theme scene, and 2-3 named anchor references. Reference the project's Design Context in `AGENTS.md`, explain how this feature should express it, and call out any per-surface overrides.
+Register, color strategy, theme scene, and 2-3 named anchor references. Reference `PRODUCT.md` and `DESIGN.md` when present, explain how this feature should express them, and call out any per-surface overrides.
 
 If you ran the Visual Direction Probe step, name which probe direction won and what changed in the brief because of it.
 

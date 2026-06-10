@@ -7,7 +7,7 @@ description: "Install Impeccable, run $impeccable teach once to establish projec
 
 ## What you'll build
 
-You will end this tutorial with Impeccable installed in your project, a `## Design Context` section in `AGENTS.md` that captures your brand and audience, and one hand-polished page that went through a `$polish` pass. Total time: about five minutes.
+You will end this tutorial with Impeccable installed in your project, a `PRODUCT.md` file that captures your brand and audience, and one hand-polished page that went through a `$polish` pass. Total time: about five minutes.
 
 ## Prerequisites
 
@@ -26,7 +26,7 @@ This installs the skill bundle into `plugins/impeccable/skills/` and writes the 
 
 ## Step 2. Teach Impeccable about your project
 
-This is the most important step. Design without context produces generic output. The `$impeccable teach` command runs a short discovery interview and writes a `## Design Context` section into `AGENTS.md` at the root of your project.
+This is the most important step. Design without context produces generic output. The `$impeccable teach` command runs a short discovery interview and writes `PRODUCT.md` at the root of your project.
 
 Run:
 
@@ -42,9 +42,9 @@ The skill will ask you a handful of questions:
 - **Any visual references?** Screenshots, sites, design systems you admire.
 - **Anti-references?** Things the product should explicitly not look like.
 
-Answer in your own words. The skill writes a `## Design Context` section with the answers. Every future skill call reads it automatically.
+Answer in your own words. The skill writes `PRODUCT.md` with the answers. Every future skill call reads it automatically.
 
-Open `AGENTS.md` and read what it wrote. Edit anything that does not feel right. The file is yours.
+Open `PRODUCT.md` and read what it wrote. Edit anything that does not feel right. The file is yours.
 
 ## Step 3. Polish something
 
@@ -77,6 +77,6 @@ Review the diff. If something does not feel right, ask the model to explain the 
 
 ## Common issues
 
-- **The skill says "no design context found"**. You skipped step 2. Run `$impeccable teach` first.
+- **The skill says "no product context found"**. You skipped step 2. Run `$impeccable teach` first.
 - **Commands do not appear in Codex**. Reload Codex after installing. If they still do not appear, check that the installer wrote files into `plugins/impeccable/skills/` and that you are in the correct project root.
 - **The polish pass rewrote something you liked**. Say so. Revert the change, tell the model which specific edit to undo, and continue from there.

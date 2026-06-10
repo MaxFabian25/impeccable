@@ -29,7 +29,7 @@ The skill kicks off two independent assessments in parallel. They run in separat
 
 ### What the LLM assessment does
 
-The first assessment reads your source code and, if browser automation is available, opens the live page in a new tab. It walks the full impeccable skill DO/DON'T catalog and scores the page against Nielsen's 10 heuristics, the 8-item cognitive load checklist, and the brand fit from the Design Context in `AGENTS.md`.
+The first assessment reads your source code and, if browser automation is available, opens the live page in a new tab. It walks the full impeccable skill DO/DON'T catalog and scores the page against Nielsen's 10 heuristics, the 8-item cognitive load checklist, and the brand fit from `PRODUCT.md`.
 
 It labels the tab it opens with `[LLM]` in the title so you can tell which one is which.
 

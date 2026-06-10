@@ -45,7 +45,7 @@ export function renderCommandDemo(commandId) {
                     <code style="font-size: 12px; color: var(--spread-accent, var(--color-accent)); font-weight: 600; white-space: nowrap;">$impeccable teach</code>
                     <span style="opacity: 0.4; font-size: 11px;">one-time setup</span>
                   </div>
-                  <span style="padding-left: 0; opacity: 0.8;">Scans your codebase, interviews you about brand and audience, then saves a Design Context that all other commands use automatically.</span>
+                  <span style="padding-left: 0; opacity: 0.8;">Scans your codebase, interviews you about brand and audience, then writes PRODUCT.md so all other commands share the same product context.</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                   <div style="display: flex; gap: 8px; align-items: baseline;">
@@ -214,4 +214,3 @@ export function setupDemoTabs() {
     });
   });
 }
-

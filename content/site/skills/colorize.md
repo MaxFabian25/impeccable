@@ -33,6 +33,6 @@ Expected diff:
 
 ## Pitfalls
 
-- **Running it without a brand hue.** Colorize needs a starting point. If the Design Context in `AGENTS.md` does not specify one, it will ask. Do not let it pick from the AI color palette defaults.
+- **Running it without a brand hue.** Colorize needs a starting point. If `PRODUCT.md` does not specify one, it will ask. Do not let it pick from the AI color palette defaults.
 - **Expecting it to fix the AI color palette problem.** If your design already has purple gradients and cyan neon, you need `$quieter` first, then colorize can rebuild.
 - **Using it on already-colorful interfaces.** That is a `$quieter` job. Colorize adds, it does not subtract.

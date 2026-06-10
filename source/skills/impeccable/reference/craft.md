@@ -6,7 +6,7 @@ Build a feature with impeccable UX and UI quality through a structured process: 
 
 Craft cannot build until all of these are true:
 
-1. Project design context is valid and current from current instructions or project-root `{{config_file}}`.
+1. Project context is valid and current from current instructions, `PRODUCT.md`, and `DESIGN.md` when present.
 2. The shape design brief is explicitly confirmed by the user for this task, unless the user already provided a confirmed brief.
 3. Implementation references from the brief are loaded.
 4. The shape visual probe decision is recorded: generated, skipped with reason, or already resolved.
@@ -34,7 +34,7 @@ Run {{command_prefix}}shape, passing along whatever feature description the user
 
 Wait for the design brief to be fully confirmed by the user before proceeding. The brief is your blueprint, and every implementation decision should trace back to it.
 
-If this craft run resumed after `{{command_prefix}}impeccable teach` created project design context, run shape now. Do not treat the teach interview, `{{config_file}}`, or a summary of project context as a substitute for shape. Shape is task-specific and must cover scope, content/states, visual direction, constraints, anti-goals, probes when applicable, and explicit brief confirmation.
+If this craft run resumed after `{{command_prefix}}impeccable teach` created `PRODUCT.md`, run shape now. Do not treat the teach interview, `PRODUCT.md`, `DESIGN.md`, or a summary of project context as a substitute for shape. Shape is task-specific and must cover scope, content/states, visual direction, constraints, anti-goals, probes when applicable, and explicit brief confirmation.
 
 If the user has already run {{command_prefix}}shape and has a confirmed design brief, skip this step and use the existing brief.
 

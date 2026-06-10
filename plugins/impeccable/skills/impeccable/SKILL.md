@@ -33,7 +33,7 @@ Design skills produce generic output without project context. This protocol runs
 - **PRODUCT.md** (strategic, required): default register, target users, product purpose, jobs to be done, brand personality, anti-references, and design principles. Use it for "who, what, and why".
 - **DESIGN.md** (visual, optional but strongly recommended): colors, typography, spacing, radius, components, layout rules, and do/don't guidance. Use it for "how it should look".
 
-Filename matching is case-insensitive. Legacy `.impeccable.md` migrates to `PRODUCT.md` on first load. When files overlap, **DESIGN.md wins on visual decisions; PRODUCT.md wins on strategy, voice, and audience decisions.**
+Filename matching is case-insensitive. When context files overlap, **DESIGN.md wins on visual decisions; PRODUCT.md wins on strategy, voice, and audience decisions.**
 
 ### Session Cache
 
@@ -447,7 +447,7 @@ Synthesize your findings and the user's answers into a project-root `PRODUCT.md`
 [WCAG level, known user needs, motion/color considerations]
 ```
 
-Write the file to `PRODUCT.md` in the project root. If a legacy `.impeccable.md` was migrated by the loader, merge the new strategic structure into that content rather than discarding useful existing notes.
+Write the file to `PRODUCT.md` in the project root. If PRODUCT.md already exists and the user approved a refresh, merge the new strategic structure into useful existing notes rather than discarding them.
 
 ### Step 5: Decide On DESIGN.md
 

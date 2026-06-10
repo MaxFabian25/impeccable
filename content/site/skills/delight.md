@@ -18,7 +18,7 @@ The skill hunts for delight opportunities in the places most designers skip:
 4. **Microcopy**: button labels, tooltips, error messages, placeholder text. Tiny copy with taste.
 5. **Easter eggs and secondary states**: things users discover that reward paying attention.
 
-The skill reads the brand tone from the Design Context in `AGENTS.md`. A serious analytics tool gets serious delight (dry, precise, a little clever). A playful consumer app gets more overt personality. It does not force humor where humor is wrong for the audience.
+The skill reads the brand tone from `PRODUCT.md`. A serious analytics tool gets serious delight (dry, precise, a little clever). A playful consumer app gets more overt personality. It does not force humor where humor is wrong for the audience.
 
 The rule is: every delight moment must still work perfectly if you delete the delight. Nothing depends on the smile.
 
@@ -37,6 +37,6 @@ Expected additions:
 
 ## Pitfalls
 
-- **Forcing humor.** Not every brand is playful. If the brand voice in `AGENTS.md` is "clinical and precise", delight adds clever restraint, not jokes.
+- **Forcing humor.** Not every brand is playful. If the brand voice in `PRODUCT.md` is "clinical and precise", delight adds clever restraint, not jokes.
 - **Over-decorating.** One moment of delight is memorable. Twenty becomes noise. The skill is conservative on purpose.
 - **Running delight before polish.** Polish fixes what is wrong. Delight adds what is missing. In that order.

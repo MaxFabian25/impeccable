@@ -14,7 +14,7 @@ The full shape-then-build flow. It starts by running `$shape` internally (a stru
 
 ### $impeccable teach {#teach}
 
-One-time project setup. Runs a short discovery interview about your brand, audience, and aesthetic direction, then writes a `## Design Context` section into `AGENTS.md` that every future skill call reads automatically. Run this once per project before doing any design work.
+One-time project setup. Runs a short discovery interview about your brand, audience, register, and aesthetic direction, then writes `PRODUCT.md` so every future skill call reads the same product context automatically. Run this once per project before doing any design work.
 
 ### $impeccable extract {#extract}
 
@@ -34,7 +34,7 @@ From a clean project, run once:
 $impeccable teach
 ```
 
-Answer the discovery questions. The skill writes a `## Design Context` section with your brand, audience, and aesthetic direction. Every future skill call reads it automatically.
+Answer the discovery questions. The skill writes `PRODUCT.md` with your brand, audience, register, and aesthetic direction. Every future skill call reads it automatically.
 
 Then build something:
 
@@ -46,6 +46,6 @@ You should get a page that commits to one clear aesthetic direction, uses non-de
 
 ## Pitfalls
 
-- **Skipping `$impeccable teach`.** Without a `## Design Context` section in `AGENTS.md`, the skill has to ask you context questions mid-flight. Faster to set it up once.
+- **Skipping `$impeccable teach`.** Without `PRODUCT.md`, the skill has to ask you context questions mid-flight. Faster to set it up once.
 - **Treating it like a style guide.** It is an opinionated design partner, not a linter. The defaults exist to raise the floor, not to overrule your judgment. If you have a real reason to push back (brand guideline, accessibility constraint, user research that says otherwise), push back and explain why. The skill will work with you. What produces worse output is ignoring the opinion without a reason.
 - **Expecting it to fix existing code.** For that, reach for `$polish`, `$distill`, or `$critique` instead. `$impeccable` is for creation.
