@@ -71,6 +71,13 @@ npx impeccable skills check
 npx impeccable skills update
 ```
 
+## Community & Ecosystem
+
+Use the public repo for Codex plugin issues, focused pull requests, and local fork coordination:
+
+- [MaxFabian25/impeccable](https://github.com/MaxFabian25/impeccable): Codex plugin source, marketplace metadata, and detector runtime.
+- [Impeccable on npm](https://www.npmjs.com/package/impeccable): standalone detector releases for `npx impeccable ...` workflows.
+
 ## Repository Layout
 
 ```text
