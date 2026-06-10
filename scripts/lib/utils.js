@@ -408,6 +408,13 @@ export function replacePlaceholders(content, provider, commandNames = [], allSki
 export function generateYamlFrontmatter(data) {
   const lines = ['---'];
 
+  const renderScalar = (value) => {
+    if (typeof value !== 'string') return value;
+    const needsQuoting = /^[\[{]/.test(value) || /[:#]\s/.test(value) || /\n/.test(value);
+    if (!needsQuoting) return value;
+    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+  };
+
   for (const [key, value] of Object.entries(data)) {
     if (Array.isArray(value)) {
       lines.push(`${key}:`);
@@ -423,8 +430,7 @@ export function generateYamlFrontmatter(data) {
     } else if (typeof value === 'boolean') {
       lines.push(`${key}: ${value}`);
     } else {
-      const needsQuoting = typeof value === 'string' && /^[\[{]/.test(value);
-      lines.push(`${key}: ${needsQuoting ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"` : value}`);
+      lines.push(`${key}: ${renderScalar(value)}`);
     }
   }
 

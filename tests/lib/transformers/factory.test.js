@@ -9,7 +9,7 @@ const TEST_DIR = path.join(process.cwd(), 'test-tmp-factory');
 // Minimal config using the Codex placeholder surface
 const baseConfig = {
   provider: 'codex',
-  configDir: '.test',
+  skillsPath: 'test-skills',
   displayName: 'Test Provider',
   frontmatterFields: [],
 };
@@ -30,7 +30,7 @@ describe('createTransformer factory', () => {
   test('should create correct directory structure', () => {
     const transform = createTransformer(baseConfig);
     transform([], TEST_DIR);
-    expect(fs.existsSync(path.join(TEST_DIR, 'codex/.test/skills'))).toBe(true);
+    expect(fs.existsSync(path.join(TEST_DIR, 'codex/test-skills'))).toBe(true);
   });
 
   test('should always emit name and description', () => {
@@ -38,7 +38,7 @@ describe('createTransformer factory', () => {
     const skills = [{ name: 'test', description: 'A test skill', body: 'Body.' }];
     transform(skills, TEST_DIR);
 
-    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     const parsed = parseFrontmatter(content);
     expect(parsed.frontmatter.name).toBe('test');
     expect(parsed.frontmatter.description).toBe('A test skill');
@@ -58,7 +58,7 @@ describe('createTransformer factory', () => {
     }];
     transform(skills, TEST_DIR);
 
-    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     const parsed = parseFrontmatter(content);
     expect(parsed.frontmatter.license).toBe('MIT');
     expect(parsed.frontmatter.compatibility).toBeUndefined();
@@ -71,7 +71,7 @@ describe('createTransformer factory', () => {
     const skills = [{ name: 'test', description: 'Test', license: '', body: 'Body' }];
     transform(skills, TEST_DIR);
 
-    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     const parsed = parseFrontmatter(content);
     expect(parsed.frontmatter.license).toBeUndefined();
   });
@@ -82,7 +82,7 @@ describe('createTransformer factory', () => {
     const skills = [{ name: 'test', description: 'Test', userInvocable: true, body: 'Body' }];
     transform(skills, TEST_DIR);
 
-    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     const parsed = parseFrontmatter(content);
     expect(parsed.frontmatter['user-invocable']).toBe(true);
   });
@@ -93,7 +93,7 @@ describe('createTransformer factory', () => {
     const skills = [{ name: 'test', description: 'Test', userInvocable: false, body: 'Body' }];
     transform(skills, TEST_DIR);
 
-    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     const parsed = parseFrontmatter(content);
     expect(parsed.frontmatter['user-invocable']).toBeUndefined();
   });
@@ -105,7 +105,7 @@ describe('createTransformer factory', () => {
     // User-invocable with hint
     const skills1 = [{ name: 'test', description: 'Test', userInvocable: true, argumentHint: '[target]', body: 'Body' }];
     transform(skills1, TEST_DIR);
-    let content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    let content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     let parsed = parseFrontmatter(content);
     expect(parsed.frontmatter['argument-hint']).toBe('[target]');
 
@@ -113,7 +113,7 @@ describe('createTransformer factory', () => {
     fs.rmSync(TEST_DIR, { recursive: true, force: true });
     const skills2 = [{ name: 'test', description: 'Test', userInvocable: false, argumentHint: '[target]', body: 'Body' }];
     transform(skills2, TEST_DIR);
-    content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     parsed = parseFrontmatter(content);
     expect(parsed.frontmatter['argument-hint']).toBeUndefined();
   });
@@ -127,7 +127,7 @@ describe('createTransformer factory', () => {
     const skills = [{ name: 'test', description: 'Test', body: 'PLACEHOLDER content' }];
     transform(skills, TEST_DIR);
 
-    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     expect(content).toContain('TRANSFORMED content');
   });
 
@@ -136,7 +136,7 @@ describe('createTransformer factory', () => {
     const skills = [{ name: 'audit', description: 'Audit', userInvocable: true, body: 'Body' }];
     transform(skills, TEST_DIR, { prefix: 'i-', outputSuffix: '-prefixed' });
 
-    const outputPath = path.join(TEST_DIR, 'codex-prefixed/.test/skills/i-audit/SKILL.md');
+    const outputPath = path.join(TEST_DIR, 'codex-prefixed/test-skills/i-audit/SKILL.md');
     expect(fs.existsSync(outputPath)).toBe(true);
     const content = fs.readFileSync(outputPath, 'utf-8');
     expect(content).toContain('name: i-audit');
@@ -155,23 +155,23 @@ describe('createTransformer factory', () => {
     }];
     transform(skills, TEST_DIR);
 
-    expect(fs.existsSync(path.join(TEST_DIR, 'codex/.test/skills/test/reference/ref1.md'))).toBe(true);
-    expect(fs.existsSync(path.join(TEST_DIR, 'codex/.test/skills/test/reference/ref2.md'))).toBe(true);
-    const ref1 = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/reference/ref1.md'), 'utf-8');
+    expect(fs.existsSync(path.join(TEST_DIR, 'codex/test-skills/test/reference/ref1.md'))).toBe(true);
+    expect(fs.existsSync(path.join(TEST_DIR, 'codex/test-skills/test/reference/ref2.md'))).toBe(true);
+    const ref1 = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/reference/ref1.md'), 'utf-8');
     expect(ref1).toBe('Reference 1 content');
   });
 
   test('should clean existing directory before writing', () => {
     const transform = createTransformer(baseConfig);
-    const existingDir = path.join(TEST_DIR, 'codex/.test/skills/old');
+    const existingDir = path.join(TEST_DIR, 'codex/test-skills/old');
     fs.mkdirSync(existingDir, { recursive: true });
     fs.writeFileSync(path.join(existingDir, 'SKILL.md'), 'old');
 
     const skills = [{ name: 'new', description: 'New', body: 'New' }];
     transform(skills, TEST_DIR);
 
-    expect(fs.existsSync(path.join(TEST_DIR, 'codex/.test/skills/old/SKILL.md'))).toBe(false);
-    expect(fs.existsSync(path.join(TEST_DIR, 'codex/.test/skills/new/SKILL.md'))).toBe(true);
+    expect(fs.existsSync(path.join(TEST_DIR, 'codex/test-skills/old/SKILL.md'))).toBe(false);
+    expect(fs.existsSync(path.join(TEST_DIR, 'codex/test-skills/new/SKILL.md'))).toBe(true);
   });
 
   test('should log correct summary', () => {
@@ -196,7 +196,7 @@ describe('createTransformer factory', () => {
     const transform = createTransformer(baseConfig);
     transform([], TEST_DIR);
 
-    const skillDirs = fs.readdirSync(path.join(TEST_DIR, 'codex/.test/skills'));
+    const skillDirs = fs.readdirSync(path.join(TEST_DIR, 'codex/test-skills'));
     expect(skillDirs).toHaveLength(0);
   });
 
@@ -205,7 +205,7 @@ describe('createTransformer factory', () => {
     const skills = [{ name: 'test', description: 'Test', body: 'Ask {{model}} for help.' }];
     transform(skills, TEST_DIR);
 
-    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     expect(content).toContain('Ask GPT for help.');
   });
 
@@ -214,7 +214,7 @@ describe('createTransformer factory', () => {
     const skills = [{ name: 'test', description: 'Test', body: 'See {{config_file}}.' }];
     transform(skills, TEST_DIR);
 
-    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     expect(content).toContain('See AGENTS.md.');
   });
 
@@ -226,8 +226,8 @@ describe('createTransformer factory', () => {
     ];
     transform(skills, TEST_DIR);
 
-    expect(fs.existsSync(path.join(TEST_DIR, 'codex/.test/skills/skill1/SKILL.md'))).toBe(true);
-    expect(fs.existsSync(path.join(TEST_DIR, 'codex/.test/skills/skill2/SKILL.md'))).toBe(true);
+    expect(fs.existsSync(path.join(TEST_DIR, 'codex/test-skills/skill1/SKILL.md'))).toBe(true);
+    expect(fs.existsSync(path.join(TEST_DIR, 'codex/test-skills/skill2/SKILL.md'))).toBe(true);
   });
 
   test('should preserve multiline body content', () => {
@@ -239,7 +239,7 @@ describe('createTransformer factory', () => {
     }];
     transform(skills, TEST_DIR);
 
-    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     const parsed = parseFrontmatter(content);
     expect(parsed.body).toContain('First paragraph.');
     expect(parsed.body).toContain('Second paragraph.');
@@ -265,7 +265,7 @@ describe('createTransformer factory', () => {
     }];
     transform(skills, TEST_DIR);
 
-    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/.test/skills/test/SKILL.md'), 'utf-8');
+    const content = fs.readFileSync(path.join(TEST_DIR, 'codex/test-skills/test/SKILL.md'), 'utf-8');
     expect(content).toContain('user-invocable: true');
     expect(content).toContain('argument-hint:');
     expect(content).toContain('license: MIT');

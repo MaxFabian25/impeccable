@@ -20,7 +20,7 @@ function makeTmpDir() {
 }
 
 function writeSkill(root, name, content) {
-  const dir = join(root, '.codex', 'skills', name);
+  const dir = join(root, 'skills', name);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'SKILL.md'), content, 'utf-8');
   return dir;
@@ -77,12 +77,12 @@ describe('cleanup-deprecated (codex-only)', () => {
   });
 
   describe('findSkillsDirs', () => {
-    it('finds the Codex skills directory when it exists', () => {
-      mkdirSync(join(tmp, '.codex', 'skills'), { recursive: true });
-      assert.deepEqual(findSkillsDirs(tmp), [join(tmp, '.codex', 'skills')]);
+    it('finds the Codex plugin skills directory when it exists', () => {
+      mkdirSync(join(tmp, 'skills'), { recursive: true });
+      assert.deepEqual(findSkillsDirs(tmp), [join(tmp, 'skills')]);
     });
 
-    it('returns an empty list when the Codex skills directory is absent', () => {
+    it('returns an empty list when the Codex plugin skills directory is absent', () => {
       assert.deepEqual(findSkillsDirs(tmp), []);
     });
   });
@@ -94,8 +94,8 @@ describe('cleanup-deprecated (codex-only)', () => {
       const deleted = removeDeprecatedSkills(tmp);
 
       assert.equal(deleted.length, 2);
-      assert.equal(existsSync(join(tmp, '.codex', 'skills', 'arrange')), false);
-      assert.equal(existsSync(join(tmp, '.codex', 'skills', 'normalize')), false);
+      assert.equal(existsSync(join(tmp, 'skills', 'arrange')), false);
+      assert.equal(existsSync(join(tmp, 'skills', 'normalize')), false);
     });
 
     it('does not delete unrelated skills', () => {
@@ -103,7 +103,7 @@ describe('cleanup-deprecated (codex-only)', () => {
       const deleted = removeDeprecatedSkills(tmp);
 
       assert.equal(deleted.length, 0);
-      assert.equal(existsSync(join(tmp, '.codex', 'skills', 'arrange')), true);
+      assert.equal(existsSync(join(tmp, 'skills', 'arrange')), true);
     });
 
     it('deletes i-prefixed variants', () => {
@@ -111,7 +111,7 @@ describe('cleanup-deprecated (codex-only)', () => {
       const deleted = removeDeprecatedSkills(tmp);
 
       assert.equal(deleted.length, 1);
-      assert.equal(existsSync(join(tmp, '.codex', 'skills', 'i-normalize')), false);
+      assert.equal(existsSync(join(tmp, 'skills', 'i-normalize')), false);
     });
   });
 
@@ -168,8 +168,8 @@ describe('cleanup-deprecated (codex-only)', () => {
       const result = cleanup(tmp);
       assert.equal(result.deletedPaths.length, 2);
       assert.equal(result.removedLockEntries.length, 2);
-      assert.equal(existsSync(join(tmp, '.codex', 'skills', 'arrange')), false);
-      assert.equal(existsSync(join(tmp, '.codex', 'skills', 'extract')), false);
+      assert.equal(existsSync(join(tmp, 'skills', 'arrange')), false);
+      assert.equal(existsSync(join(tmp, 'skills', 'extract')), false);
     });
   });
 });

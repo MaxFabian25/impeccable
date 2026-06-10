@@ -46,8 +46,9 @@ After installation, use the commands in Codex CLI with the `$` prefix:
 
 `npx impeccable skills install` installs:
 
-- `.codex/skills/`
-- `.codex-plugin/plugin.json`
+- `plugins/impeccable/skills/`
+- `plugins/impeccable/.codex-plugin/plugin.json`
+- `.agents/plugins/marketplace.json`
 
 By default it prefers the bundle shipped inside the npm package. Updates and checks download the latest Codex bundle from `impeccable.style`.
 

@@ -151,7 +151,7 @@ function materializeCodexMarkdown(markdown, { knownSkillIds = new Set(), current
   if (currentSkillId) {
     result = result.replace(
       /\{\{scripts_path\}\}/g,
-      `.codex/skills/${currentSkillId}/scripts`,
+      `skills/${currentSkillId}/scripts`,
     );
   }
 

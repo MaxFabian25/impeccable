@@ -14,7 +14,7 @@ BEFORE doing any design work, run this one-time maintenance step. Tell the user:
 Then run:
 
 ```bash
-node .codex/skills/impeccable/scripts/cleanup-deprecated.mjs
+node skills/impeccable/scripts/cleanup-deprecated.mjs
 ```
 
 If the script removed files, briefly confirm what was cleaned up. If it found nothing, skip any output and move on.

@@ -7,7 +7,7 @@ import { cleanDir, ensureDir, writeFile, generateYamlFrontmatter, replacePlaceho
  * @param {Object} config - Provider-specific configuration
  * @param {string} config.provider - Provider key for placeholders (e.g., 'codex')
  * @param {string} config.displayName - Display name for logging (e.g., 'Codex CLI')
- * @param {string} config.configDir - Dot-directory name (e.g., '.codex')
+ * @param {string} config.skillsPath - Plugin-relative skills directory
  * @param {Function} config.buildFrontmatter - (skill, skillName) => frontmatter object
  * @param {Function} [config.transformBody] - Optional (body, skill) => transformed body
  * @param {Array} skills - All skills
@@ -15,10 +15,10 @@ import { cleanDir, ensureDir, writeFile, generateYamlFrontmatter, replacePlaceho
  * @param {Object} options - Optional settings (prefix, outputSuffix)
  */
 export function transformProvider(config, skills, distDir, options = {}) {
-  const { provider, displayName, configDir, buildFrontmatter, transformBody } = config;
+  const { provider, displayName, skillsPath = 'skills', buildFrontmatter, transformBody } = config;
   const { prefix = '', outputSuffix = '' } = options;
   const providerDir = path.join(distDir, `${provider}${outputSuffix}`);
-  const skillsDir = path.join(providerDir, `${configDir}/skills`);
+  const skillsDir = path.join(providerDir, skillsPath);
 
   cleanDir(providerDir);
   ensureDir(skillsDir);
@@ -38,7 +38,7 @@ export function transformProvider(config, skills, distDir, options = {}) {
     let skillBody = replacePlaceholders(skill.body, provider, commandNames);
 
     // Replace {{scripts_path}} with the provider bundle's scripts directory.
-    const scriptsPath = `${configDir}/skills/${skillName}/scripts`;
+    const scriptsPath = `${skillsPath}/${skillName}/scripts`;
     skillBody = skillBody.replace(/\{\{scripts_path\}\}/g, scriptsPath);
 
     if (prefix) skillBody = prefixSkillReferences(skillBody, prefix, allSkillNames);

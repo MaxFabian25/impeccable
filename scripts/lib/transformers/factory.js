@@ -46,7 +46,7 @@ const FIELD_SPECS = {
  * @returns {Function} transform(skills, distDir, options?)
  */
 export function createTransformer(config) {
-  const { provider, configDir, displayName, frontmatterFields = [], bodyTransform, placeholderProvider } = config;
+  const { provider, skillsPath = 'skills', displayName, frontmatterFields = [], bodyTransform, placeholderProvider } = config;
   const placeholderKey = placeholderProvider || provider;
 
   const activeFields = frontmatterFields
@@ -56,7 +56,7 @@ export function createTransformer(config) {
   return function transform(skills, distDir, options = {}) {
     const { prefix = '', outputSuffix = '', skillsVersion = '' } = options;
     const providerDir = path.join(distDir, `${provider}${outputSuffix}`);
-    const skillsDir = path.join(providerDir, `${configDir}/skills`);
+    const skillsDir = path.join(providerDir, skillsPath);
 
     cleanDir(providerDir);
     ensureDir(skillsDir);
@@ -93,7 +93,7 @@ export function createTransformer(config) {
       let skillBody = replacePlaceholders(skill.body, placeholderKey, commandNames, allSkillNames);
 
       // Replace {{scripts_path}} with provider-aware path to skill's scripts directory
-      const scriptsPath = `${configDir}/skills/${skillName}/scripts`;
+      const scriptsPath = `${skillsPath}/${skillName}/scripts`;
       skillBody = skillBody.replace(/\{\{scripts_path\}\}/g, scriptsPath);
       if (prefix) skillBody = prefixSkillReferences(skillBody, prefix, allSkillNames, cmdPrefix);
       if (bodyTransform) skillBody = bodyTransform(skillBody, skill);

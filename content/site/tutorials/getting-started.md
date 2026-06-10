@@ -22,7 +22,7 @@ From the root of your project, run:
 npx impeccable skills install
 ```
 
-This installs the skill bundle into `.codex/skills/` and writes the plugin metadata into `.codex-plugin/`. Reload Codex if it is already running, then type `$`. You should see `$impeccable`, `$polish`, `$critique`, and the other commands in the autocomplete.
+This installs the skill bundle into `plugins/impeccable/skills/` and writes the plugin metadata into `plugins/impeccable/.codex-plugin/`. Reload Codex if it is already running, then type `$`. You should see `$impeccable`, `$polish`, `$critique`, and the other commands in the autocomplete.
 
 ## Step 2. Teach Impeccable about your project
 
@@ -78,5 +78,5 @@ Review the diff. If something does not feel right, ask the model to explain the 
 ## Common issues
 
 - **The skill says "no design context found"**. You skipped step 2. Run `$impeccable teach` first.
-- **Commands do not appear in Codex**. Reload Codex after installing. If they still do not appear, check that the installer wrote files into `.codex/skills/` and that you are in the correct project root.
+- **Commands do not appear in Codex**. Reload Codex after installing. If they still do not appear, check that the installer wrote files into `plugins/impeccable/skills/` and that you are in the correct project root.
 - **The polish pass rewrote something you liked**. Say so. Revert the change, tell the model which specific edit to undo, and continue from there.

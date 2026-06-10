@@ -13,19 +13,21 @@ Impeccable is a Codex-native design skill pack for frontend work. It gives Codex
 Recommended:
 
 ```bash
-npx impeccable skills install
+codex plugin marketplace add MaxFabian25/impeccable --ref main
+codex plugin add impeccable@impeccable
 ```
 
-This installs the Codex bundle into your project root:
+This installs the public GitHub-backed Codex plugin. The plugin source lives in this repository:
 
-- `.codex/skills/`
-- `.codex-plugin/plugin.json`
+- `plugins/impeccable/skills/`
+- `plugins/impeccable/.codex-plugin/plugin.json`
+- `.agents/plugins/marketplace.json`
 
 Manual options:
 
 ```bash
 # From a local checkout
-cp -R .codex .codex-plugin /path/to/your-project/
+cp -R plugins/impeccable/skills plugins/impeccable/.codex-plugin /path/to/your-project/
 
 # Or download a bundle from impeccable.style
 # Default bundle: $audit, $polish, ...
@@ -74,8 +76,9 @@ npx impeccable skills update
 
 ```text
 source/skills/                  canonical authored skills
-.codex/skills/                  tracked Codex output used in the repo
-.codex-plugin/plugin.json       Codex plugin manifest
+plugins/impeccable/skills/      tracked Codex plugin output used in the repo
+plugins/impeccable/.codex-plugin/plugin.json Codex plugin manifest
+.agents/plugins/marketplace.json Git-backed Codex marketplace metadata
 scripts/build.js                Codex bundle build pipeline
 functions/api/download/         download routes for Codex bundles and files
 server/                         local dev server

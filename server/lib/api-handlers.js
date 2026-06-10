@@ -3,7 +3,7 @@ import { basename, join, dirname } from "path";
 import { existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { readPatterns, parseFrontmatter } from "../../scripts/lib/utils.js";
-import { FILE_DOWNLOAD_PROVIDER_CONFIG_DIRS } from "../../lib/download-providers.js";
+import { FILE_DOWNLOAD_PROVIDER_SKILLS_DIRS } from "../../lib/download-providers.js";
 import {
 	isAllowedBundleProvider,
 	isAllowedFileProvider,
@@ -76,12 +76,12 @@ export async function getCommandSource(id) {
 // Get the appropriate file path for a provider
 export function getFilePath(type, provider, id) {
 	const distDir = join(PROJECT_ROOT, "dist");
-	const configDir = FILE_DOWNLOAD_PROVIDER_CONFIG_DIRS[provider];
-	if (!configDir) return null;
+	const skillsDir = FILE_DOWNLOAD_PROVIDER_SKILLS_DIRS[provider];
+	if (!skillsDir) return null;
 
 	// Everything is a skill now
 	if (type === "skill" || type === "command") {
-		return join(distDir, provider, configDir, "skills", id, "SKILL.md");
+		return join(distDir, provider, skillsDir, id, "SKILL.md");
 	}
 
 	return null;

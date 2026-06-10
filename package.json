@@ -36,8 +36,8 @@
     "./browser": "./src/detect-antipatterns-browser.js"
   },
   "files": [
-    ".codex/",
-    ".codex-plugin/",
+    ".agents/",
+    "plugins/impeccable/",
     "bin/",
     "src/",
     "LICENSE"

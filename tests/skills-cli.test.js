@@ -18,10 +18,10 @@ const CLI_PATH = join(REPO_ROOT, 'bin', 'cli.js');
 
 function createFakeCodexSkills(root, skills = ['audit', 'polish', 'impeccable']) {
   for (const skill of skills) {
-    const skillDir = join(root, '.codex', 'skills', skill);
+    const skillDir = join(root, 'skills', skill);
     mkdirSync(skillDir, { recursive: true });
     const extraBody = skill === 'impeccable'
-      ? '\nnode .codex/skills/impeccable/scripts/cleanup-deprecated.mjs'
+      ? '\nnode skills/impeccable/scripts/cleanup-deprecated.mjs'
       : '';
     writeFileSync(join(skillDir, 'SKILL.md'), [
       '---',
@@ -54,13 +54,13 @@ describe('codex-only installer contract', () => {
     if (tmp) rmSync(tmp, { recursive: true, force: true });
   });
 
-  test('uses .codex/skills as the only install root', () => {
-    expect(SKILLS_DIR_NAME).toBe('.codex');
+  test('uses skills as the only install root', () => {
+    expect(SKILLS_DIR_NAME).toBe('skills');
   });
 
   test('detects an existing Codex install', () => {
     createFakeCodexSkills(tmp);
-    expect(isAlreadyInstalled(tmp)).toBe('.codex');
+    expect(isAlreadyInstalled(tmp)).toBe('skills');
   });
 
   test('ignores non-Codex harness directories', () => {
@@ -77,27 +77,27 @@ describe('codex-only installer contract', () => {
     const renamed = renameSkillsWithPrefix(tmp, 'i-');
 
     expect(renamed).toBe(3);
-    expect(readdirSync(join(tmp, '.codex', 'skills')).sort()).toEqual([
+    expect(readdirSync(join(tmp, 'skills')).sort()).toEqual([
       'i-audit',
       'i-impeccable',
       'i-polish',
     ]);
 
-    const content = readFileSync(join(tmp, '.codex', 'skills', 'i-audit', 'SKILL.md'), 'utf8');
+    const content = readFileSync(join(tmp, 'skills', 'i-audit', 'SKILL.md'), 'utf8');
     expect(content).toContain('name: i-audit');
     expect(content).toContain('$i-audit');
     expect(content).toContain('$i-polish');
     expect(content).toContain('the i-impeccable skill');
 
-    const impeccableContent = readFileSync(join(tmp, '.codex', 'skills', 'i-impeccable', 'SKILL.md'), 'utf8');
-    expect(impeccableContent).toContain('node .codex/skills/i-impeccable/scripts/cleanup-deprecated.mjs');
+    const impeccableContent = readFileSync(join(tmp, 'skills', 'i-impeccable', 'SKILL.md'), 'utf8');
+    expect(impeccableContent).toContain('node skills/i-impeccable/scripts/cleanup-deprecated.mjs');
   });
 
   test('rejects unsafe prefixes before mutating skills', () => {
     createFakeCodexSkills(tmp);
 
     expect(() => renameSkillsWithPrefix(tmp, '../x-')).toThrow(/prefix/i);
-    expect(readdirSync(join(tmp, '.codex', 'skills')).sort()).toEqual([
+    expect(readdirSync(join(tmp, 'skills')).sort()).toEqual([
       'audit',
       'impeccable',
       'polish',
@@ -117,13 +117,13 @@ describe('codex-only installer contract', () => {
 
     undoPrefix(tmp, 'x-');
 
-    expect(readdirSync(join(tmp, '.codex', 'skills')).sort()).toEqual([
+    expect(readdirSync(join(tmp, 'skills')).sort()).toEqual([
       'audit',
       'impeccable',
       'polish',
     ]);
 
-    const content = readFileSync(join(tmp, '.codex', 'skills', 'audit', 'SKILL.md'), 'utf8');
+    const content = readFileSync(join(tmp, 'skills', 'audit', 'SKILL.md'), 'utf8');
     expect(content).toContain('name: audit');
     expect(content).toContain('$audit');
     expect(content).toContain('$polish');
@@ -144,17 +144,17 @@ describe('codex-only installer contract', () => {
 
   test('prefixing can be scoped to bundle-managed skills only', () => {
     createFakeCodexSkills(tmp, ['audit', 'impeccable']);
-    const customSkillDir = join(tmp, '.codex', 'skills', 'custom');
+    const customSkillDir = join(tmp, 'skills', 'custom');
     mkdirSync(customSkillDir, { recursive: true });
     writeFileSync(join(customSkillDir, 'SKILL.md'), '---\nname: custom\n---\nRun $custom.\n');
 
     const renamed = renameSkillsWithPrefix(tmp, 'i-', ['audit', 'impeccable']);
 
     expect(renamed).toBe(2);
-    expect(existsSync(join(tmp, '.codex', 'skills', 'i-audit', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(tmp, '.codex', 'skills', 'i-impeccable', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(tmp, '.codex', 'skills', 'custom', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(tmp, '.codex', 'skills', 'i-custom', 'SKILL.md'))).toBe(false);
+    expect(existsSync(join(tmp, 'skills', 'i-audit', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(tmp, 'skills', 'i-impeccable', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(tmp, 'skills', 'custom', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(tmp, 'skills', 'i-custom', 'SKILL.md'))).toBe(false);
   });
 
   test('plugin manifest drift marks the install as outdated', () => {
@@ -172,17 +172,17 @@ describe('codex-only installer contract', () => {
 
   test('bundled script drift marks the install as outdated', () => {
     createFakeCodexSkills(tmp, ['impeccable']);
-    mkdirSync(join(tmp, '.codex', 'skills', 'impeccable', 'scripts'), { recursive: true });
+    mkdirSync(join(tmp, 'skills', 'impeccable', 'scripts'), { recursive: true });
     writeFileSync(
-      join(tmp, '.codex', 'skills', 'impeccable', 'scripts', 'cleanup-deprecated.mjs'),
+      join(tmp, 'skills', 'impeccable', 'scripts', 'cleanup-deprecated.mjs'),
       'export const version = "local";\n'
     );
 
     const bundleRoot = join(tmp, 'bundle');
     createFakeCodexSkills(bundleRoot, ['impeccable']);
-    mkdirSync(join(bundleRoot, '.codex', 'skills', 'impeccable', 'scripts'), { recursive: true });
+    mkdirSync(join(bundleRoot, 'skills', 'impeccable', 'scripts'), { recursive: true });
     writeFileSync(
-      join(bundleRoot, '.codex', 'skills', 'impeccable', 'scripts', 'cleanup-deprecated.mjs'),
+      join(bundleRoot, 'skills', 'impeccable', 'scripts', 'cleanup-deprecated.mjs'),
       'export const version = "bundle";\n'
     );
 
@@ -191,7 +191,7 @@ describe('codex-only installer contract', () => {
 
   test('retired managed skills mark the install as outdated', () => {
     createFakeCodexSkills(tmp, ['audit', 'impeccable']);
-    const staleSkillDir = join(tmp, '.codex', 'skills', 'normalize');
+    const staleSkillDir = join(tmp, 'skills', 'normalize');
     mkdirSync(staleSkillDir, { recursive: true });
     writeFileSync(join(staleSkillDir, 'SKILL.md'), '---\nname: normalize\n---\n');
 
@@ -206,7 +206,7 @@ describe('codex-only installer contract', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('Install failed');
-    expect(existsSync(join(tmp, '.codex'))).toBe(false);
+    expect(existsSync(join(tmp, 'skills'))).toBe(false);
   });
 
   test('cli install fails atomically when another Codex plugin already owns plugin.json', () => {
@@ -215,22 +215,22 @@ describe('codex-only installer contract', () => {
       join(tmp, '.codex-plugin', 'plugin.json'),
       JSON.stringify({ name: 'other-plugin', repository: 'https://example.com/other' }, null, 2)
     );
-    mkdirSync(join(tmp, '.codex', 'skills', 'custom'), { recursive: true });
-    writeFileSync(join(tmp, '.codex', 'skills', 'custom', 'SKILL.md'), '---\nname: custom\n---\n');
+    mkdirSync(join(tmp, 'skills', 'custom'), { recursive: true });
+    writeFileSync(join(tmp, 'skills', 'custom', 'SKILL.md'), '---\nname: custom\n---\n');
 
     const result = runSkillsCli(tmp, ['install', '--yes']);
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('another Codex plugin');
-    expect(readdirSync(join(tmp, '.codex', 'skills')).sort()).toEqual(['custom']);
-    expect(existsSync(join(tmp, '.codex', 'skills', 'impeccable'))).toBe(false);
+    expect(readdirSync(join(tmp, 'skills')).sort()).toEqual(['custom']);
+    expect(existsSync(join(tmp, 'skills', 'impeccable'))).toBe(false);
   });
 
   test('bundle install preserves custom unprefixed skill names when managed skills are prefixed', () => {
     createFakeCodexSkills(tmp, ['audit', 'impeccable']);
     renameSkillsWithPrefix(tmp, 'i-', ['audit', 'impeccable']);
 
-    const customSkillDir = join(tmp, '.codex', 'skills', 'audit');
+    const customSkillDir = join(tmp, 'skills', 'audit');
     mkdirSync(customSkillDir, { recursive: true });
     writeFileSync(join(customSkillDir, 'SKILL.md'), '---\nname: audit\n---\nRun $audit.\n');
 
@@ -238,7 +238,7 @@ describe('codex-only installer contract', () => {
     createFakeCodexSkills(bundleRoot, ['audit', 'impeccable']);
 
     expect(() => installBundleIntoRoot(tmp, bundleRoot, 'i-')).not.toThrow();
-    expect(existsSync(join(tmp, '.codex', 'skills', 'audit', 'SKILL.md'))).toBe(true);
-    expect(existsSync(join(tmp, '.codex', 'skills', 'i-audit', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(tmp, 'skills', 'audit', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(tmp, 'skills', 'i-audit', 'SKILL.md'))).toBe(true);
   });
 });

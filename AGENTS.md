@@ -8,18 +8,19 @@ This fork is Codex-only. The repository maintains one authored skill source and 
 
 1. Author and edit skills in `source/skills/<name>/SKILL.md`
 2. Run the build to generate:
-   - `dist/codex/.codex/skills/`
-   - `dist/codex-prefixed/.codex/skills/`
+   - `dist/codex/skills/`
+   - `dist/codex-prefixed/skills/`
    - `dist/codex.zip`
    - `dist/codex-prefixed.zip`
-3. Sync the generated Codex skills back into the tracked repo root at `.codex/skills/`
+3. Sync the generated Codex skills back into the plugin source at `plugins/impeccable/skills/`
 
 ## Key Paths
 
 ```text
 source/skills/                  canonical authored skills
-.codex/skills/                  tracked Codex output
-.codex-plugin/plugin.json       Codex plugin manifest
+plugins/impeccable/skills/      tracked Codex plugin output
+plugins/impeccable/.codex-plugin/plugin.json Codex plugin manifest
+.agents/plugins/marketplace.json Git-backed Codex marketplace metadata
 scripts/build.js                build orchestration
 scripts/lib/transformers/       Codex transformer config
 lib/download-providers.js       Codex download registry
@@ -44,5 +45,5 @@ node --test tests/cleanup-deprecated.test.mjs tests/detect-antipatterns-fixtures
 
 - Do not reintroduce non-Codex provider outputs, docs, or install paths.
 - Keep the command prefix Codex-native: `$audit`, `$polish`, `$impeccable`, and so on.
-- Treat `.codex/skills` plus `.codex-plugin/plugin.json` as the installable surface.
+- Treat `plugins/impeccable/skills` plus `plugins/impeccable/.codex-plugin/plugin.json` as the installable surface.
 - Keep `source/skills` as the single authored source of truth.

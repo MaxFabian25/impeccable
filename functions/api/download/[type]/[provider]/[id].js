@@ -1,6 +1,6 @@
 import {
 	FILE_DOWNLOAD_PROVIDERS,
-	FILE_DOWNLOAD_PROVIDER_CONFIG_DIRS
+	FILE_DOWNLOAD_PROVIDER_SKILLS_DIRS
 } from "../../../../../lib/download-providers.js";
 
 const VALID_ID = /^[a-zA-Z0-9_-]+$/;
@@ -20,13 +20,13 @@ export async function onRequestGet(context) {
 		return Response.json({ error: "Invalid file ID" }, { status: 400 });
 	}
 
-	const configDir = FILE_DOWNLOAD_PROVIDER_CONFIG_DIRS[provider];
-	if (!configDir) {
+	const skillsDir = FILE_DOWNLOAD_PROVIDER_SKILLS_DIRS[provider];
+	if (!skillsDir) {
 		return Response.json({ error: "Invalid provider" }, { status: 400 });
 	}
 
 	const url = new URL(context.request.url);
-	url.pathname = `/_data/dist/${provider}/${configDir}/skills/${id}/SKILL.md`;
+	url.pathname = `/_data/dist/${provider}/${skillsDir}/${id}/SKILL.md`;
 
 	const response = await context.env.ASSETS.fetch(url);
 

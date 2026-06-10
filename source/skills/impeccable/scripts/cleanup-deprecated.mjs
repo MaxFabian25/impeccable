@@ -9,7 +9,7 @@
  *   node {{scripts_path}}/cleanup-deprecated.mjs
  *
  * What it does:
- *   1. Finds the Codex skills directory (`.codex/skills`).
+ *   1. Finds the Codex plugin skills directory (`skills`).
  *   2. For each deprecated skill name (with and without i- prefix),
  *      checks if the directory exists and its SKILL.md mentions
  *      "impeccable" (to avoid deleting unrelated user skills).
@@ -32,8 +32,8 @@ const DEPRECATED_NAMES = [
 
 const IMPECCABLE_SOURCE = 'MaxFabian25/impeccable';
 
-// Codex is the only supported skill surface in this fork.
-const SKILL_CONFIG_DIRS = ['.codex'];
+// Codex plugin skills are the only supported skill surface in this fork.
+const SKILLS_DIR_NAME = 'skills';
 
 /**
  * Walk up from startDir until we find a directory that looks like a
@@ -87,18 +87,12 @@ export function buildTargetNames() {
 }
 
 /**
- * Find every skills directory across the supported Codex dirs in the project.
- * Returns absolute paths that exist on disk.
+ * Find the supported Codex plugin skills directory in the project.
+ * Returns an absolute path when it exists on disk.
  */
 export function findSkillsDirs(projectRoot) {
-  const dirs = [];
-  for (const configDir of SKILL_CONFIG_DIRS) {
-    const candidate = join(projectRoot, configDir, 'skills');
-    if (existsSync(candidate)) {
-      dirs.push(candidate);
-    }
-  }
-  return dirs;
+  const candidate = join(projectRoot, SKILLS_DIR_NAME);
+  return existsSync(candidate) ? [candidate] : [];
 }
 
 /**

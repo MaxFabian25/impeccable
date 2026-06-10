@@ -24,7 +24,7 @@ describe('codex-only build contract', () => {
     expect(Object.keys(PROVIDERS)).toEqual(['codex']);
     expect(PROVIDERS.codex).toEqual({
       provider: 'codex',
-      configDir: '.codex',
+      skillsPath: 'skills',
       displayName: 'Codex CLI',
       frontmatterFields: ['argument-hint', 'license'],
     });
@@ -49,7 +49,7 @@ This is a test skill body.`
 
     transformCodex(skills, distDir, { skillsVersion: '9.9.9' });
 
-    const skillPath = path.join(distDir, 'codex/.codex/skills/test-skill/SKILL.md');
+    const skillPath = path.join(distDir, 'codex/skills/test-skill/SKILL.md');
     expect(fs.existsSync(skillPath)).toBe(true);
     expect(fs.readFileSync(skillPath, 'utf8')).toContain('version: 9.9.9');
 
@@ -105,7 +105,7 @@ Make the details feel intentional.`
 
     transformCodex(skills, distDir, { prefix: 'i-', outputSuffix: '-prefixed' });
 
-    const auditPath = path.join(distDir, 'codex-prefixed/.codex/skills/i-audit/SKILL.md');
+    const auditPath = path.join(distDir, 'codex-prefixed/skills/i-audit/SKILL.md');
     const content = fs.readFileSync(auditPath, 'utf8');
 
     expect(content).toContain('name: i-audit');

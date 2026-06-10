@@ -2,7 +2,7 @@
  * `impeccable skills` subcommand
  *
  * Codex-only contract:
- * - installs project-local skills into `.codex/skills`
+ * - installs project-local plugin skills into `skills`
  * - downloads Codex bundles from impeccable.style
  * - optionally prefixes command names after install/update
  */
@@ -28,11 +28,13 @@ import { tmpdir } from 'node:os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = join(__dirname, '..', '..');
+const PACKAGE_PLUGIN_ROOT = join(PACKAGE_ROOT, 'plugins', 'impeccable');
 const API_BASE = 'https://impeccable.style';
 
-export const SKILLS_DIR_NAME = '.codex';
-export const SKILLS_DIR_RELATIVE = `${SKILLS_DIR_NAME}/skills`;
+export const SKILLS_DIR_NAME = 'skills';
+export const SKILLS_DIR_RELATIVE = SKILLS_DIR_NAME;
 const PLUGIN_DIR_RELATIVE = '.codex-plugin';
+const MARKETPLACE_DIR_RELATIVE = '.agents/plugins';
 const DEFAULT_PREFIX = 'i-';
 const SAFE_PREFIX_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*-$/i;
 const RETIRED_MANAGED_SKILL_NAMES = [
@@ -72,6 +74,10 @@ function getSkillsDir(root) {
 
 function getPluginDir(root) {
   return join(root, PLUGIN_DIR_RELATIVE);
+}
+
+function getMarketplaceDir(root) {
+  return join(root, MARKETPLACE_DIR_RELATIVE);
 }
 
 function isSkillDir(skillsDir, name) {
@@ -352,6 +358,8 @@ export function installBundleIntoRoot(root, bundleDir, prefix = '') {
   const localSkillsDir = getSkillsDir(root);
   const bundlePluginDir = join(bundleDir, PLUGIN_DIR_RELATIVE);
   const localPluginDir = getPluginDir(root);
+  const bundleMarketplaceDir = join(bundleDir, MARKETPLACE_DIR_RELATIVE);
+  const localMarketplaceDir = getMarketplaceDir(root);
   const bundleSkillNames = getBundleSkillNames(bundleDir);
 
   if (existsSync(bundlePluginDir)) {
@@ -383,11 +391,23 @@ export function installBundleIntoRoot(root, bundleDir, prefix = '') {
     copyDirSync(bundlePluginDir, localPluginDir);
   }
 
+  if (existsSync(bundleMarketplaceDir)) {
+    mkdirSync(localMarketplaceDir, { recursive: true });
+    copyDirSync(bundleMarketplaceDir, localMarketplaceDir);
+  }
+
   return bundleSkillNames.length;
 }
 
 function hasLocalBundle() {
-  return existsSync(join(PACKAGE_ROOT, SKILLS_DIR_RELATIVE));
+  return existsSync(join(PACKAGE_PLUGIN_ROOT, SKILLS_DIR_RELATIVE))
+    || existsSync(join(PACKAGE_ROOT, SKILLS_DIR_RELATIVE));
+}
+
+function getLocalBundleRoot() {
+  return existsSync(join(PACKAGE_PLUGIN_ROOT, SKILLS_DIR_RELATIVE))
+    ? PACKAGE_PLUGIN_ROOT
+    : PACKAGE_ROOT;
 }
 
 export function isAlreadyInstalled(root) {
@@ -472,6 +492,8 @@ export function isUpToDate(root, bundleDir) {
   const bundleSkillsDir = join(bundleDir, SKILLS_DIR_RELATIVE);
   const localPluginDir = getPluginDir(root);
   const bundlePluginDir = join(bundleDir, PLUGIN_DIR_RELATIVE);
+  const localMarketplaceDir = getMarketplaceDir(root);
+  const bundleMarketplaceDir = join(bundleDir, MARKETPLACE_DIR_RELATIVE);
   const prefix = detectPrefix(root);
   const bundleSkillNames = getBundleSkillNames(bundleDir);
 
@@ -489,7 +511,8 @@ export function isUpToDate(root, bundleDir) {
     }
   }
 
-  return isBundleDirSubsetUpToDate(localPluginDir, bundlePluginDir);
+  return isBundleDirSubsetUpToDate(localPluginDir, bundlePluginDir)
+    && isBundleDirSubsetUpToDate(localMarketplaceDir, bundleMarketplaceDir);
 }
 
 function getSkillsVersion(root) {
@@ -601,8 +624,9 @@ async function install(flags) {
     assertValidPrefix(prefix);
 
     if (hasLocalBundle()) {
-      bundleSkillNames = getBundleSkillNames(PACKAGE_ROOT);
-      installBundleIntoRoot(root, PACKAGE_ROOT, prefix);
+      const localBundleRoot = getLocalBundleRoot();
+      bundleSkillNames = getBundleSkillNames(localBundleRoot);
+      installBundleIntoRoot(root, localBundleRoot, prefix);
     } else {
       bundleDir = await downloadAndExtractBundle('codex');
       bundleSkillNames = getBundleSkillNames(bundleDir);

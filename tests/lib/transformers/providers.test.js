@@ -12,7 +12,7 @@ function providerTestDir(provider, suffix = '') {
 }
 
 function skillPath(config, skillName, suffix = '') {
-  return path.join(TEST_DIR, `${config.provider}${suffix}/${config.configDir}/skills/${skillName}/SKILL.md`);
+  return path.join(TEST_DIR, `${config.provider}${suffix}/${config.skillsPath}/${skillName}/SKILL.md`);
 }
 
 // Test every provider config
@@ -34,7 +34,7 @@ for (const [key, config] of Object.entries(PROVIDERS)) {
 
     test('should create correct directory structure', () => {
       transform([], TEST_DIR);
-      expect(fs.existsSync(path.join(TEST_DIR, `${config.provider}/${config.configDir}/skills`))).toBe(true);
+      expect(fs.existsSync(path.join(TEST_DIR, `${config.provider}/${config.skillsPath}`))).toBe(true);
     });
 
     test('should replace {{model}} placeholder correctly', () => {
@@ -69,7 +69,7 @@ for (const [key, config] of Object.entries(PROVIDERS)) {
         references: [{ name: 'ref', content: 'Ref content', filePath: '/fake/ref.md' }]
       }];
       transform(skills, TEST_DIR);
-      const refPath = path.join(TEST_DIR, `${config.provider}/${config.configDir}/skills/test/reference/ref.md`);
+      const refPath = path.join(TEST_DIR, `${config.provider}/${config.skillsPath}/test/reference/ref.md`);
       expect(fs.existsSync(refPath)).toBe(true);
     });
 

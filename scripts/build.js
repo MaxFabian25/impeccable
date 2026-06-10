@@ -4,8 +4,8 @@
  * Build system for the Codex-only skill distribution.
  *
  * Produces:
- * - `dist/codex/.codex/skills/`
- * - `dist/codex-prefixed/.codex/skills/`
+ * - `dist/codex/skills/`
+ * - `dist/codex-prefixed/skills/`
  * - matching ZIP bundles for direct download/installation
  *
  * The website and download API read from those generated outputs.
@@ -57,7 +57,7 @@ function generateCounts(rootDir, skills, buildDir) {
     'README.md',
     'NOTICE.md',
     'AGENTS.md',
-    '.codex-plugin/plugin.json',
+    'plugins/impeccable/.codex-plugin/plugin.json',
   ];
 
   let errors = 0;
@@ -384,17 +384,22 @@ https://impeccable.style
 ${prefixNote}
 This bundle contains:
 
-  .codex/         → project-local Codex skills
+  skills/         → Codex plugin skills
   .codex-plugin/  → Codex plugin manifest
+  .agents/        → Codex marketplace metadata
 
 Install by extracting this bundle into your project root.
-These are hidden folders (dotfiles) — press Cmd+Shift+. in Finder to show them.
 `
   );
 
-  const pluginManifestPath = path.join(ROOT_DIR, '.codex-plugin');
+  const pluginManifestPath = path.join(ROOT_DIR, 'plugins', 'impeccable', '.codex-plugin');
   if (fs.existsSync(pluginManifestPath)) {
     copyDirSync(pluginManifestPath, path.join(bundleDir, '.codex-plugin'));
+  }
+
+  const marketplacePath = path.join(ROOT_DIR, '.agents');
+  if (fs.existsSync(marketplacePath)) {
+    copyDirSync(marketplacePath, path.join(bundleDir, '.agents'));
   }
 
   const label = prefixed ? ' (prefixed)' : '';
@@ -594,8 +599,8 @@ async function build() {
 
   // Copy Codex output to the repo root for local testing.
   const syncConfig = PROVIDERS.codex;
-  const skillsSrc = path.join(DIST_DIR, syncConfig.provider, syncConfig.configDir, 'skills');
-  const skillsDest = path.join(ROOT_DIR, syncConfig.configDir, 'skills');
+  const skillsSrc = path.join(DIST_DIR, syncConfig.provider, syncConfig.skillsPath);
+  const skillsDest = path.join(ROOT_DIR, 'plugins', 'impeccable', syncConfig.skillsPath);
 
   if (fs.existsSync(skillsSrc)) {
     if (fs.existsSync(skillsDest)) fs.rmSync(skillsDest, { recursive: true });
@@ -610,11 +615,11 @@ async function build() {
     'arrange', 'normalize', 'onboard', 'extract',
   ];
   for (const name of deprecatedLocalSkills) {
-    const p = path.join(ROOT_DIR, syncConfig.configDir, 'skills', name);
+    const p = path.join(ROOT_DIR, 'plugins', 'impeccable', syncConfig.skillsPath, name);
     if (fs.existsSync(p)) fs.rmSync(p, { recursive: true, force: true });
   }
 
-  console.log(`📋 Synced skills to: ${syncConfig.configDir}`);
+  console.log(`📋 Synced skills to: plugins/impeccable/${syncConfig.skillsPath}`);
 
 
   // Generate authoritative counts and validate references

@@ -6,8 +6,9 @@ This fork targets Codex CLI only.
 
 - `source/skills/` is the canonical authored source.
 - `scripts/build.js` transforms the source into the Codex runtime format.
-- `.codex/skills/` is the tracked generated output used by the repo and packaged installer.
-- `.codex-plugin/plugin.json` provides Codex plugin metadata for the bundle.
+- `plugins/impeccable/skills/` is the tracked generated Codex plugin output.
+- `plugins/impeccable/.codex-plugin/plugin.json` provides Codex plugin metadata for the bundle.
+- `.agents/plugins/marketplace.json` lets the public GitHub repo act as a Codex marketplace.
 - `dist/codex*` and the matching ZIPs are the downloadable artifacts served by the website and API routes.
 
 ## Build
@@ -25,7 +26,7 @@ That command:
 3. transforms authored skills into Codex and prefixed-Codex outputs
 4. prepares the Codex bundle metadata
 5. creates `codex.zip` and `codex-prefixed.zip`
-6. syncs the generated skills back into `.codex/skills/`
+6. syncs the generated skills back into `plugins/impeccable/skills/`
 
 ## Editing Skills
 

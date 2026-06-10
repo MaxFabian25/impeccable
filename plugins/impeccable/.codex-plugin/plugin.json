@@ -18,7 +18,7 @@
     "skills",
     "anti-patterns"
   ],
-  "skills": "./.codex/skills",
+  "skills": "./skills/",
   "interface": {
     "displayName": "Impeccable",
     "shortDescription": "Design skills for Codex CLI",

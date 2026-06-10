@@ -151,6 +151,16 @@ describe('generateYamlFrontmatter', () => {
     expect(result).toContain('user-invocable: true');
   });
 
+  test('should quote strings with colon-space so YAML stays valid', () => {
+    const data = {
+      name: 'harden',
+      description: 'Make interfaces production-ready: error handling and empty states'
+    };
+
+    const result = generateYamlFrontmatter(data);
+    expect(result).toContain('description: "Make interfaces production-ready: error handling and empty states"');
+  });
+
   test('should roundtrip: generate and parse back', () => {
     const original = {
       name: 'roundtrip-test',
