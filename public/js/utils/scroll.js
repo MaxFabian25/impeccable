@@ -1,14 +1,20 @@
-// Instant anchor scroll - no smooth scrolling for better UX on long pages
+const ANCHOR_OFFSET = 40;
+const CONTENT_READY_EVENT = 'impeccable:content-loaded';
+
+function scrollInstantlyTo(target) {
+	const targetPosition = target.getBoundingClientRect().top + window.scrollY - ANCHOR_OFFSET;
+	window.scrollTo({ top: targetPosition, behavior: 'instant' });
+}
+
+// Instant anchor scroll - no smooth scrolling for better UX on long pages.
+// `behavior: 'instant'` explicitly wins over any inherited CSS scroll-behavior.
 export function initAnchorScroll() {
 	document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
 		anchor.addEventListener("click", (e) => {
 			e.preventDefault();
 			const target = document.querySelector(anchor.getAttribute("href"));
 			if (target) {
-				// Instant jump with small offset for visual breathing room
-				const offset = 40;
-				const targetPosition = target.getBoundingClientRect().top + window.scrollY - offset;
-				window.scrollTo({ top: targetPosition, behavior: 'auto' });
+				scrollInstantlyTo(target);
 			}
 		});
 	});
@@ -75,25 +81,32 @@ export function initHashTracking() {
 		}
 	}, { passive: true });
 
-	// Handle initial hash on page load - instant jump
+	// Handle initial hash on page load. This is retried after fonts, window
+	// load, and async site content rendering because command targets are
+	// created after startup.
 	if (window.location.hash) {
 		const hash = window.location.hash.slice(1);
-		const target = document.getElementById(hash);
-		if (target) {
-			currentHash = hash;
-			setTimeout(() => {
-				const offset = 40;
-				const targetPosition = target.getBoundingClientRect().top + window.scrollY - offset;
-				window.scrollTo({ top: targetPosition, behavior: 'auto' });
+		let clicked = false;
+		currentHash = hash;
 
-				// If it's a command deep link, activate it
-				if (hash.startsWith('cmd-') && target.classList.contains('manual-entry')) {
-					target.click();
-				}
-			}, 100);
-		}
+		const jump = () => {
+			const target = document.getElementById(hash);
+			if (!target) return;
+
+			scrollInstantlyTo(target);
+
+			// Legacy command list entries were activated through clicks.
+			if (!clicked && hash.startsWith('cmd-') && target.classList.contains('manual-entry')) {
+				target.click();
+				clicked = true;
+			}
+		};
+
+		jump();
+		if (document.fonts?.ready) document.fonts.ready.then(jump).catch(() => {});
+		window.addEventListener('load', jump, { once: true });
+		window.addEventListener(CONTENT_READY_EVENT, jump, { once: true });
 	} else {
-		// No hash — don't set one on initial load
+		// No hash - don't set one on initial load.
 	}
 }
-

@@ -55,6 +55,9 @@ async function loadContent() {
 
 		// Render patterns with tabbed navigation
 		renderPatternsWithTabs(patternsData.patterns, patternsData.antipatterns);
+
+		// Let hash restoration retry after async command targets exist.
+		window.dispatchEvent(new CustomEvent('impeccable:content-loaded'));
 	} catch (error) {
 		console.error("Failed to load content:", error);
 		showLoadError(error);

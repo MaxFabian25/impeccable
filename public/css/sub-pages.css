@@ -37,9 +37,8 @@
    BASE
    ============================================ */
 
-html {
-  scroll-behavior: smooth;
-}
+/* Keep long-page anchor jumps instant. The JS scroll helper opts into smooth
+   motion only for local widgets that need it. */
 
 body {
   font-family: var(--font-body);

@@ -21,6 +21,12 @@ function isMobile() {
     return window.innerWidth <= MOBILE_BREAKPOINT;
 }
 
+function getCommandIndexFromHash(commands) {
+    const hash = window.location.hash;
+    if (!hash || !hash.startsWith('#cmd-')) return -1;
+    return commands.findIndex(c => c.id === hash.slice(5));
+}
+
 export function initGlassTerminal() {
     // Initial setup if needed
 }
@@ -99,11 +105,7 @@ function renderDesktopLayout(container, commands) {
     magazineState.commands = filteredCommands;
 
     // Determine starting index: URL hash takes priority, otherwise default to "clarify"
-    const hash = window.location.hash;
-    if (hash && hash.startsWith('#cmd-')) {
-        const idx = filteredCommands.findIndex(c => c.id === hash.slice(5));
-        if (idx >= 0) startIndex = idx;
-    }
+    startIndex = getCommandIndexFromHash(filteredCommands);
     if (startIndex < 0) {
         startIndex = Math.max(0, filteredCommands.findIndex(c => c.id === 'clarify'));
     }
@@ -447,9 +449,13 @@ function truncateDescription(text, maxLen = 120) {
 // ============================================
 
 function renderMobileLayout(container, commands) {
+    const startIndex = Math.max(0, getCommandIndexFromHash(commands));
+    const activeCommand = commands[startIndex] || commands[0];
+    currentCommandId = activeCommand?.id || null;
+
     // Build carousel pills
     const carouselHTML = commands.map((cmd, i) => `
-        <button class="mobile-cmd-pill${i === 0 ? ' active' : ''}" data-id="${cmd.id}">
+        <button class="mobile-cmd-pill${i === startIndex ? ' active' : ''}" data-id="${cmd.id}">
             $${cmd.id}
         </button>
     `).join('');
@@ -468,7 +474,7 @@ function renderMobileLayout(container, commands) {
         }
 
         return `
-            <div class="mobile-cmd-info${i === 0 ? ' active' : ''}" data-id="${cmd.id}">
+            <div class="mobile-cmd-info${i === startIndex ? ' active' : ''}" data-id="${cmd.id}" id="cmd-${cmd.id}">
                 <h3 class="mobile-cmd-name">$${cmd.id}</h3>
                 <p class="mobile-cmd-desc">${cmd.description}</p>
                 ${relationshipHTML}
@@ -484,7 +490,7 @@ function renderMobileLayout(container, commands) {
                 </div>
             </div>
             <div class="mobile-demo-area" id="mobile-demo-content">
-                ${renderCommandDemo(commands[0]?.id || 'audit')}
+                ${renderCommandDemo(activeCommand?.id || 'audit')}
             </div>
             <div class="mobile-info-area">
                 ${infoCardsHTML}
@@ -509,7 +515,7 @@ function setupMobileInteractions(commands) {
             maxPosition: 90
         });
     }
-    if (commands[0]) initCommandDemo(commands[0].id, demoArea);
+    if (currentCommandId) initCommandDemo(currentCommandId, demoArea);
 
     // Pill click/tap handler
     pills.forEach(pill => {
@@ -519,6 +525,7 @@ function setupMobileInteractions(commands) {
             if (!cmd || currentCommandId === cmdId) return;
 
             currentCommandId = cmdId;
+            history.replaceState(null, '', `#cmd-${cmdId}`);
 
             // Update active pill
             pills.forEach(p => p.classList.remove('active'));
