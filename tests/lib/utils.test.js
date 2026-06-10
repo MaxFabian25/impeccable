@@ -10,6 +10,7 @@ import {
   writeFile,
   generateYamlFrontmatter,
   readPatterns,
+  readSkillPatterns,
   replacePlaceholders
 } from '../../scripts/lib/utils.js';
 
@@ -551,6 +552,57 @@ Body content.`;
 describe('readPatterns', () => {
   const testRootDir = TEST_DIR;
 
+  afterEach(() => {
+    if (fs.existsSync(testRootDir)) {
+      fs.rmSync(testRootDir, { recursive: true, force: true });
+    }
+  });
+
+  test('should return the curated homepage pattern categories', () => {
+    const { patterns, antipatterns } = readPatterns(testRootDir);
+
+    expect(patterns.map((category) => category.name)).toEqual([
+      'Typography',
+      'Color & Contrast',
+      'Layout & Space',
+      'Visual Details',
+      'Motion',
+      'Interaction',
+    ]);
+    expect(antipatterns.map((category) => category.name)).toEqual(patterns.map((category) => category.name));
+    expect(patterns[0].items).toContain('Pair a distinctive display face with a restrained body face; vary across projects.');
+    expect(antipatterns[2].items).toContain('Wrap everything in cards. Nested cards are always wrong.');
+  });
+
+  test('should not depend on a source SKILL.md file', () => {
+    const skillContent = `---
+name: impeccable
+---
+
+### Motion
+**DO**: Use ease-out for natural movement.
+
+### Typography
+**DO**: Use modular scale.
+
+### Color & Contrast
+**DO**: Use tinted neutrals.`;
+
+    const skillDir = path.join(testRootDir, 'source/skills/impeccable');
+    ensureDir(skillDir);
+    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), skillContent);
+
+    const withSource = readPatterns(testRootDir);
+    fs.rmSync(testRootDir, { recursive: true, force: true });
+    const withoutSource = readPatterns(testRootDir);
+
+    expect(withSource).toEqual(withoutSource);
+  });
+});
+
+describe('readSkillPatterns', () => {
+  const testRootDir = TEST_DIR;
+
   beforeEach(() => {
     ensureDir(testRootDir);
   });
@@ -570,81 +622,36 @@ name: impeccable
 **DO**: Use variable fonts for flexibility.
 **DON'T**: Use system fonts like Arial.
 
-### Color & Contrast
-**DO**: Ensure WCAG AA compliance.
-**DON'T**: Use gray text on colored backgrounds.
+### Color & Theme
+DO Use OKLCH color space.
+DO NOT Use pure black.
 
 ### Layout & Space
-**DO**: Use consistent spacing scale.
-**DON'T**: Nest cards inside cards.`;
+DO: Use consistent spacing scale.
+DO NOT: Nest cards inside cards.`;
 
     const skillDir = path.join(testRootDir, 'source/skills/impeccable');
     ensureDir(skillDir);
     fs.writeFileSync(path.join(skillDir, 'SKILL.md'), skillContent);
 
-    const { patterns, antipatterns } = readPatterns(testRootDir);
+    const { patterns, antipatterns } = readSkillPatterns(testRootDir);
 
-    expect(patterns).toHaveLength(3);
-    expect(antipatterns).toHaveLength(3);
-
-    expect(patterns[0].name).toBe('Typography');
+    expect(patterns.map((category) => category.name)).toEqual([
+      'Typography',
+      'Color & Contrast',
+      'Layout & Space',
+    ]);
+    expect(antipatterns.map((category) => category.name)).toEqual(patterns.map((category) => category.name));
     expect(patterns[0].items).toContain('Use variable fonts for flexibility.');
-    expect(antipatterns[0].items).toContain('Use system fonts like Arial.');
+    expect(patterns[1].items).toContain('Use OKLCH color space.');
+    expect(antipatterns[2].items).toContain('Nest cards inside cards.');
   });
 
-  test('should normalize "Color & Theme" to "Color & Contrast"', () => {
-    const skillContent = `---
-name: impeccable
----
-
-### Color & Theme
-**DO**: Use OKLCH color space.
-**DON'T**: Use pure black.`;
-
-    const skillDir = path.join(testRootDir, 'source/skills/impeccable');
-    ensureDir(skillDir);
-    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), skillContent);
-
-    const { patterns, antipatterns } = readPatterns(testRootDir);
-
-    expect(patterns[0].name).toBe('Color & Contrast');
-  });
-
-  test('should handle missing SKILL.md file', () => {
-    ensureDir(path.join(testRootDir, 'source/skills/impeccable'));
-
-    const { patterns, antipatterns } = readPatterns(testRootDir);
+  test('should return empty arrays when source SKILL.md is missing', () => {
+    const { patterns, antipatterns } = readSkillPatterns(testRootDir);
 
     expect(patterns).toEqual([]);
     expect(antipatterns).toEqual([]);
-  });
-
-  test('should return patterns in consistent section order', () => {
-    const skillContent = `---
-name: impeccable
----
-
-### Motion
-**DO**: Use ease-out for natural movement.
-
-### Typography
-**DO**: Use modular scale.
-
-### Color & Contrast
-**DO**: Use tinted neutrals.`;
-
-    const skillDir = path.join(testRootDir, 'source/skills/impeccable');
-    ensureDir(skillDir);
-    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), skillContent);
-
-    const { patterns } = readPatterns(testRootDir);
-
-    // Patterns are returned in predefined section order, not source order
-    // Only sections with content are included
-    expect(patterns[0].name).toBe('Typography');
-    expect(patterns[1].name).toBe('Color & Contrast');
-    expect(patterns[2].name).toBe('Motion');
-    expect(patterns.length).toBe(3);
   });
 });
 

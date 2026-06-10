@@ -13,7 +13,7 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { readSourceFiles, readPatterns } from './lib/utils.js';
+import { readSourceFiles, readPatterns, readSkillPatterns } from './lib/utils.js';
 import { createTransformer, PROVIDERS } from './lib/transformers/index.js';
 import { createAllZips } from './lib/zip.js';
 import { generateSubPages } from './build-sub-pages.js';
@@ -115,7 +115,7 @@ function validateAntipatternRules(rootDir) {
     return 1;
   }
   const antipatterns = new Function(`return [${apMatch[1]}]`)();
-  const { antipatterns: skillSections } = readPatterns(rootDir);
+  const { antipatterns: skillSections } = readSkillPatterns(rootDir);
 
   // Build section -> joined-DON'T-text lookup for substring matching.
   // Lowercased for case-insensitive matching: my XML refactor uses sentence-

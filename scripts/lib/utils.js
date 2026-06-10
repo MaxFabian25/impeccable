@@ -225,16 +225,108 @@ export function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content, 'utf-8');
 }
 
+// Curated short-list for the homepage Antidote section. The full catalog lives
+// on /anti-patterns; this teaser stays editorial instead of mirroring SKILL.md.
+const CURATED_CATEGORIES = [
+  {
+    name: 'Typography',
+    do: [
+      'Pair a distinctive display face with a restrained body face; vary across projects.',
+      'Use a >=1.25 scale ratio between hierarchy steps. Flat scales read as bland.',
+      'Cap body line length at 65-75ch. Wider is fatiguing.',
+    ],
+    dont: [
+      'Inter, Roboto, Plex, Fraunces, or any other reflex default. Look further.',
+      'Monospace as lazy shorthand for "technical."',
+      'Long passages in uppercase. Reserve all-caps for short labels.',
+    ],
+  },
+  {
+    name: 'Color & Contrast',
+    do: [
+      'Use OKLCH. Reduce chroma near lightness extremes.',
+      'Tint neutrals toward the brand hue. Chroma 0.005-0.01 is enough.',
+      'Pick a color strategy before picking colors: Restrained, Committed, Full, or Drenched.',
+    ],
+    dont: [
+      'Pure #000 or #fff. Always tint.',
+      'Dark mode plus purple-to-cyan gradients. The AI tell.',
+      'Gradient text via background-clip. Use weight or size for emphasis.',
+    ],
+  },
+  {
+    name: 'Layout & Space',
+    do: [
+      'Vary spacing for rhythm. Tight groupings, generous separations.',
+      'Use the simplest tool: Flexbox for 1D, Grid for 2D, plain flow often enough.',
+      'Let whitespace carry hierarchy before reaching for color or scale.',
+    ],
+    dont: [
+      'Wrap everything in cards. Nested cards are always wrong.',
+      'Identical card grids of icon plus heading plus text, repeated endlessly.',
+      'The hero-metric template: big number, small label, supporting stats, gradient accent.',
+    ],
+  },
+  {
+    name: 'Visual Details',
+    do: [
+      'Commit to an aesthetic direction and execute it with precision.',
+      'Use ornament only where it earns its place.',
+    ],
+    dont: [
+      'Side-stripe borders where border-left or border-right is thicker than 1px.',
+      'Glassmorphism everywhere. Rare and purposeful or nothing.',
+      'Rounded rectangles with generic drop shadows. Could be any AI output.',
+    ],
+  },
+  {
+    name: 'Motion',
+    do: [
+      'Use transform and opacity. Animate composited properties only.',
+      'Ease out with exponential curves: quart, quint, or expo.',
+      'Respect prefers-reduced-motion on every transition.',
+    ],
+    dont: [
+      'Animate layout: width, height, padding, or margin.',
+      'Bounce or elastic easing. Feels dated and tacky.',
+      'Decorative motion for its own sake. Motion should signal state.',
+    ],
+  },
+  {
+    name: 'Interaction',
+    do: [
+      'Use optimistic UI: update immediately, sync later.',
+      'Design empty states that teach the interface, not just say "nothing here."',
+      'Progressive disclosure: start simple, reveal sophistication on demand.',
+    ],
+    dont: [
+      'Make every button primary. Hierarchy matters.',
+      'Default to a modal. Exhaust inline alternatives first.',
+      'Repeat information the user can already see.',
+    ],
+  },
+];
+
 /**
- * Extract patterns from frontend-design SKILL.md
- * Parses DO/DON'T lines grouped by section headings.
- * Recognizes both formats:
- *   - Markdown bullet form:  `**DO**: …`  /  `**DON'T**: …`
- *   - XML-block prose form:  `DO …`       /  `DO NOT …`  (used inside
- *     <typography_rules>, <color_rules>, <spatial_rules>, <absolute_bans>)
- * Returns { patterns: [...], antipatterns: [...] }
+ * Return curated homepage patterns.
+ *
+ * The homepage Antidote section is an editorial teaser, not an exhaustive
+ * extraction of the current skill source. The full rule catalog is generated
+ * separately under /anti-patterns.
  */
-export function readPatterns(rootDir) {
+export function readPatterns(_rootDir) {
+  return {
+    patterns: CURATED_CATEGORIES.map((category) => ({ name: category.name, items: [...category.do] })),
+    antipatterns: CURATED_CATEGORIES.map((category) => ({ name: category.name, items: [...category.dont] })),
+  };
+}
+
+/**
+ * Extract full DO/DON'T patterns from source/skills/impeccable/SKILL.md.
+ *
+ * This is for detector drift validation, not the homepage teaser.
+ */
+export function readSkillPatterns(rootDir) {
   const skillPath = path.join(rootDir, 'source/skills/impeccable/SKILL.md');
 
   if (!fs.existsSync(skillPath)) {
@@ -243,9 +335,8 @@ export function readPatterns(rootDir) {
 
   const content = fs.readFileSync(skillPath, 'utf-8');
   const lines = content.split('\n');
-
-  const patternsMap = {};  // category -> items[]
-  const antipatternsMap = {};  // category -> items[]
+  const patternsMap = {};
+  const antipatternsMap = {};
   let currentSection = null;
 
   const pushPattern = (item) => {
@@ -253,6 +344,7 @@ export function readPatterns(rootDir) {
     if (!patternsMap[currentSection]) patternsMap[currentSection] = [];
     patternsMap[currentSection].push(item);
   };
+
   const pushAntipattern = (item) => {
     if (!currentSection) return;
     if (!antipatternsMap[currentSection]) antipatternsMap[currentSection] = [];
@@ -262,60 +354,63 @@ export function readPatterns(rootDir) {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Track section headings (### Typography, ### Color & Theme, etc.)
     if (trimmed.startsWith('### ')) {
       currentSection = trimmed.slice(4).trim();
-      // Normalize "Color & Theme" to "Color & Contrast" for consistency
       if (currentSection === 'Color & Theme') {
         currentSection = 'Color & Contrast';
       }
       continue;
     }
 
-    // Markdown bullet form (legacy): **DO**: ... and **DON'T**: ...
     if (trimmed.startsWith('**DO**:')) {
       pushPattern(trimmed.slice(7).trim());
       continue;
     }
+
     if (trimmed.startsWith("**DON'T**:")) {
       pushAntipattern(trimmed.slice(10).trim());
       continue;
     }
 
-    // XML-block prose form (current). Both space and colon variants:
-    //   "DO NOT use ..."  /  "DO NOT: Use ..."
-    //   "DO use ..."      /  "DO: Use ..."
-    // IMPORTANT: check `DO NOT` BEFORE `DO` so the prefix doesn't get
-    // gobbled by the wrong matcher.
     if (trimmed.startsWith('DO NOT: ')) {
       pushAntipattern(trimmed.slice('DO NOT: '.length).trim());
       continue;
     }
+
     if (trimmed.startsWith('DO NOT ')) {
       pushAntipattern(trimmed.slice('DO NOT '.length).trim());
       continue;
     }
+
     if (trimmed.startsWith('DO: ')) {
       pushPattern(trimmed.slice('DO: '.length).trim());
       continue;
     }
+
     if (trimmed.startsWith('DO ')) {
       pushPattern(trimmed.slice('DO '.length).trim());
-      continue;
     }
   }
 
-  // Convert maps to arrays in consistent order
-  const sectionOrder = ['Typography', 'Color & Contrast', 'Layout & Space', 'Visual Details', 'Motion', 'Interaction', 'Responsive', 'UX Writing'];
+  const sectionOrder = [
+    'Typography',
+    'Color & Contrast',
+    'Layout & Space',
+    'Visual Details',
+    'Motion',
+    'Interaction',
+    'Responsive',
+    'UX Writing',
+  ];
 
   const patterns = [];
   const antipatterns = [];
 
   for (const section of sectionOrder) {
-    if (patternsMap[section] && patternsMap[section].length > 0) {
+    if (patternsMap[section]?.length > 0) {
       patterns.push({ name: section, items: patternsMap[section] });
     }
-    if (antipatternsMap[section] && antipatternsMap[section].length > 0) {
+    if (antipatternsMap[section]?.length > 0) {
       antipatterns.push({ name: section, items: antipatternsMap[section] });
     }
   }
