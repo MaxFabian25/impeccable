@@ -61,7 +61,13 @@ const BORDER_SAFE_TAGS = new Set(
 );
 
 const OVERUSED_FONTS = new Set([
+  // Older monoculture, still ubiquitous.
   'inter', 'roboto', 'open sans', 'lato', 'montserrat', 'arial', 'helvetica',
+  // Newer monoculture from the current AI UI/default-tooling wave.
+  'fraunces', 'instrument sans',
+  'geist', 'geist sans', 'geist mono',
+  'mona sans',
+  'plus jakarta sans', 'space grotesk', 'recoleta',
 ]);
 
 // Brand-associated fonts: don't flag these as "overused" on the brand's own domains.
@@ -70,10 +76,16 @@ const GOOGLE_DOMAINS = [
   'google.com', 'youtube.com', 'android.com', 'chromium.org',
   'chrome.com', 'web.dev', 'gstatic.com', 'firebase.google.com',
 ];
+const VERCEL_DOMAINS = ['vercel.com', 'nextjs.org', 'v0.app'];
+const GITHUB_DOMAINS = ['github.com', 'githubnext.com'];
 const BRAND_FONT_DOMAINS = {
   'roboto': GOOGLE_DOMAINS,
   'google sans': GOOGLE_DOMAINS,
   'product sans': GOOGLE_DOMAINS,
+  'geist': VERCEL_DOMAINS,
+  'geist sans': VERCEL_DOMAINS,
+  'geist mono': VERCEL_DOMAINS,
+  'mona sans': GITHUB_DOMAINS,
 };
 
 function isBrandFontOnOwnDomain(font) {
@@ -89,6 +101,20 @@ const GENERIC_FONTS = new Set([
   'system-ui', 'ui-serif', 'ui-sans-serif', 'ui-monospace', 'ui-rounded',
   '-apple-system', 'blinkmacsystemfont', 'segoe ui',
   'inherit', 'initial', 'unset', 'revert',
+]);
+
+const KNOWN_SERIF_FONTS = new Set([
+  'fraunces', 'recoleta', 'newsreader', 'playfair display', 'playfair',
+  'cormorant', 'cormorant garamond', 'garamond', 'eb garamond',
+  'tiempos', 'tiempos headline', 'tiempos text',
+  'lora', 'vollkorn', 'spectral',
+  'source serif pro', 'source serif 4', 'source serif',
+  'ibm plex serif', 'merriweather',
+  'libre caslon', 'libre baskerville', 'baskerville',
+  'georgia', 'times new roman', 'times',
+  'dm serif display', 'dm serif text',
+  'instrument serif', 'gt sectra', 'ogg', 'canela',
+  'freight display', 'freight text',
 ]);
 
 const ANTIPATTERNS = [
@@ -116,7 +142,7 @@ const ANTIPATTERNS = [
     category: 'slop',
     name: 'Overused font',
     description:
-      'Inter, Roboto, Open Sans, Lato, Montserrat, and Arial are used on millions of sites. Choose a distinctive font that gives your interface personality.',
+      'Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.',
     skillSection: 'Typography',
     skillGuideline: 'overused fonts like Inter',
   },
@@ -209,6 +235,24 @@ const ANTIPATTERNS = [
       'A small rounded-square icon container above a heading is the universal AI feature-card template — every generator outputs this exact shape. Try a side-by-side icon and heading, or let the icon sit in flow without its own container.',
     skillSection: 'Typography',
     skillGuideline: 'large icons with rounded corners above every heading',
+  },
+  {
+    id: 'italic-serif-display',
+    category: 'slop',
+    name: 'Italic serif display headline',
+    description:
+      'Oversized italic serif as the primary hero headline reads as taste in isolation but has become the default AI-startup landing page hero. Set roman, or move to a non-serif display face. Editorial or magazine contexts may legitimately want this; judge by context.',
+    skillSection: 'Typography',
+    skillGuideline: 'oversized italic serif as the hero headline',
+  },
+  {
+    id: 'hero-eyebrow-chip',
+    category: 'slop',
+    name: 'Hero eyebrow / pill chip',
+    description:
+      'A tiny uppercase letter-spaced label sitting immediately above an oversized hero headline, or the same shape rendered as a pill chip, is now the default AI SaaS hero. Drop the eyebrow, integrate the kicker into the headline, or run it as a navigation breadcrumb instead.',
+    skillSection: 'Typography',
+    skillGuideline: 'tiny uppercase tracked label above the hero headline',
   },
 
   // ── Quality: general design and accessibility issues ──
@@ -465,7 +509,12 @@ function isEmojiOnlyText(text) {
 
 function checkColors(opts) {
   const { tag, textColor, bgColor, effectiveBg, effectiveBgStops, fontSize, fontWeight, hasDirectText, isEmojiOnly, bgClip, bgImage, classList } = opts;
-  if (SAFE_TAGS.has(tag)) return [];
+  if (SAFE_TAGS.has(tag)) {
+    const isStyledButton = (tag === 'a' || tag === 'button')
+      && hasDirectText
+      && bgColor && bgColor.a > 0.5;
+    if (!isStyledButton) return [];
+  }
   const findings = [];
 
   // Pure black background (only solid or near-solid, not semi-transparent overlays)
@@ -601,6 +650,60 @@ function checkIconTile(opts) {
   return [{
     id: 'icon-tile-stack',
     snippet: `${Math.round(siblingWidth)}x${Math.round(siblingHeight)}px icon tile above ${headingTag} "${text}"`,
+  }];
+}
+
+function resolveSerif(fontFamily) {
+  if (!fontFamily) return { primary: null, isSerif: false };
+  const tokens = fontFamily.split(',').map(f => f.trim().replace(/^['"]|['"]$/g, '').toLowerCase());
+  const primary = tokens.find(f => f && !GENERIC_FONTS.has(f)) || null;
+  if (!primary) return { primary: null, isSerif: false };
+  if (KNOWN_SERIF_FONTS.has(primary)) return { primary, isSerif: true };
+  if (tokens.includes('serif')) return { primary, isSerif: true };
+  return { primary, isSerif: false };
+}
+
+function checkItalicSerif(opts) {
+  const { tag, fontStyle, fontFamily, fontSize, headingText } = opts;
+  if (fontStyle !== 'italic') return [];
+  if (tag !== 'h1' && !(tag === 'h2' && fontSize >= 48)) return [];
+  if (fontSize < 48) return [];
+  const { primary, isSerif } = resolveSerif(fontFamily);
+  if (!isSerif) return [];
+
+  const text = (headingText || '').trim().slice(0, 60);
+  return [{
+    id: 'italic-serif-display',
+    snippet: `italic serif ${tag} (${primary || 'serif'}) at ${Math.round(fontSize)}px "${text}"`,
+  }];
+}
+
+function checkHeroEyebrow(opts) {
+  const {
+    headingTag, headingText, headingFontSize,
+    siblingTag, siblingText, siblingTextTransform,
+    siblingFontSize, siblingLetterSpacing,
+  } = opts;
+  if (headingTag !== 'h1') return [];
+  if (!headingFontSize || headingFontSize < 48) return [];
+  if (!siblingTag) return [];
+  if (HEADING_TAGS.has(siblingTag)) return [];
+
+  const text = (siblingText || '').trim();
+  if (text.length < 2 || text.length > 30) return [];
+
+  const isUppercased = siblingTextTransform === 'uppercase'
+    || (/[A-Z]/.test(text) && !/[a-z]/.test(text));
+  if (!isUppercased) return [];
+
+  if (!(siblingLetterSpacing >= 1.6)) return [];
+  if (!(siblingFontSize > 0 && siblingFontSize <= 14)) return [];
+
+  const headingTextSnippet = (headingText || '').trim().slice(0, 60);
+  const eyebrowSnippet = text.slice(0, 40);
+  return [{
+    id: 'hero-eyebrow-chip',
+    snippet: `eyebrow chip "${eyebrowSnippet}" above ${headingTag} "${headingTextSnippet}"`,
   }];
 }
 
@@ -817,6 +920,25 @@ function checkHtmlPatterns(html) {
 
 // ─── Section 4: resolveBackground (unified) ─────────────────────────────────
 
+function readOwnBackgroundColor(el, computedStyle) {
+  const bg = parseRgb(computedStyle.backgroundColor);
+  if (IS_BROWSER || (bg && bg.a >= 0.1)) return bg;
+  const rawStyle = el.getAttribute?.('style') || '';
+  const bgMatch = rawStyle.match(/background(?:-color)?\s*:\s*([^;]+)/i);
+  const inlineBg = bgMatch ? bgMatch[1].trim() : '';
+  if (!inlineBg) return bg;
+  if (/gradient/i.test(inlineBg) || /url\s*\(/i.test(inlineBg)) return bg;
+  const fromRgb = parseRgb(inlineBg);
+  if (fromRgb) return fromRgb;
+  const hexMatch = inlineBg.match(/#([0-9a-f]{6}|[0-9a-f]{3})\b/i);
+  if (!hexMatch) return bg;
+  const h = hexMatch[1];
+  if (h.length === 6) {
+    return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16), a: 1 };
+  }
+  return { r: parseInt(h[0] + h[0], 16), g: parseInt(h[1] + h[1], 16), b: parseInt(h[2] + h[2], 16), a: 1 };
+}
+
 function resolveBackground(el, win) {
   let current = el;
   while (current && current.nodeType === 1) {
@@ -906,7 +1028,6 @@ function checkElementBordersDOM(el) {
 
 function checkElementColorsDOM(el) {
   const tag = el.tagName.toLowerCase();
-  if (SAFE_TAGS.has(tag)) return [];
   const rect = el.getBoundingClientRect();
   if (rect.width < 10 || rect.height < 10) return [];
   const style = getComputedStyle(el);
@@ -916,7 +1037,7 @@ function checkElementColorsDOM(el) {
   return checkColors({
     tag,
     textColor: parseRgb(style.color),
-    bgColor: parseRgb(style.backgroundColor),
+    bgColor: readOwnBackgroundColor(el, style),
     effectiveBg,
     effectiveBgStops: effectiveBg ? null : resolveGradientStops(el),
     fontSize: parseFloat(style.fontSize) || 16,
@@ -961,6 +1082,38 @@ function checkElementIconTileDOM(el) {
     siblingBorderRadius: parseFloat(sibStyle.borderRadius) || 0,
     hasIconChild: !!iconChild || hasInlineEmojiIcon,
     iconChildWidth: iconRect?.width || 0,
+  });
+}
+
+function checkElementItalicSerifDOM(el) {
+  const tag = el.tagName.toLowerCase();
+  if (tag !== 'h1' && tag !== 'h2') return [];
+  const style = getComputedStyle(el);
+  return checkItalicSerif({
+    tag,
+    fontStyle: style.fontStyle || '',
+    fontFamily: style.fontFamily || '',
+    fontSize: parseFloat(style.fontSize) || 0,
+    headingText: el.textContent || '',
+  });
+}
+
+function checkElementHeroEyebrowDOM(el) {
+  const tag = el.tagName.toLowerCase();
+  if (tag !== 'h1') return [];
+  const sibling = el.previousElementSibling;
+  if (!sibling) return [];
+  const headStyle = getComputedStyle(el);
+  const sibStyle = getComputedStyle(sibling);
+  return checkHeroEyebrow({
+    headingTag: tag,
+    headingText: el.textContent || '',
+    headingFontSize: parseFloat(headStyle.fontSize) || 0,
+    siblingTag: sibling.tagName.toLowerCase(),
+    siblingText: sibling.textContent || '',
+    siblingTextTransform: sibStyle.textTransform || '',
+    siblingFontSize: parseFloat(sibStyle.fontSize) || 0,
+    siblingLetterSpacing: parseFloat(sibStyle.letterSpacing) || 0,
   });
 }
 
@@ -1303,7 +1456,7 @@ function checkElementColors(el, style, tag, window) {
   return checkColors({
     tag,
     textColor: parseRgb(style.color),
-    bgColor: parseRgb(style.backgroundColor),
+    bgColor: readOwnBackgroundColor(el, style),
     effectiveBg,
     effectiveBgStops: effectiveBg ? null : resolveGradientStops(el, window),
     fontSize: parseFloat(style.fontSize) || 16,
@@ -1351,6 +1504,35 @@ function checkElementIconTile(el, tag, window, styleOverrides) {
     siblingBorderRadius: resolveRadius(sibStyle.borderRadius, siblingOverride?.radius?.value),
     hasIconChild: !!iconChild || hasInlineEmojiIcon,
     iconChildWidth: iconWidth,
+  });
+}
+
+function checkElementItalicSerif(el, style, tag) {
+  if (tag !== 'h1' && tag !== 'h2') return [];
+  return checkItalicSerif({
+    tag,
+    fontStyle: style.fontStyle || '',
+    fontFamily: style.fontFamily || '',
+    fontSize: parseFloat(style.fontSize) || 0,
+    headingText: el.textContent || '',
+  });
+}
+
+function checkElementHeroEyebrow(el, style, tag, window) {
+  if (tag !== 'h1') return [];
+  const sibling = el.previousElementSibling;
+  if (!sibling) return [];
+  const sibStyle = window.getComputedStyle(sibling);
+  const siblingFontSize = parseFloat(sibStyle.fontSize) || 0;
+  return checkHeroEyebrow({
+    headingTag: tag,
+    headingText: el.textContent || '',
+    headingFontSize: parseFloat(style.fontSize) || 0,
+    siblingTag: sibling.tagName.toLowerCase(),
+    siblingText: sibling.textContent || '',
+    siblingTextTransform: sibStyle.textTransform || '',
+    siblingFontSize,
+    siblingLetterSpacing: resolveLengthPx(sibStyle.letterSpacing, siblingFontSize) || 0,
   });
 }
 
@@ -2259,6 +2441,8 @@ if (IS_BROWSER) {
         ...checkElementGlowDOM(el).map(f => ({ type: f.id, detail: f.snippet })),
         ...checkElementAIPaletteDOM(el).map(f => ({ type: f.id, detail: f.snippet })),
         ...checkElementIconTileDOM(el).map(f => ({ type: f.id, detail: f.snippet })),
+        ...checkElementItalicSerifDOM(el).map(f => ({ type: f.id, detail: f.snippet })),
+        ...checkElementHeroEyebrowDOM(el).map(f => ({ type: f.id, detail: f.snippet })),
         ...checkElementQualityDOM(el).map(f => ({ type: f.id, detail: f.snippet })),
       ].filter(f => _ruleOk(f.type));
 

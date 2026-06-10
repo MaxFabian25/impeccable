@@ -94,6 +94,41 @@ describe('detectHtml — jsdom fixtures', () => {
     );
   });
 
+  it('color: styled <a> and <button> with their own background get contrast checks', async () => {
+    const f = await detectHtml(path.join(FIXTURES, 'color.html'));
+    const pillBtnFlag = f.some(r =>
+      r.antipattern === 'low-contrast' &&
+      /#5b4f44/i.test(r.snippet || '') &&
+      /#1f1a15/i.test(r.snippet || '')
+    );
+    assert.ok(pillBtnFlag, 'expected low-contrast finding for styled <a> pill button');
+    const styledButtonFlag = f.some(r =>
+      r.antipattern === 'low-contrast' &&
+      /#6c7280/i.test(r.snippet || '') &&
+      /#374151/i.test(r.snippet || '')
+    );
+    assert.ok(styledButtonFlag, 'expected low-contrast finding for styled <button>');
+  });
+
+  it('color: inline <a> without own background remains skipped', async () => {
+    const f = await detectHtml(path.join(FIXTURES, 'color.html'));
+    const inlineLinkFalsePositive = f.some(r =>
+      r.antipattern === 'low-contrast' &&
+      /#aaaaaa/i.test(r.snippet || '')
+    );
+    assert.equal(inlineLinkFalsePositive, false, 'inline <a> without own background must remain skipped');
+  });
+
+  it('color: styled <a> with good contrast does not flag', async () => {
+    const f = await detectHtml(path.join(FIXTURES, 'color.html'));
+    const goodPillFalsePositive = f.some(r =>
+      r.antipattern === 'low-contrast' &&
+      /#f5f0e8/i.test(r.snippet || '') &&
+      /#141419/i.test(r.snippet || '')
+    );
+    assert.equal(goodPillFalsePositive, false, 'styled <a> with high contrast must not flag');
+  });
+
   it('color: emoji-only text is never flagged as low-contrast', async () => {
     // Emojis render as multicolor glyphs regardless of CSS `color`, so the
     // CSS text color is irrelevant for contrast. The fixture's emoji cards
@@ -260,6 +295,74 @@ describe('detectHtml — layout', () => {
     // them awake unexpectedly.
     assert.equal(f.filter(r => r.antipattern === 'monotonous-spacing').length, 0);
     assert.equal(f.filter(r => r.antipattern === 'everything-centered').length, 0);
+  });
+});
+
+describe('detectHtml — italic-serif-display', () => {
+  const SHOULD_FLAG = [
+    'Fraunces 88px italic',
+    'Recoleta 64px italic',
+    'Playfair 72px italic',
+    'Unknown Serif Generic Fallback',
+  ];
+  const SHOULD_PASS = [
+    'Sans Italic Display',
+    'Roman Serif Display',
+    'Italic Serif Pull Quote',
+    'Inline Em Inside Roman',
+    'Italic Serif at 32px',
+    'h1 Sans-Serif Roman',
+  ];
+
+  it('italic-serif-display: flags only the should-flag column', async () => {
+    const f = await detectHtml(path.join(FIXTURES, 'italic-serif-display.html'));
+    const flagged = new Set();
+    for (const r of f) {
+      if (r.antipattern !== 'italic-serif-display') continue;
+      const m = (r.snippet || '').match(/"([^"]+)"/);
+      if (m) flagged.add(m[1]);
+    }
+
+    for (const text of SHOULD_FLAG) {
+      assert.ok(flagged.has(text), `expected "${text}" to be flagged as italic-serif-display`);
+    }
+    for (const text of SHOULD_PASS) {
+      assert.ok(!flagged.has(text), `"${text}" should NOT be flagged as italic-serif-display`);
+    }
+  });
+});
+
+describe('detectHtml — hero-eyebrow-chip', () => {
+  const SHOULD_FLAG = [
+    'Eyebrow Above Hero',
+    'Span Eyebrow Above Hero',
+    'Pill Chip Above Hero',
+    'Already Uppercase Text',
+  ];
+  const SHOULD_PASS = [
+    'Eyebrow With Normal Tracking',
+    'Body-Sized Heading Below Eyebrow',
+    'Uppercase Caption Far From Hero',
+    'Hero With No Eyebrow',
+    'Heading Above Heading',
+    'Long Uppercase Sentence Above Hero',
+  ];
+
+  it('hero-eyebrow-chip: flags only the should-flag column', async () => {
+    const f = await detectHtml(path.join(FIXTURES, 'hero-eyebrow-chip.html'));
+    const flagged = new Set();
+    for (const r of f) {
+      if (r.antipattern !== 'hero-eyebrow-chip') continue;
+      const matches = [...(r.snippet || '').matchAll(/"([^"]+)"/g)];
+      if (matches.length) flagged.add(matches[matches.length - 1][1]);
+    }
+
+    for (const text of SHOULD_FLAG) {
+      assert.ok(flagged.has(text), `expected "${text}" to be flagged as hero-eyebrow-chip`);
+    }
+    for (const text of SHOULD_PASS) {
+      assert.ok(!flagged.has(text), `"${text}" should NOT be flagged as hero-eyebrow-chip`);
+    }
   });
 });
 

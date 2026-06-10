@@ -14,7 +14,7 @@
 
 <style>
   .sidebar {
-    font-family: 'Geist', system-ui, sans-serif;
+    font-family: 'Karla', system-ui, sans-serif;
     background: #fafafa;
   }
 </style>

@@ -17,7 +17,7 @@ defineProps({
 
 <style scoped>
 .card {
-  font-family: 'Geist', system-ui, sans-serif;
+  font-family: 'Karla', system-ui, sans-serif;
   background: #fff;
 }
 </style>

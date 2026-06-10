@@ -7,7 +7,7 @@ export const Card = styled.div`
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  font-family: 'Geist', system-ui, sans-serif;
+  font-family: 'Karla', system-ui, sans-serif;
 `;
 
 export const Hero = styled.section`

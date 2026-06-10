@@ -141,8 +141,18 @@ describe('detectText — overused fonts', () => {
     expect(f.some(r => r.antipattern === 'overused-font')).toBe(true);
   });
 
+  test('detects Fraunces (current AI-default monoculture)', () => {
+    const f = detectText("h1 { font-family: 'Fraunces', Georgia, serif; }", 'test.css');
+    expect(f.some(r => r.antipattern === 'overused-font')).toBe(true);
+  });
+
+  test('detects Geist (Vercel-default monoculture)', () => {
+    const f = detectText("body { font-family: 'Geist', sans-serif; }", 'test.css');
+    expect(f.some(r => r.antipattern === 'overused-font')).toBe(true);
+  });
+
   test('does not flag distinctive fonts', () => {
-    const f = detectText("body { font-family: 'Instrument Sans', sans-serif; }", 'test.css');
+    const f = detectText("body { font-family: 'Karla', sans-serif; }", 'test.css');
     expect(f.filter(r => r.antipattern === 'overused-font')).toHaveLength(0);
   });
 });

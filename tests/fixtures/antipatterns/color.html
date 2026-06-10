@@ -10,6 +10,10 @@
     .col h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 16px; color: #475569; }
     .col h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin: 24px 0 8px; color: #64748b; }
     .card { padding: 14px 16px; border-radius: 10px; margin-bottom: 10px; }
+    .styled-pill-low { background-color: rgb(31, 26, 21); color: rgb(91, 79, 68); display: inline-block; padding: 9px 18px; border-radius: 999px; font-weight: 500; font-size: 14px; text-decoration: none; }
+    .low-contrast-button { background-color: rgb(55, 65, 81); color: rgb(108, 114, 128); display: inline-block; padding: 10px 20px; border-radius: 8px; border: 0; font-size: 14px; }
+    .good-pill-high { background-color: rgb(20, 20, 25); color: rgb(245, 240, 232); display: inline-block; padding: 9px 18px; border-radius: 999px; font-weight: 500; font-size: 14px; text-decoration: none; }
+    .inline-link-low { color: rgb(170, 170, 170); }
   </style>
 </head>
 <body>
@@ -57,6 +61,10 @@
 
       <h3>AI color palette</h3>
       <h1 style="color: rgb(139, 92, 246); font-size: 1.5rem; margin: 0;">Purple heading text</h1>
+
+      <h3>Styled &lt;a&gt; and &lt;button&gt; with low contrast</h3>
+      <a href="#" class="styled-pill-low" data-test="styled-pill">Get started</a>
+      <button class="low-contrast-button" data-test="low-contrast-button">Submit</button>
 
       <h3>Tailwind color anti-patterns</h3>
       <div class="bg-black text-white p-4 rounded card" style="background: black; color: white;">
@@ -117,6 +125,12 @@
       <div class="bg-black/50 p-4 rounded card" data-test="bg-black-half-opacity" style="background: rgba(0,0,0,0.5);">
         <p style="color: white;">bg-black/50 — 50% opacity, not pure black</p>
       </div>
+
+      <h3>Inline &lt;a&gt; without own background (must remain skipped)</h3>
+      <p>Read more about this <a href="#" class="inline-link-low" data-test="inline-link">here</a> if you want to learn more about the topic.</p>
+
+      <h3>Styled &lt;a&gt; with good contrast (must not flag)</h3>
+      <a href="#" class="good-pill-high" data-test="good-pill">High contrast pill</a>
 
       <h3>Emoji on light backgrounds</h3>
       <!-- Emojis render as multicolor glyphs regardless of CSS color, so the

@@ -64,11 +64,18 @@ export function parseFrontmatter(content) {
         const value = trimmed.slice(colonIndex + 1).trim();
 
         if (value) {
-          // Strip YAML quotes
-          const unquoted = (value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))
-            ? value.slice(1, -1)
-            : value;
-          frontmatter[key] = unquoted === 'true' ? true : unquoted === 'false' ? false : unquoted;
+          const isQuoted = /^(".*"|'.*')$/.test(value);
+          const unquotedValue = isQuoted ? value.slice(1, -1) : value;
+          const shouldCoerceBoolean =
+            key === 'user-invocable' || key === 'user-invokable' || !isQuoted;
+
+          frontmatter[key] = shouldCoerceBoolean
+            ? unquotedValue === 'true'
+              ? true
+              : unquotedValue === 'false'
+                ? false
+                : unquotedValue
+            : unquotedValue;
           currentKey = key;
           currentArray = null;
         } else {
