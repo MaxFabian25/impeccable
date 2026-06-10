@@ -380,6 +380,15 @@ describe('detectHtml — repeated-section-kickers', () => {
     'Figure Caption Label',
     'Normal Case Kicker',
     'Intentional Brand Label',
+    'Garden Suite',
+    'Sea Loft',
+    'Cliff Suite',
+    '$typeset',
+    '$layout',
+    '$colorize',
+    'Mockup Hero Variant One',
+    'Mockup Hero Variant Two',
+    'Mockup Hero Variant Three',
   ];
 
   it('repeated-section-kickers: flags only repeated section scaffolding', async () => {

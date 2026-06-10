@@ -106,7 +106,7 @@ if (browserUrlScanningAvailable) {
       //   6. 24px heading / 8px all sides        — H fail (improvement over old 8px floor)
       //   7. 32px hero / 6px V / 16px H          — V fail
       //   8. 14px <pre> / 2px all sides          — both fail
-      // Pass column has 12 cases (small pills, standard cards, code blocks,
+      // Pass column has 13 cases (small pills, standard cards, code blocks,
       // buttons, inputs, big text with proportional padding) — none should fire.
       assert.equal(cramped.length, 8, `expected 8 cramped-padding findings, got ${cramped.length}`);
     });

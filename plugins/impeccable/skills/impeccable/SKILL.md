@@ -74,6 +74,7 @@ Always apply these — do not consult a reference, just do them:
 - Use fewer sizes with more contrast. A 5-step scale with at least a 1.25 ratio between steps creates clearer hierarchy than 8 sizes that are 1.1× apart.
 - Line-height scales inversely with line length. Narrow columns want tighter leading, wide columns want more. For light text on dark backgrounds, ADD 0.05-0.1 to your normal line-height — light type reads as lighter weight and needs more breathing room.
 - Cap line length at ~65-75ch. Body text wider than that is fatiguing.
+- Use `text-wrap: balance` on h1-h3 for even heading line lengths; use `text-wrap: pretty` on long prose to reduce orphans.
 </typography_principles>
 
 <font_selection_procedure>

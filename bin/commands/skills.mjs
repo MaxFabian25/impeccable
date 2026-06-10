@@ -7,7 +7,6 @@
  * - optionally prefixes command names after install/update
  */
 
-import { execSync } from 'node:child_process';
 import {
   existsSync,
   readFileSync,
@@ -25,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { get } from 'node:https';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
+import extract from 'extract-zip';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = join(__dirname, '..', '..');
@@ -346,7 +346,7 @@ async function downloadAndExtractBundle(bundleName = 'codex') {
   const extractDir = join(tmpdir(), `impeccable-${bundleName}-${stamp}`);
   await downloadFile(`${API_BASE}/api/download/bundle/${bundleName}`, zipPath);
   mkdirSync(extractDir, { recursive: true });
-  execSync(`unzip -qo "${zipPath}" -d "${extractDir}"`, { encoding: 'utf8' });
+  await extract(zipPath, { dir: extractDir });
   rmSync(zipPath, { force: true });
   return extractDir;
 }

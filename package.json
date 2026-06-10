@@ -59,6 +59,7 @@
   },
   "dependencies": {
     "agent-browser": "^0.25.3",
+    "extract-zip": "^2.0.1",
     "jsdom": "^29.0.0",
     "marked": "^16.1.0"
   },

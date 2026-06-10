@@ -33,6 +33,7 @@ extension/detector/
 
 # User design context
 .impeccable.md
+.impeccable/hook.cache.json
 
 # Evals (private, commercial)
 evals/

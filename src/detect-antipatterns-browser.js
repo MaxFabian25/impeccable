@@ -1278,11 +1278,16 @@ function parseAnyColor(s) {
       };
     }
   }
-  m = str.match(/oklch\(\s*([\d.]+)(%?)\s*[\s,]*\s*([\d.]+)\s*[\s,]+\s*([-\d.]+)(?:deg)?\s*\)/i);
+  m = str.match(/oklch\(\s*([\d.]+)(%?)\s*[\s,]*\s*([\d.]+)\s*[\s,]+\s*([-\d.]+)(?:deg)?(?:\s*\/\s*([\d.]+)(%)?)?\s*\)/i);
   if (m) {
     const Lnum = parseFloat(m[1]);
     const L = m[2] === '%' ? Lnum / 100 : Lnum;
-    return oklchToRgb(L, parseFloat(m[3]), parseFloat(m[4]));
+    const rgb = oklchToRgb(L, parseFloat(m[3]), parseFloat(m[4]));
+    if (m[5] !== undefined) {
+      const alpha = parseFloat(m[5]);
+      rgb.a = m[6] === '%' ? alpha / 100 : alpha;
+    }
+    return rgb;
   }
   return null;
 }
@@ -1306,9 +1311,19 @@ const REPEATED_KICKER_SKIP_SELECTOR = [
   'ul',
   'li',
   '[role="navigation"]',
+  '[aria-hidden="true"]',
   '[aria-label*="breadcrumb" i]',
   '[class*="breadcrumb" i]',
   '[data-impeccable-allow-kickers]',
+].join(',');
+
+const REPEATED_KICKER_CARD_CONTEXT_SELECTOR = [
+  'article',
+  'button',
+  'a',
+  'li',
+  '[role="listitem"]',
+  '[role="option"]',
 ].join(',');
 
 function cleanInlineText(el) {
@@ -1333,6 +1348,7 @@ function isRepeatedKickerCandidate(opts) {
   } = opts;
   if (!['h2', 'h3', 'h4'].includes(headingTag)) return false;
   if (!headingText || headingText.length < 3) return false;
+  if (/^(?:\/|\$)[\w-]+/i.test(headingText.replace(/^"|"$/g, '').trim())) return false;
   if (!(headingFontSize >= 20)) return false;
   if (!kickerTag || HEADING_TAGS.has(kickerTag)) return false;
   if (!['p', 'span', 'div', 'small'].includes(kickerTag)) return false;
@@ -1348,12 +1364,18 @@ function isRepeatedKickerCandidate(opts) {
   return true;
 }
 
+function isRepeatedKickerCardContext(heading, kicker) {
+  const item = heading.closest?.(REPEATED_KICKER_CARD_CONTEXT_SELECTOR);
+  return Boolean(item && (!item.contains || item.contains(kicker)));
+}
+
 function collectRepeatedSectionKickerCandidates(doc, getStyle, resolveCssLength) {
   const candidates = [];
   for (const heading of doc.querySelectorAll('h2, h3, h4')) {
     if (heading.closest?.(REPEATED_KICKER_SKIP_SELECTOR)) continue;
     const kicker = heading.previousElementSibling;
     if (!kicker || kicker.closest?.(REPEATED_KICKER_SKIP_SELECTOR)) continue;
+    if (isRepeatedKickerCardContext(heading, kicker)) continue;
 
     const headingStyle = getStyle(heading);
     const kickerStyle = getStyle(kicker);
@@ -1536,6 +1558,68 @@ function resolveLengthPx(value, fontSizePx) {
   return num * fontSizePx;
 }
 
+function cssColorIsTransparent(value) {
+  if (!value) return true;
+  const str = String(value).trim().toLowerCase();
+  if (!str || str === 'transparent' || str === 'rgba(0, 0, 0, 0)') return true;
+  const parsed = parseAnyColor(str);
+  if (parsed) return (parsed.a ?? 1) <= 0.05;
+  return /^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0(?:\.0+)?\s*\)$/.test(str);
+}
+
+function colorsNearlyMatch(a, b) {
+  const ca = parseAnyColor(a);
+  const cb = parseAnyColor(b);
+  if (!ca || !cb) return false;
+  const alphaDelta = Math.abs((ca.a ?? 1) - (cb.a ?? 1));
+  const channelDelta = Math.max(
+    Math.abs(ca.r - cb.r),
+    Math.abs(ca.g - cb.g),
+    Math.abs(ca.b - cb.b),
+  );
+  return alphaDelta <= 0.03 && channelDelta <= 3;
+}
+
+function getComputedStyleFor(win, el) {
+  try {
+    if (win?.getComputedStyle) return win.getComputedStyle(el);
+    if (typeof getComputedStyle === 'function') return getComputedStyle(el);
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function hasVisibleBackgroundBoundary(style, el, win) {
+  const bg = style?.backgroundColor || '';
+  if (cssColorIsTransparent(bg)) return false;
+
+  let parent = el?.parentElement || null;
+  while (parent) {
+    const parentStyle = getComputedStyleFor(win, parent);
+    const parentBg = parentStyle?.backgroundColor || '';
+    if (!cssColorIsTransparent(parentBg)) return !colorsNearlyMatch(bg, parentBg);
+    parent = parent.parentElement;
+  }
+
+  return true;
+}
+
+function isRenderedForBrowserRule(el) {
+  const getStyle = typeof getComputedStyle === 'function' ? getComputedStyle : null;
+  if (!getStyle) return true;
+  for (let cur = el; cur && cur.nodeType === 1; cur = cur.parentElement) {
+    if (cur.getAttribute?.('aria-hidden') === 'true') return false;
+    const style = getStyle(cur);
+    const visibility = String(style.visibility || '').toLowerCase();
+    if (style.display === 'none' || visibility === 'hidden' || visibility === 'collapse') return false;
+    const opacity = parseFloat(style.opacity);
+    if (Number.isFinite(opacity) && opacity <= 0.01) return false;
+    if (String(style.contentVisibility || '').toLowerCase() === 'hidden') return false;
+  }
+  return true;
+}
+
 // Pure quality checks. Most run on computed CSS and DOM-only inputs (work in
 // jsdom and the browser). Two checks (line-length, cramped-padding) gate on
 // element rect dimensions, which jsdom can't compute — pass `rect: null` from
@@ -1544,11 +1628,16 @@ function resolveLengthPx(value, fontSizePx) {
 // Both adapters resolve font-size, line-height and letter-spacing to pixels
 // before calling this so the pure function only deals with numbers.
 function checkQuality(opts) {
-  const { el, tag, style, hasDirectText, textLen, fontSize, lineHeightPx, letterSpacingPx, rect, lineMax = 80, viewportWidth = 0 } = opts;
+  const { el, tag, style, hasDirectText, textLen, fontSize, lineHeightPx, letterSpacingPx, rect, lineMax = 80, viewportWidth = 0, win = null } = opts;
   const findings = [];
   // Skip browser extension injected elements
   const elId = el.id || '';
   if (elId.startsWith('claude-') || elId.startsWith('cic-')) return findings;
+  if (el.closest?.('[aria-hidden="true"]')) return findings;
+  const visibility = String(style.visibility || '').toLowerCase();
+  if (style.display === 'none' || visibility === 'hidden' || visibility === 'collapse') return findings;
+  const opacity = parseFloat(style.opacity);
+  if (Number.isFinite(opacity) && opacity <= 0.01) return findings;
 
   // --- Line length too long --- (browser-only: needs rect.width)
   if (rect && hasDirectText && QUALITY_TEXT_TAGS.has(tag) && rect.width > 0 && textLen > lineMax) {
@@ -1565,7 +1654,8 @@ function checkQuality(opts) {
   // font-size — bigger text demands proportionally more padding.
   //   vertical:   max(4px, fontSize × 0.3)
   //   horizontal: max(8px, fontSize × 0.5)
-  if (rect && hasDirectText && textLen > 20 && rect.width > 100 && rect.height > 30) {
+  const isInlineCode = tag === 'code' && !(el.closest && el.closest('pre'));
+  if (!isInlineCode && rect && hasDirectText && textLen > 20 && rect.width > 100 && rect.height > 30) {
     const borders = {
       top: parseFloat(style.borderTopWidth) || 0,
       right: parseFloat(style.borderRightWidth) || 0,
@@ -1573,7 +1663,7 @@ function checkQuality(opts) {
       left: parseFloat(style.borderLeftWidth) || 0,
     };
     const borderCount = Object.values(borders).filter(w => w > 0).length;
-    const hasBg = style.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)';
+    const hasBg = hasVisibleBackgroundBoundary(style, el, win);
     if (borderCount >= 2 || hasBg) {
       const vPads = [], hPads = [];
       if (hasBg || borders.top > 0) vPads.push(parseFloat(style.paddingTop) || 0);
@@ -1634,7 +1724,7 @@ function checkQuality(opts) {
   // Only flag actual body content, not UI labels (buttons, tabs, badges, captions, footer text, etc.)
   if (hasDirectText && textLen > 20 && fontSize < 12) {
     const skipTags = ['sub', 'sup', 'code', 'kbd', 'samp', 'var', 'caption', 'figcaption'];
-    const inUIContext = el.closest && el.closest('button, a, label, summary, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="option"], nav, footer, [class*="badge" i], [class*="chip" i], [class*="pill" i], [class*="tag" i], [class*="label" i], [class*="caption" i]');
+    const inUIContext = el.closest && el.closest('button, a, label, summary, pre, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="option"], nav, footer, [aria-hidden="true"], [class*="badge" i], [class*="caption" i], [class*="chip" i], [class*="code" i], [class*="console" i], [class*="diff" i], [class*="label" i], [class*="meta" i], [class*="mock" i], [class*="pill" i], [class*="preview" i], [class*="tag" i], [class*="terminal" i], [class*="writes" i]');
     const isUppercase = style.textTransform === 'uppercase';
     if (!skipTags.includes(tag) && !inUIContext && !isUppercase) {
       findings.push({ id: 'tiny-text', snippet: `${fontSize}px body text` });
@@ -1662,6 +1752,7 @@ function checkQuality(opts) {
 }
 
 function checkElementQualityDOM(el) {
+  if (!isRenderedForBrowserRule(el)) return [];
   const tag = el.tagName.toLowerCase();
   const style = getComputedStyle(el);
   const hasDirectText = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 10);
@@ -1674,7 +1765,7 @@ function checkElementQualityDOM(el) {
   const rect = el.getBoundingClientRect();
   const lineMax = (typeof window !== 'undefined' && window.__IMPECCABLE_CONFIG__?.lineLengthMax) || 80;
   const viewportWidth = (typeof window !== 'undefined' ? window.innerWidth : 0) || 0;
-  return checkQuality({ el, tag, style, hasDirectText, textLen, fontSize, lineHeightPx, letterSpacingPx, rect, lineMax, viewportWidth });
+  return checkQuality({ el, tag, style, hasDirectText, textLen, fontSize, lineHeightPx, letterSpacingPx, rect, lineMax, viewportWidth, win: window });
 }
 
 // Pure page-level skipped-heading walk. Takes a Document so it works in both
@@ -1716,7 +1807,7 @@ function checkElementQuality(el, style, tag, window) {
   const fontSize = resolveFontSizePx(el, window);
   const lineHeightPx = resolveLengthPx(style.lineHeight, fontSize);
   const letterSpacingPx = resolveLengthPx(style.letterSpacing, fontSize);
-  return checkQuality({ el, tag, style, hasDirectText, textLen, fontSize, lineHeightPx, letterSpacingPx, rect: null });
+  return checkQuality({ el, tag, style, hasDirectText, textLen, fontSize, lineHeightPx, letterSpacingPx, rect: null, win: window });
 }
 
 function checkElementBorders(tag, style, overrides) {
@@ -2768,6 +2859,7 @@ if (IS_BROWSER) {
       if (elId.startsWith('claude-') || elId.startsWith('cic-')) continue;
       // Skip html/body -- page-level findings go in the banner, not a full-page overlay
       if (el === document.body || el === document.documentElement) continue;
+      if (!isRenderedForBrowserRule(el)) continue;
 
       const findings = [
         ...checkElementBordersDOM(el).map(f => ({ type: f.id, detail: f.snippet })),

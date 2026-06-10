@@ -69,6 +69,51 @@
     .brand-system {
       min-height: 120px;
     }
+    .card-grid,
+    .command-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 0 0 24px;
+    }
+    .suite-card,
+    .command-card {
+      display: block;
+      min-height: 120px;
+      padding: 16px;
+      border: 1px solid #d8cec0;
+      background: #fff;
+      text-align: left;
+    }
+    .taxonomy-label {
+      display: block;
+      margin: 0 0 8px;
+      font-size: 12px;
+      line-height: 16px;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: #5b5046;
+    }
+    .suite-card h3,
+    .command-card h3 {
+      font-size: 24px;
+      line-height: 30px;
+    }
+    .hidden-mockup {
+      display: grid;
+      gap: 12px;
+      margin: 0 0 24px;
+    }
+    .mockup-hero {
+      min-height: 120px;
+      padding: 16px;
+      border: 1px solid #d8cec0;
+      background: #fff;
+    }
+    .mockup-hero h2 {
+      font-size: 24px;
+      line-height: 30px;
+    }
   </style>
 </head>
 <body>
@@ -140,6 +185,54 @@
         <h2>"Intentional Brand Label"</h2>
         <p>Deliberate brand systems can opt out with an explicit marker.</p>
       </section>
+
+      <div class="card-grid">
+        <article class="suite-card">
+          <span class="taxonomy-label">Suite</span>
+          <h3>"Garden Suite"</h3>
+          <p>Repeated taxonomy labels inside cards are ordinary item metadata.</p>
+        </article>
+        <article class="suite-card">
+          <span class="taxonomy-label">Suite</span>
+          <h3>"Sea Loft"</h3>
+          <p>Card lists can repeat their item type without becoming page scaffolding.</p>
+        </article>
+        <article class="suite-card">
+          <span class="taxonomy-label">Suite</span>
+          <h3>"Cliff Suite"</h3>
+          <p>The surrounding article context keeps this out of the section-kicker rule.</p>
+        </article>
+      </div>
+
+      <div class="command-grid">
+        <button class="command-card" type="button">
+          <span class="taxonomy-label">Refine</span>
+          <h3>"$typeset"</h3>
+        </button>
+        <button class="command-card" type="button">
+          <span class="taxonomy-label">Refine</span>
+          <h3>"$layout"</h3>
+        </button>
+        <button class="command-card" type="button">
+          <span class="taxonomy-label">Refine</span>
+          <h3>"$colorize"</h3>
+        </button>
+      </div>
+
+      <div class="hidden-mockup" aria-hidden="true">
+        <section class="mockup-hero">
+          <span class="taxonomy-label">Amalfi Coast</span>
+          <h2>"Mockup Hero Variant One"</h2>
+        </section>
+        <section class="mockup-hero">
+          <span class="taxonomy-label">Amalfi Coast</span>
+          <h2>"Mockup Hero Variant Two"</h2>
+        </section>
+        <section class="mockup-hero">
+          <span class="taxonomy-label">Amalfi Coast</span>
+          <h2>"Mockup Hero Variant Three"</h2>
+        </section>
+      </div>
     </section>
   </main>
 </body>
