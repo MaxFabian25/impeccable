@@ -11,8 +11,8 @@
  * What it does:
  *   1. Finds the Codex plugin skills directory (`skills`).
  *   2. For each deprecated skill name (with and without i- prefix),
- *      checks if the directory exists and its SKILL.md mentions
- *      "impeccable" (to avoid deleting unrelated user skills).
+ *      checks the lockfile first, then falls back to SKILL.md content
+ *      to avoid deleting unrelated user skills.
  *   3. Deletes confirmed matches (files, directories, or symlinks).
  *   4. Removes the corresponding entries from skills-lock.json.
  */
@@ -58,11 +58,31 @@ export function findProjectRoot(startDir = process.cwd()) {
 }
 
 /**
- * Check whether a skill directory belongs to Impeccable by reading its
- * SKILL.md and looking for the word "impeccable" (case-insensitive).
+ * Load skills-lock.json when it exists and is valid.
+ */
+export function loadLock(projectRoot) {
+  const lockPath = join(projectRoot, 'skills-lock.json');
+  if (!existsSync(lockPath)) return null;
+
+  try {
+    const lock = JSON.parse(readFileSync(lockPath, 'utf-8'));
+    return lock && typeof lock === 'object' ? lock : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check whether a skill directory belongs to Impeccable. A matching
+ * skills-lock.json source is authoritative; SKILL.md content is the
+ * fallback for older installs without a lock entry.
  * Returns false for non-existent paths or skills that don't match.
  */
-export function isImpeccableSkill(skillDir) {
+export function isImpeccableSkill(skillDir, { skillName, lock } = {}) {
+  if (skillName && lock?.skills?.[skillName]?.source === IMPECCABLE_SOURCE) {
+    return true;
+  }
+
   const skillMd = join(skillDir, 'SKILL.md');
   if (!existsSync(skillMd)) return false;
   try {
@@ -102,6 +122,7 @@ export function findSkillsDirs(projectRoot) {
 export function removeDeprecatedSkills(projectRoot) {
   const targets = buildTargetNames();
   const skillsDirs = findSkillsDirs(projectRoot);
+  const lock = loadLock(projectRoot);
   const deleted = [];
 
   for (const skillsDir of skillsDirs) {
@@ -121,7 +142,7 @@ export function removeDeprecatedSkills(projectRoot) {
         // Symlink: check the target if it's alive, otherwise treat
         // dangling symlinks to deprecated names as safe to remove.
         const targetAlive = existsSync(skillPath);
-        const isMatch = targetAlive ? isImpeccableSkill(skillPath) : true;
+        const isMatch = targetAlive ? isImpeccableSkill(skillPath, { skillName: name, lock }) : true;
         if (isMatch) {
           unlinkSync(skillPath);
           deleted.push(skillPath);
@@ -130,7 +151,7 @@ export function removeDeprecatedSkills(projectRoot) {
       }
 
       // Regular directory -- verify it belongs to impeccable
-      if (isImpeccableSkill(skillPath)) {
+      if (isImpeccableSkill(skillPath, { skillName: name, lock })) {
         rmSync(skillPath, { recursive: true, force: true });
         deleted.push(skillPath);
       }
@@ -147,16 +168,9 @@ export function removeDeprecatedSkills(projectRoot) {
  */
 export function cleanSkillsLock(projectRoot) {
   const lockPath = join(projectRoot, 'skills-lock.json');
-  if (!existsSync(lockPath)) return [];
+  const lock = loadLock(projectRoot);
 
-  let lock;
-  try {
-    lock = JSON.parse(readFileSync(lockPath, 'utf-8'));
-  } catch {
-    return [];
-  }
-
-  if (!lock.skills || typeof lock.skills !== 'object') return [];
+  if (!lock?.skills || typeof lock.skills !== 'object') return [];
 
   const targets = buildTargetNames();
   const removed = [];
