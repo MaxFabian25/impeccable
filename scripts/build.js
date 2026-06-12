@@ -259,6 +259,87 @@ function validateProse(rootDir) {
 }
 
 /**
+ * Narrow prose check for the impeccable skill source.
+ *
+ * LLM-facing reference instructions legitimately use repetition and checklists,
+ * so the public-copy validator would be too broad here. This guard enforces
+ * only the mechanical wins: em dashes, double-hyphen substitutes, and the small
+ * denylist phrases with no useful technical reading.
+ *
+ * Returns the number of occurrences found.
+ */
+function validateSkillProse(rootDir) {
+  const target = 'source/skills/impeccable';
+  const extensions = new Set(['.md']);
+  const emDashPatterns = [/—/g, /&mdash;/gi, /&#8212;/gi, /&#x2014;/gi];
+  const phraseRules = [
+    { re: /\bload-bearing\b/i, rationale: 'AI tell. Name what the thing actually does.' },
+    { re: /\bhighest-leverage\b/i, rationale: 'AI tell. Say what specifically pays off.' },
+    { re: /\bbiggest unlock\b/i, rationale: 'Marketing-speak. Describe the actual change.' },
+    { re: /\breflex defaults?\b/i, rationale: 'Internal jargon. Say "instincts" or "first guesses".' },
+    { re: /\bcollapses? into monoculture\b/i, rationale: 'Eval-speak. Describe what actually went wrong.' },
+    { re: /\bdata-driven\b/i, rationale: 'Empty marketing adjective. Cite the data instead.' },
+    { re: /\bdelves?\b|\bdelved\b|\bdelving\b/i, rationale: 'Top AI tell. Use "explore" or "look at".' },
+    { re: /\btapestry\b/i, rationale: 'AI scenery noun. Cut.' },
+    { re: /\bin today's\b/i, rationale: 'Throat-clearing opener. Start at the point.' },
+    { re: /\bgone are the days\b/i, rationale: 'Throat-clearing. Make the point directly.' },
+    { re: /\blet's dive in\b/i, rationale: 'Throat-clearing. Just start.' },
+    { re: /\bin summary\b|\bin conclusion\b/i, rationale: 'Summarizing closer. End on the strongest sentence.' },
+  ];
+  let errors = 0;
+
+  const checkLine = (line, rel, lineNum) => {
+    for (const re of emDashPatterns) {
+      if (re.test(line)) {
+        console.error(`  ❌ ${rel}:${lineNum}: em dash in skill source → ${line.trim().slice(0, 120)}`);
+        console.error('        Use commas, colons, semicolons, periods, or parentheses.');
+        errors++;
+        re.lastIndex = 0;
+        break;
+      }
+      re.lastIndex = 0;
+    }
+    if (/ -- /.test(line)) {
+      console.error(`  ❌ ${rel}:${lineNum}: \` -- \` em-dash substitute → ${line.trim().slice(0, 120)}`);
+      console.error('        Pick real punctuation.');
+      errors++;
+    }
+    for (const rule of phraseRules) {
+      if (rule.re.test(line)) {
+        const matched = line.match(rule.re)?.[0] ?? '';
+        console.error(`  ❌ ${rel}:${lineNum}: "${matched}" → ${line.trim().slice(0, 120)}`);
+        console.error(`        ${rule.rationale}`);
+        errors++;
+      }
+    }
+  };
+
+  const scan = (absPath, rel) => {
+    const stat = fs.statSync(absPath);
+    if (stat.isDirectory()) {
+      for (const entry of fs.readdirSync(absPath)) {
+        scan(path.join(absPath, entry), path.join(rel, entry));
+      }
+      return;
+    }
+    if (!extensions.has(path.extname(absPath))) return;
+    const src = fs.readFileSync(absPath, 'utf-8');
+    const lines = src.split('\n');
+    lines.forEach((line, i) => checkLine(line, rel, i + 1));
+  };
+
+  const full = path.join(rootDir, target);
+  if (fs.existsSync(full)) scan(full, target);
+
+  if (errors === 0) {
+    console.log('✓ Skill prose validator: source/skills/impeccable/ is clean');
+  } else {
+    console.error(`\n❌ ${errors} prose issue(s) in source/skills/impeccable/. See STYLE.md.`);
+  }
+  return errors;
+}
+
+/**
  * Validate that every hand-authored HTML page carries the shared site header.
  * The partial is stamped with `<!-- site-header v1 -->` so drift is loud.
  *
@@ -529,7 +610,10 @@ async function build() {
   // Scan user-facing copy for AI tells (em dashes, marketing fluff, denylisted phrases)
   const proseErrors = validateProse(ROOT_DIR);
 
-  if (countErrors > 0 || validationErrors > 0 || headerErrors > 0 || proseErrors > 0) {
+  // Scan canonical skill source for mechanical prose drift
+  const skillProseErrors = validateSkillProse(ROOT_DIR);
+
+  if (countErrors > 0 || validationErrors > 0 || headerErrors > 0 || proseErrors > 0 || skillProseErrors > 0) {
     process.exit(1);
   }
 

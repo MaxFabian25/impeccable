@@ -27,7 +27,7 @@ Editorial has permission to use Committed, Full palette, and Drenched color stra
 
 - Name a real reference before picking a strategy: a type foundry specimen page, a magazine feature, a fashion campaign, a concert poster, a museum identity.
 - Treat palette as voice. A calm site and a restless site should not share the same palette mechanics.
-- When the strategy is Committed or Drenched, color is load-bearing. Do not hedge with neutral edges everywhere.
+- When the strategy is Committed or Drenched, color carries the surface. Do not hedge with neutral edges everywhere.
 - If the last editorial project used restrained cream and slate, this one should not reflexively do the same.
 
 ## Layout

@@ -121,11 +121,11 @@ Then implement working code that is:
 Choose fonts that are beautiful, unique, and interesting. Pair a distinctive display font with a refined body font.
 
 <typography_principles>
-Always apply these — do not consult a reference, just do them:
+Always apply these: do not consult a reference, just do them:
 
 - Use a modular type scale with fluid sizing (clamp) for headings on marketing/content pages. Use fixed `rem` scales for app UIs and dashboards (no major design system uses fluid type in product UI).
 - Use fewer sizes with more contrast. A 5-step scale with at least a 1.25 ratio between steps creates clearer hierarchy than 8 sizes that are 1.1× apart.
-- Line-height scales inversely with line length. Narrow columns want tighter leading, wide columns want more. For light text on dark backgrounds, ADD 0.05-0.1 to your normal line-height — light type reads as lighter weight and needs more breathing room.
+- Line-height scales inversely with line length. Narrow columns want tighter leading, wide columns want more. For light text on dark backgrounds, ADD 0.05-0.1 to your normal line-height: light type reads as lighter weight and needs more breathing room.
 - Cap line length at ~65-75ch. Body text wider than that is fatiguing.
 - Use `text-wrap: balance` on h1-h3 for even heading line lengths; use `text-wrap: pretty` on long prose to reduce orphans.
 </typography_principles>
@@ -135,7 +135,7 @@ DO THIS BEFORE TYPING ANY FONT NAME.
 
 The model's natural failure mode is "I was told not to use Inter, so I will pick my next favorite font, which becomes the new monoculture." Avoid this by performing the following procedure on every project, in order:
 
-Step 1. Read the brief once. Write down 3 concrete words for the brand voice (e.g., "warm and mechanical and opinionated", "calm and clinical and careful", "fast and dense and unimpressed", "handmade and a little weird"). NOT "modern" or "elegant" — those are dead categories.
+Step 1. Read the brief once. Write down 3 concrete words for the brand voice (e.g., "warm and mechanical and opinionated", "calm and clinical and careful", "fast and dense and unimpressed", "handmade and a little weird"). NOT "modern" or "elegant": those are dead categories.
 
 Step 2. List the 3 fonts you would normally reach for given those words. Write them down. They are most likely from this list:
 
@@ -167,7 +167,7 @@ Instrument Serif
 
 Reject every font that appears in the reflex_fonts_to_reject list. They are your training-data defaults and they create monoculture across projects.
 
-Step 3. Browse a font catalog with the 3 brand words in mind. Sources: Google Fonts, Pangram Pangram, Future Fonts, Adobe Fonts, ABC Dinamo, Klim Type Foundry, Velvetyne. Look for something that fits the brand as a *physical object* — a museum exhibit caption, a hand-painted shop sign, a 1970s mainframe terminal manual, a fabric label on the inside of a coat, a children's book printed on cheap newsprint. Reject the first thing that "looks designy" — that's the trained reflex too. Keep looking.
+Step 3. Browse a font catalog with the 3 brand words in mind. Sources: Google Fonts, Pangram Pangram, Future Fonts, Adobe Fonts, ABC Dinamo, Klim Type Foundry, Velvetyne. Look for something that fits the brand as a *physical object*: a museum exhibit caption, a hand-painted shop sign, a 1970s mainframe terminal manual, a fabric label on the inside of a coat, a children's book printed on cheap newsprint. Reject the first thing that "looks designy": that's the trained reflex too. Keep looking.
 
 Step 4. Cross-check the result. The right font for an "elegant" brief is NOT necessarily a serif. The right font for a "technical" brief is NOT necessarily a sans-serif. The right font for a "warm" brief is NOT Fraunces. If your final pick lines up with your reflex pattern, go back to Step 3.
 </font_selection_procedure>
@@ -177,7 +177,7 @@ DO use a modular type scale with fluid sizing (clamp) on headings.
 DO vary font weights and sizes to create clear visual hierarchy.
 DO vary your font choices across projects. If you used a serif display font on the last project, look for a sans, monospace, or display face on this one.
 
-DO NOT use overused fonts like Inter, Roboto, Arial, Open Sans, or system defaults — but also do not simply switch to your second-favorite. Every font in the reflex_fonts_to_reject list above is banned. Look further.
+DO NOT use overused fonts like Inter, Roboto, Arial, Open Sans, or system defaults. Do not simply switch to your second-favorite. Every font in the reflex_fonts_to_reject list above is banned. Look further.
 DO NOT use monospace typography as lazy shorthand for "technical/developer" vibes.
 DO NOT put large icons with rounded corners above every heading. They rarely add value and make sites look templated.
 DO NOT use an oversized italic serif as the hero headline unless the brand explicitly demands that editorial register.
@@ -203,9 +203,9 @@ Pick one explicit color strategy before writing CSS:
 Editorial surfaces can use Committed, Full palette, or Drenched when the reference and audience justify it. Product surfaces default to Restrained unless a specific screen earns more color, such as onboarding, an empty state, a report cover, or a brand moment inside the product.
 
 <color_principles>
-Always apply these — do not consult a reference, just do them:
+Always apply these: do not consult a reference, just do them:
 
-- Use OKLCH, not HSL. OKLCH is perceptually uniform: equal steps in lightness *look* equal, which HSL does not deliver. As you move toward white or black, REDUCE chroma — high chroma at extreme lightness looks garish. A light blue at 85% lightness wants ~0.08 chroma, not the 0.15 of your base color.
+- Use OKLCH, not HSL. OKLCH is perceptually uniform: equal steps in lightness *look* equal, which HSL does not deliver. As you move toward white or black, REDUCE chroma: high chroma at extreme lightness looks garish. A light blue at 85% lightness wants ~0.08 chroma, not the 0.15 of your base color.
 - Tint your neutrals toward your brand hue. Even a chroma of 0.005-0.01 is perceptible and creates subconscious cohesion between brand color and UI surfaces. The hue you tint toward should come from THIS brand, not from a "warm = friendly" or "cool = tech" formula. Pick the brand's actual hue first, then tint everything toward it.
 - The 60-30-10 rule is about visual *weight*, not pixel count. 60% neutral / surface, 30% secondary text and borders, 10% accent. Accents work BECAUSE they're rare. Overuse kills their power.
 </color_principles>
@@ -232,7 +232,7 @@ DO tint your neutrals toward your brand hue. Even a subtle hint creates subconsc
 DO NOT use gray text on colored backgrounds; it looks washed out. Use a shade of the background color instead.
 DO NOT use pure black (#000) or pure white (#fff). Always tint; pure black/white never appears in nature.
 DO NOT use the AI color palette: cyan-on-dark, purple-to-blue gradients, neon accents on dark backgrounds.
-DO NOT use gradient text for impact — see <absolute_bans> below for the strict definition. Solid colors only for text.
+DO NOT use gradient text for impact: see <absolute_bans> below for the strict definition. Solid colors only for text.
 DO NOT default to dark mode with glowing accents. It looks "cool" without requiring actual design decisions.
 DO NOT default to light mode "to be safe" either. The point is to choose, not to retreat to a safe option.
 </color_rules>
@@ -243,11 +243,11 @@ DO NOT default to light mode "to be safe" either. The point is to choose, not to
 Create visual rhythm through varied spacing, not the same padding everywhere. Embrace asymmetry and unexpected compositions. Break the grid intentionally for emphasis.
 
 <spatial_principles>
-Always apply these — do not consult a reference, just do them:
+Always apply these: do not consult a reference, just do them:
 
-- Use a 4pt spacing scale with semantic token names (`--space-sm`, `--space-md`), not pixel-named (`--spacing-8`). Scale: 4, 8, 12, 16, 24, 32, 48, 64, 96. 8pt is too coarse — you'll often want 12px between two values.
+- Use a 4pt spacing scale with semantic token names (`--space-sm`, `--space-md`), not pixel-named (`--spacing-8`). Scale: 4, 8, 12, 16, 24, 32, 48, 64, 96. 8pt is too coarse: you'll often want 12px between two values.
 - Use `gap` instead of margins for sibling spacing. It eliminates margin collapse and the cleanup hacks that come with it.
-- Vary spacing for hierarchy. A heading with extra space above it reads as more important — make use of that. Don't apply the same padding everywhere.
+- Vary spacing for hierarchy. A heading with extra space above it reads as more important: make use of that. Don't apply the same padding everywhere.
 - Self-adjusting grid pattern: `grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))` is the breakpoint-free responsive grid for card-style content.
 - Container queries are for components, viewport queries are for page layout. A card in a sidebar should adapt to the sidebar's width, not the viewport's.
 </spatial_principles>
