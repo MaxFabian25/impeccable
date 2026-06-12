@@ -335,6 +335,21 @@ Make interactions feel fast. Use optimistic UI: update immediately, sync later.
 
 A distinctive interface should make someone ask "how was this made?" not "which AI made this?"
 
+### Category-Reflex Check
+
+Run this at two altitudes. The second catches what the first misses.
+
+- **First-order:** if someone could guess the theme and palette from the category alone, such as "observability -> dark blue", "healthcare -> white + teal", "finance -> navy + gold", or "crypto -> neon on black", it is the first training-data reflex. Rework the scene sentence and color strategy until the answer is not obvious from the domain.
+- **Second-order:** if someone could guess the aesthetic family from category plus anti-references, such as "AI workflow tool that is not SaaS cream -> editorial-typographic" or "fintech that is not navy and gold -> terminal-native dark mode", it is the trap one tier deeper. The first reflex was avoided; the second was not. Rework until both answers are not obvious.
+
+### Reflex-Reject Aesthetic Lanes
+
+Parallel to the font list: currently saturated aesthetic families that have flooded brand surfaces. If a brief lands in one of these lanes without a register reason that requires it, such as a literal magazine, a literal terminal, or a literal industrial signage system, it is the second-order training reflex. Look further.
+
+- **Editorial-typographic.** Display serif, often italic, plus small mono labels, ruled separators, and monochromatic restraint. Klim-influenced, magazine-cover affectation. By 2026, many Stripe-adjacent and Notion-adjacent brands have landed here. The fingerprint: three rule-separated columns, an italic Fraunces / Recoleta / Newsreader headline, lowercase track-spaced metadata, and no imagery.
+
+The reflex-reject lists apply to **new design choices**. When the existing brand has already committed to a font or lane as part of its identity, identity preservation wins; variants on an existing surface do not second-guess what is already shipping. These lists are for greenfield decisions and for departure-mode variants in [live.md](reference/live.md).
+
 Review the DON'T guidelines above. They are the fingerprints of AI-generated work from 2024-2025.
 
 ---

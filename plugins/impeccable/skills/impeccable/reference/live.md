@@ -25,7 +25,7 @@ Chat is overhead. No recap, no tutorial output, no pasting PRODUCT / DESIGN bodi
 node skills/impeccable/scripts/live.mjs
 ```
 
-Output JSON: `{ ok, serverPort, serverToken, pageFiles, hasProduct, product, productPath, hasDesign, design, designPath, migrated }`. `pageFiles` is the list of HTML entries the live script was injected into. Keep PRODUCT.md and DESIGN.md in mind for variant generation: **DESIGN.md wins on visual decisions; PRODUCT.md wins on strategic/voice decisions.** If `migrated: true`, the loader auto-renamed legacy `.impeccable.md` to `PRODUCT.md`; mention this once and suggest `$impeccable document` for the matching DESIGN.md.
+Output JSON: `{ ok, serverPort, serverToken, pageFiles, hasProduct, product, productPath, hasDesign, design, designPath, migrated, contextDir }`. `pageFiles` is the list of HTML entries the live script was injected into. Keep PRODUCT.md and DESIGN.md in mind for variant generation: **DESIGN.md wins on visual decisions; PRODUCT.md wins on strategic/voice decisions.** When DESIGN.md is missing, identity is not absent; extract it from CSS variables, computed styles, and sibling components on the page (see Step 4 Phase A). Identity preservation is the default. Departure from existing identity requires an explicit trigger from PRODUCT.md anti-references or the user's freeform prompt. If `migrated: true`, the loader auto-renamed legacy `.impeccable.md` to `PRODUCT.md`; mention this once and suggest `$impeccable document` for the matching DESIGN.md.
 
 `serverPort` and `serverToken` belong to the small **Impeccable live helper** HTTP server (serves `/live.js`, SSE, and `/poll`). That port is **not** your dev server and is usually not the URL you open to view the app. The browser page is whatever origin serves one of the `pageFiles` entries (Vite / Next / Bun / tunnel / LAN hostname).
 
@@ -97,42 +97,85 @@ All three carry `fallback: "agent-driven"`. Follow **Handle fallback** below.
 
 ### 3. Load the action's reference
 
-If `event.action` is `impeccable` (the default freeform action), use SKILL.md's shared laws plus the loaded register reference (`brand.md` or `product.md`). Do not load a sub-command reference.
+If `event.action` is `impeccable` (the default freeform action), use SKILL.md's shared laws plus the loaded register reference (`editorial.md` or `product.md`). Do not load a sub-command reference.
 
 Any other `event.action` (`bolder`, `quieter`, `distill`, `polish`, `typeset`, `colorize`, `layout`, `adapt`, `animate`, `delight`, `overdrive`): Read `reference/<action>.md` before planning. Each sub-command encodes a specific discipline; skipping its reference produces generic output.
 
-### 4. Plan three genuinely distinct directions
+### 4. Plan three variants: identity first, then mode, then axes
 
-Before writing a single line of code, name each variant.
+The wrong frame for live mode is "show three different design directions." Live runs on an existing surface; the brand has already been chosen. The job is variation within identity, not selection between identities. Failure mode: three editorial-typographic variants on a brief that was not editorial. Bigger failure mode: three off-brand variants the user cannot accept because they do not look like their product.
 
-**For freeform (`action` is `impeccable`, or the user supplied a free prompt):** each variant must anchor to a different **archetype** — a real-world design analogue specific enough to be recognizable at a glance. Not "modern landing page." Not "minimal product hero." Examples:
+Four phases. Do them in order.
 
-- *Broadsheet masthead with rule-divided columns* (think NYT print edition)
-- *Klim Type Foundry specimen page* (dense, technical, catalog-driven)
-- *Japanese print-poster minimalism with a single oversize glyph*
-- *Bloomberg Terminal status bar*
-- *Condé Nast Traveler feature layout*
+#### Phase A: Extract the Identity
 
-Then commit each variant to a different **primary axis** of difference:
+The existing surface has an identity already. Read it before planning anything. Sources, in priority order:
+
+1. **DESIGN.md** if loaded: visual system fields such as palette, type pairing, motion, and components. This is authoritative.
+2. **CSS custom properties** in the page's stylesheets, such as `:root { --color-...; --font-...; }`. These are de facto tokens.
+3. **Computed styles** on the picked element and its parent: colors, fonts, spacing scales, corner radii.
+4. **Sibling components** on the page: asymmetric or centered, dense or airy, bold or quiet, decorated or plain.
+
+Write down what you see in one sentence. The sentence describes the surface that is actually on screen, not what the brand should become. Capture, in roughly this order:
+
+- The dominant surface color and accent color by hex or token name.
+- The type pairing, with actual font names loaded, primary first.
+- The layout topology: stacked, side-by-side, grid, asymmetric, overlay.
+- The surface treatment: corners, borders, shadows, and decoration density.
+- The voice tone from the copy itself, not from aesthetic feel.
+
+Be specific. "Modern" is not a color, "elegant" is not a type pairing, and "clean" is not a layout. If you cannot extract a real value for an axis, skip it rather than fabricate. The point is to record what is.
+
+Do not include adjectives that name an aesthetic family, such as "editorial-leaning", "terminal-flavored", or "brutalist". Those are conclusions, not data. They belong to Phase C lane selection in departure mode, not to identity description.
+
+This sentence is the **identity lock**. Every variant must be readable as the same brand if rendered side by side. Absence of DESIGN.md is never an excuse; extract from CSS and computed styles instead.
+
+#### Phase B: Pick Mode
+
+**Default mode** preserves the existing identity. Variants vary expression axes within it. This is the right mode for most live sessions. The user picked an element on a real product they are shipping; they expect variants of their surface, not three different brands' surfaces.
+
+**Departure mode** rejects the existing identity and proposes alternatives consistent with PRODUCT.md voice. Trigger only when at least one is true:
+
+- PRODUCT.md anti-references explicitly call out the current surface, such as "the current index.html is itself an example", "diffuse away from this", or "the page on screen is the failure". Generic anti-references do not trigger departure mode; only ones that point at this surface specifically do.
+- The user's freeform prompt explicitly asks for departure, such as "rebuild this from scratch", "what if it were not editorial at all", or "show me something completely different".
+
+If you are unsure, use default mode. The cost of being wrong about default is three on-brand variants with similar feel. The cost of being wrong about departure is three off-brand variants.
+
+#### Phase C: Plan Three Variants
+
+**Default mode.** Each variant commits to a different **primary axis** of difference while preserving the identity sentence:
 
 1. **Hierarchy** — which element commands the eye?
 2. **Layout topology** — stacked / side-by-side / grid / asymmetric / overlay
-3. **Typographic system** — pairing, scale ratio, case/weight strategy
-4. **Color strategy** — Restrained / Committed / Full palette / Drenched
+3. **Typographic system** — pairing logic, scale ratio, case/weight strategy within the available faces
+4. **Color strategy** — which existing palette role carries the surface; use brand tokens, not new hues
 5. **Density** — minimal / comfortable / dense
 6. **Structural decomposition** — merge, split, progressive disclosure
 
-Three variants → three DIFFERENT primary axes, not three riffs on color.
+Three variants means three different axes. The trio reads as the same brand at three angles. Do not introduce new fonts, new palette hues, or new aesthetic-family signals; those belong to departure mode.
 
-**When the primary axis is color or theme, forbid the trio from sharing theme + dominant hue.** Two dark-plus-one-dark is not distinct. Aim for one dark-neutral-accent, one light-drenched, one full-palette-saturated — three color worlds, not three shades of the same.
+**Departure mode.** Each variant anchors to a different **aesthetic lane**, drawn from non-monoculture options. Lanes are illustrative, not exhaustive:
 
-**The squint test (before writing code).** Write the three one-sentence descriptions side by side:
+- Tech-minimal (Stripe / Linear / Vercel restraint)
+- Brutalist-utility (system fonts, raw HTML defaults, Craigslist energy)
+- Terminal-native (actual code surface, syntax-highlighted UI as the design)
+- Industrial-signage (dimensional type, arrow systems, ISO standards, wayfinding)
+- Technical-drawing (isometric line art, callout numbers, blueprint blue, exploded-view diagrams)
+- Drenched-saturated (Liquid Death / Mailchimp full-palette / single-hue commitment)
+- Swiss-grid-rigorous (visible grid as voice, tight type, accumulated systems)
 
-> V1: Broadsheet masthead, ruled columns, 24px ink on cream.
-> V2: Enormous italic title, catalog spec rows, heavy monospace data.
-> V3: Card-framed poster with one oversize glyph, magenta veil.
+Avoid SKILL.md's **reflex-reject aesthetic lanes**. Do not trade one monoculture for another. Editorial-typographic is currently a reflex-reject lane; three variants that all read as "magazine cover" are the second-order training reflex.
 
-If two of them rhyme ("both use big type" / "both are stacks of sections" / "both feature the CTA prominently"), rework the offender. Freeform variants failing the squint test is the primary failure mode of this flow — three-of-the-same with minor styling tweaks.
+#### Phase D: Squint Test
+
+**Default mode squint.** Read each variant's identity sentence and compare it to the locked identity from Phase A. If any variant has drifted to a different palette, type voice, or visual rhetoric, it crossed into departure mode by accident; rework it. Then check that each variant commits to a different primary axis. Three "tighter density" variants is failure.
+
+**Departure mode squint.** Two passes, family before sentence:
+
+1. **Family pass.** Label each variant with one design-family word: editorial, brutalist, terminal, signage, drenched, swiss, technical-drawing, tech-minimal. If any two variants share a family label, rework. This pass is non-negotiable in departure mode.
+2. **Sentence pass.** Write three one-sentence descriptions side by side. If two of them rhyme ("both feature big type" / "both are stacks of sections" / "both center the CTA"), rework the offender.
+
+**When the primary axis is color or theme, forbid the trio from sharing theme plus dominant hue.** Two dark variants plus one more dark variant is not distinct. Aim for three color worlds, not three shades of the same.
 
 **For action-specific invocations**, each variant must vary along the dimension the action names:
 
@@ -150,7 +193,13 @@ If two of them rhyme ("both use big type" / "both are stacks of sections" / "bot
 
 ### 5. Apply the freeform prompt (if present)
 
-`event.freeformPrompt` is the user's ceiling on direction — all variants must honor it — but still explore meaningfully different *interpretations*. "Make it feel like a newspaper front page" → variant 1 = broadsheet masthead + rule-divided columns, variant 2 = tabloid headline + single dominant image, variant 3 = minimalist editorial with oversized drop cap. Not three newspapers in the same voice.
+`event.freeformPrompt` is the user's ceiling on direction. All variants must honor it while still exploring meaningfully different interpretations. The interpretations stay within whichever mode you picked in Phase B.
+
+In **default mode**, the prompt narrows the axes you choose, not the identity. "Make it feel more confident" can become: variant 1 amplifies hierarchy, variant 2 commits the existing accent color, and variant 3 tightens density and removes decorative slack. Three different axes, same brand.
+
+In **departure mode**, the prompt narrows the lanes you draw from, not the families. "Make it feel like a newspaper front page" is a departure prompt; honor it by choosing meaningfully different newspaper-adjacent lanes, such as broadsheet, tabloid, and trade journal, then run the family pass to confirm they do not collapse into one.
+
+When the prompt and PRODUCT.md anti-references conflict, the anti-references win. They describe the brand's standing position; the prompt is one moment.
 
 ### 6. Write all variants in a single edit
 
