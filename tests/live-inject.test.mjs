@@ -68,4 +68,13 @@ describe('live inject config resolution', () => {
     assert.equal(patchCspMeta(patched, 4173), patched);
     assert.equal(revertCspMeta(patched), html);
   });
+
+  it('preserves space before self-closing CSP meta slash when patching and reverting', () => {
+    const html = '<!doctype html><head><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; connect-src \'self\';" /></head><body></body>';
+    const patched = patchCspMeta(html, 8400);
+
+    assert.match(patched, /data-impeccable-csp-original="[^"]+" \/>/);
+    assert.equal(patchCspMeta(patched, 8400), patched);
+    assert.equal(revertCspMeta(patched), html);
+  });
 });

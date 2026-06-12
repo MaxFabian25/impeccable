@@ -356,7 +356,12 @@ export function patchCspMeta(content, port) {
 
     const newContentAttr = `content=${contentAttr.quote}${patched}${contentAttr.quote}`;
     const marker = `${CSP_MARKER_ATTR}="${Buffer.from(original, 'utf-8').toString('base64')}"`;
-    const newAttrs = attrs.replace(contentAttr.full, newContentAttr) + ' ' + marker;
+    // The tag regex captures whitespace before a closing `/>` as part of
+    // attrs. Preserve that trailing whitespace so patch+revert round-trips
+    // canonical self-closing tags like `<meta ... />` byte-for-byte.
+    const trailingWs = (attrs.match(/[ \t]*$/) || [''])[0];
+    const attrsBody = attrs.slice(0, attrs.length - trailingWs.length);
+    const newAttrs = attrsBody.replace(contentAttr.full, newContentAttr) + ' ' + marker + trailingWs;
     const newTag = tag.full.replace(attrs, newAttrs);
     result = result.slice(0, tag.start) + newTag + result.slice(tag.end);
   }
