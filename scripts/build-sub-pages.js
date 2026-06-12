@@ -1,13 +1,15 @@
 /**
- * Generate static HTML files for /skills, /anti-patterns, /tutorials.
+ * Generate static HTML files for /skills, /anti-patterns, /tutorials,
+ * /visual-mode, and /designing.
  *
  * Called from both scripts/build.js (before buildStaticSite) and
  * server/index.js (at module load), so dev and prod share the same
  * code path and output shape.
  *
  * Output lives under public/skills/, public/anti-patterns/,
- * public/tutorials/, all gitignored. Bun's HTML loader picks them up
- * the same way it picks up the hand-authored pages.
+ * public/tutorials/, public/visual-mode/, and public/designing/.
+ * Bun's HTML loader picks them up the same way it picks up the
+ * hand-authored pages.
  */
 
 import fs from 'node:fs';
@@ -530,6 +532,146 @@ ${specimenCards}
 }
 
 /**
+ * Render the /designing page main content.
+ *
+ * This is the Codex-only adaptation of upstream's orientation page:
+ * same "start, iterate, polish, maintain" loop, but with $ commands,
+ * local /skills links, and no multi-provider install or slash-command copy.
+ */
+function renderDesigningMain() {
+  const phases = [
+    {
+      id: 'start',
+      eyebrow: '01',
+      title: 'Start with context.',
+      summary: 'Teach Codex what the product is, what register it should use, and which design system it should respect before asking it to redesign anything.',
+      commands: [
+        { label: '$impeccable teach', href: '/skills/impeccable#teach' },
+        { label: '$impeccable craft', href: '/skills/impeccable#craft' },
+        { label: '$clarify', href: '/skills/clarify' },
+      ],
+      body: 'The first pass is not decoration. It is shared vocabulary: goals, audience, brand or product register, constraints, and the DESIGN.md rules later commands will read.',
+    },
+    {
+      id: 'iterate',
+      eyebrow: '02',
+      title: 'Iterate in the browser.',
+      summary: 'Use the visual loop when the problem is spatial, interactive, or hard to describe from source alone.',
+      commands: [
+        { label: '$critique', href: '/skills/critique' },
+        { label: '$adapt', href: '/skills/adapt' },
+        { label: 'npx impeccable live', href: '/visual-mode' },
+      ],
+      body: 'Review the rendered surface, mark what feels wrong, and let Codex propose concrete variants against the real page instead of guessing from files.',
+    },
+    {
+      id: 'polish',
+      eyebrow: '03',
+      title: 'Polish the visible layer.',
+      summary: 'Once the direction is right, move through the parts users actually feel: type, color, layout, motion, density, and interaction.',
+      commands: [
+        { label: '$polish', href: '/skills/polish' },
+        { label: '$typeset', href: '/skills/typeset' },
+        { label: '$colorize', href: '/skills/colorize' },
+        { label: '$animate', href: '/skills/animate' },
+      ],
+      body: 'Polish is not a vague final pass. It is a sequence of small decisions that make hierarchy, rhythm, affordance, and restraint visible.',
+    },
+    {
+      id: 'maintain',
+      eyebrow: '04',
+      title: 'Maintain the system.',
+      summary: 'After the feature works, consolidate repeated choices so the next screen starts from a better baseline.',
+      commands: [
+        { label: '$audit', href: '/skills/audit' },
+        { label: '$harden', href: '/skills/harden' },
+        { label: '$impeccable extract', href: '/skills/impeccable#extract' },
+      ],
+      body: 'Design debt is easiest to pay down when the pattern is still fresh. Extract repeated ideas, document the good ones, and remove the little contradictions before they spread.',
+    },
+  ];
+
+  const phaseCards = phases.map((phase) => `
+    <section class="designing-phase" id="${phase.id}">
+      <div class="designing-phase-kicker">${phase.eyebrow}</div>
+      <div class="designing-phase-content">
+        <h2 class="designing-phase-title">${escapeHtml(phase.title)}</h2>
+        <p class="designing-phase-summary">${escapeHtml(phase.summary)}</p>
+        <p class="designing-phase-body">${escapeHtml(phase.body)}</p>
+        <div class="designing-phase-commands" aria-label="${escapeAttr(phase.title)} commands">
+${phase.commands.map((command) => `          <a href="${command.href}" class="designing-command">${escapeHtml(command.label)}</a>`).join('\n')}
+        </div>
+      </div>
+    </section>`).join('\n');
+
+  return `
+<div class="designing-page">
+  <section class="designing-hero" aria-labelledby="designing-title">
+    <div class="designing-hero-copy">
+      <p class="sub-page-eyebrow">Workflow orientation</p>
+      <h1 class="sub-page-title" id="designing-title">Designing with Impeccable</h1>
+      <p class="sub-page-lede">A practical loop for using the Codex-only Impeccable skillset: start with context, iterate where you can see the work, polish deliberately, then fold the best decisions back into the system.</p>
+    </div>
+
+    <nav class="designing-loop" aria-label="Designing loop">
+      <a href="#start" class="designing-loop-step designing-loop-step--start">
+        <span class="designing-loop-num">01</span>
+        <span class="designing-loop-name">Start</span>
+      </a>
+      <a href="#iterate" class="designing-loop-step designing-loop-step--iterate">
+        <span class="designing-loop-num">02</span>
+        <span class="designing-loop-name">Iterate</span>
+      </a>
+      <a href="#polish" class="designing-loop-step designing-loop-step--polish">
+        <span class="designing-loop-num">03</span>
+        <span class="designing-loop-name">Polish</span>
+      </a>
+      <a href="#maintain" class="designing-loop-step designing-loop-step--maintain">
+        <span class="designing-loop-num">04</span>
+        <span class="designing-loop-name">Maintain</span>
+      </a>
+      <div class="designing-loop-center" aria-hidden="true">
+        <span>Codex</span>
+        <strong>Impeccable</strong>
+      </div>
+    </nav>
+  </section>
+
+  <section class="designing-principle" aria-label="Core principle">
+    <p>Use Impeccable when design intent matters more than raw implementation speed. The skill is useful because each command narrows the kind of judgment Codex should apply.</p>
+  </section>
+
+  <div class="designing-phases">
+${phaseCards}
+  </div>
+
+  <section class="designing-appendix" aria-label="Useful links">
+    <div>
+      <p class="designing-appendix-kicker">Before the loop</p>
+      <h2 class="designing-appendix-title">Pick the register.</h2>
+      <p>Brand surfaces and product surfaces need different defaults. Capture that distinction in PRODUCT.md during <a href="/skills/impeccable#teach">$impeccable teach</a>, then let the later commands inherit it.</p>
+    </div>
+    <div>
+      <p class="designing-appendix-kicker">When stuck</p>
+      <h2 class="designing-appendix-title">Look at the anti-patterns.</h2>
+      <p>The <a href="/anti-patterns">anti-pattern catalog</a> names the visual tells Impeccable is trained to avoid. If a page feels wrong but the reason is fuzzy, start there.</p>
+    </div>
+  </section>
+
+  <nav class="designing-next" aria-label="Next steps">
+    <a href="/skills/impeccable" class="designing-next-link">
+      <span>New project</span>
+      <strong>Start with $impeccable teach</strong>
+    </a>
+    <a href="/tutorials" class="designing-next-link">
+      <span>Walk a scenario</span>
+      <strong>Open the tutorials</strong>
+    </a>
+  </nav>
+</div>`;
+}
+
+/**
  * Render a tutorial detail page main content.
  */
 function renderTutorialDetail(tutorial, knownSkillIds) {
@@ -616,6 +758,7 @@ export async function generateSubPages(rootDir) {
     antiPatterns: path.join(rootDir, 'public/anti-patterns'),
     tutorials: path.join(rootDir, 'public/tutorials'),
     visualMode: path.join(rootDir, 'public/visual-mode'),
+    designing: path.join(rootDir, 'public/designing'),
   };
 
   // Fresh output dirs each time so stale files don't linger.
@@ -710,6 +853,22 @@ export async function generateSubPages(rootDir) {
       bodyClass: 'sub-page visual-mode-page-body',
     });
     const out = path.join(outDirs.visualMode, 'index.html');
+    fs.writeFileSync(out, html, 'utf-8');
+    generated.push(out);
+  }
+
+  // Designing: orientation page for the Codex-only workflow loop.
+  {
+    const html = renderPage({
+      title: 'Designing with Impeccable',
+      description:
+        'A practical Codex-only loop for using Impeccable: start with context, iterate in the browser, polish deliberately, and maintain the system.',
+      bodyHtml: renderDesigningMain(),
+      activeNav: 'designing',
+      canonicalPath: '/designing',
+      bodyClass: 'sub-page designing-page-body',
+    });
+    const out = path.join(outDirs.designing, 'index.html');
     fs.writeFileSync(out, html, 'utf-8');
     generated.push(out);
   }

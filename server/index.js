@@ -42,6 +42,7 @@ const server = serve({
     "/privacy": () => serveGenerated(path.join(ROOT_DIR, "public/privacy.html")),
 
     // Generated sub-pages — served directly from the pre-generated files
+    "/designing": () => serveGenerated(path.join(ROOT_DIR, "public/designing/index.html")),
     "/skills": () => serveGenerated(path.join(ROOT_DIR, "public/skills/index.html")),
     "/skills/:id": (req) => {
       const id = req.params.id.replace(/[^a-z0-9-]/gi, "");

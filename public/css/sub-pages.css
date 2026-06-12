@@ -1322,6 +1322,376 @@ main#main {
 }
 
 /* ============================================
+   DESIGNING PAGE
+   ============================================ */
+
+.designing-page-body main#main {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.designing-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(2rem, 4vw, 3.5rem) clamp(var(--spacing-md), 4vw, var(--spacing-2xl)) clamp(4rem, 8vw, 6rem);
+}
+
+.designing-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: center;
+  margin-bottom: clamp(3rem, 7vw, 5rem);
+}
+
+.designing-hero-copy {
+  max-width: 700px;
+}
+
+.designing-loop {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(76px, auto));
+  gap: 12px;
+  min-height: 340px;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--color-mist);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 50%, var(--color-paper) 0 34%, transparent 35%),
+    linear-gradient(135deg, var(--color-cream), var(--color-paper));
+}
+
+.designing-loop::before {
+  content: "";
+  position: absolute;
+  inset: 16%;
+  border: 1px solid var(--color-ink);
+  border-radius: 999px;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.designing-loop-step {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 72px;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.designing-loop-step:hover .designing-loop-name {
+  color: var(--color-accent);
+}
+
+.designing-loop-step--start {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: center;
+  align-items: center;
+}
+
+.designing-loop-step--iterate {
+  grid-column: 3;
+  grid-row: 2;
+  align-items: flex-start;
+}
+
+.designing-loop-step--polish {
+  grid-column: 2;
+  grid-row: 3;
+  text-align: center;
+  align-items: center;
+}
+
+.designing-loop-step--maintain {
+  grid-column: 1;
+  grid-row: 2;
+  text-align: right;
+  align-items: flex-end;
+}
+
+.designing-loop-num {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  color: var(--color-accent);
+}
+
+.designing-loop-name {
+  font-family: var(--font-display);
+  font-size: clamp(1.375rem, 3vw, 2rem);
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.designing-loop-center {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.designing-loop-center span {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  color: var(--color-ash);
+  text-transform: uppercase;
+}
+
+.designing-loop-center strong {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.designing-principle {
+  max-width: 760px;
+  padding: var(--spacing-lg) 0 var(--spacing-xl);
+  border-top: 1px solid var(--color-mist);
+  border-bottom: 1px solid var(--color-mist);
+  margin-bottom: clamp(2.5rem, 6vw, 4rem);
+}
+
+.designing-principle p {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-style: italic;
+  line-height: 1.25;
+  color: var(--color-ink);
+}
+
+.designing-phases {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-mist);
+}
+
+.designing-phase {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: clamp(1rem, 3vw, 2rem);
+  padding: clamp(2rem, 5vw, 3.5rem) 0;
+  border-bottom: 1px solid var(--color-mist);
+  scroll-margin-top: 88px;
+}
+
+.designing-phase-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--color-accent);
+  padding-top: 8px;
+}
+
+.designing-phase-content {
+  max-width: 760px;
+}
+
+.designing-phase-title {
+  margin: 0 0 var(--spacing-sm);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.05;
+  color: var(--color-ink);
+}
+
+.designing-phase-summary {
+  max-width: 60ch;
+  margin: 0 0 var(--spacing-md);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--color-charcoal);
+}
+
+.designing-phase-body {
+  max-width: 64ch;
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--color-charcoal);
+}
+
+.designing-phase-commands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: var(--spacing-md);
+}
+
+.designing-command {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--color-mist);
+  border-radius: 4px;
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  text-decoration: none;
+  background: var(--color-paper);
+}
+
+.designing-command:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.designing-appendix {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1.5rem, 4vw, 3rem);
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+}
+
+.designing-appendix > div {
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-mist);
+}
+
+.designing-appendix-kicker {
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--color-ash);
+  text-transform: uppercase;
+}
+
+.designing-appendix-title {
+  margin: 0 0 var(--spacing-sm);
+  font-family: var(--font-display);
+  font-size: clamp(1.375rem, 2.5vw, 1.75rem);
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.designing-appendix p {
+  max-width: 54ch;
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--color-charcoal);
+}
+
+.designing-appendix a {
+  color: var(--color-ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-accent);
+}
+
+.designing-next {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+}
+
+.designing-next-link {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 132px;
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-mist);
+  border-radius: 8px;
+  color: var(--color-ink);
+  text-decoration: none;
+  background: var(--color-paper);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out);
+}
+
+.designing-next-link:hover {
+  border-color: var(--color-ink);
+  transform: translateY(-2px);
+}
+
+.designing-next-link span {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  color: var(--color-accent);
+  text-transform: uppercase;
+}
+
+.designing-next-link strong {
+  font-family: var(--font-display);
+  font-size: clamp(1.375rem, 3vw, 1.875rem);
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+@media (max-width: 860px) {
+  .designing-hero {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .designing-loop {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 640px) {
+  .designing-loop {
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .designing-loop::before,
+  .designing-loop-center {
+    display: none;
+  }
+
+  .designing-loop-step,
+  .designing-loop-step--start,
+  .designing-loop-step--iterate,
+  .designing-loop-step--polish,
+  .designing-loop-step--maintain {
+    min-height: 56px;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .designing-phase,
+  .designing-appendix,
+  .designing-next {
+    grid-template-columns: 1fr;
+  }
+
+  .designing-phase-kicker {
+    padding-top: 0;
+  }
+}
+
+/* ============================================
    ANTI-PATTERNS: IN THE WILD (merged gallery)
    ============================================ */
 

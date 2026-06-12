@@ -50,9 +50,10 @@ describe('codex-only site contract', () => {
     expect(buildScript).toContain("fs.rmSync(outdir, { recursive: true, force: true });");
   });
 
-  test('sitemap includes the visual mode page and every current skill detail page', () => {
+  test('sitemap includes generated section pages and every current skill detail page', () => {
     const sitemap = readFileSync(join(REPO_ROOT, 'public', 'sitemap.xml'), 'utf8');
 
+    expect(sitemap).toContain('<loc>https://impeccable.style/designing</loc>');
     expect(sitemap).toContain('<loc>https://impeccable.style/visual-mode</loc>');
     expect(sitemap).toContain('<loc>https://impeccable.style/skills/layout</loc>');
     expect(sitemap).toContain('<loc>https://impeccable.style/skills/onboard</loc>');
