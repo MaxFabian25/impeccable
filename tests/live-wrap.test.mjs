@@ -231,6 +231,8 @@ describe('wrapCli integration', () => {
     assert.ok(result.file.endsWith('index.html'));
     assert.ok(result.insertLine > 0);
     assert.equal(result.commentSyntax.open, '<!--');
+    assert.equal(result.styleMode, 'scoped');
+    assert.equal(result.cssAuthoring.strategy, 'scope-rule');
 
     // Verify the file was modified correctly
     const modified = readFileSync(join(tmp, 'index.html'), 'utf-8');
@@ -242,6 +244,26 @@ describe('wrapCli integration', () => {
     assert.ok(modified.includes('impeccable-variants-end test123'));
     // Original should NOT be hidden (stays visible until variants arrive)
     assert.ok(!modified.includes('data-impeccable-variant="original" style="display: none"'));
+  });
+
+  it('reports Astro preview CSS as global-prefixed with inline style tag', () => {
+    const astro = `<section class="hero-section">
+  <h1>Hello World</h1>
+</section>`;
+    writeFileSync(join(tmp, 'index.astro'), astro);
+
+    const result = JSON.parse(execSync(
+      `node source/skills/impeccable/scripts/live-wrap.mjs --id astro1 --count 2 --classes "hero-section" --file "${join(tmp, 'index.astro')}"`,
+      { cwd: process.cwd(), encoding: 'utf-8' }
+    ));
+
+    assert.equal(result.styleMode, 'astro-global-prefixed');
+    assert.equal(result.styleTag, '<style is:inline data-impeccable-css="SESSION_ID">');
+    assert.equal(result.cssAuthoring.strategy, 'global-prefixed');
+    assert.deepEqual(result.cssSelectorPrefixExamples, [
+      '[data-impeccable-variant="1"]',
+      '[data-impeccable-variant="2"]',
+    ]);
   });
 
   it('wraps a JSX element and uses JSX comment syntax', () => {

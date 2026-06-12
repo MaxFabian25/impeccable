@@ -52,7 +52,7 @@ Rules:
 
 - Token references use `{path.to.token}`, such as `{colors.accent}` or `{rounded.md}`.
 - Stitch validates colors as hex sRGB. If a project deliberately uses OKLCH, Display-P3, or HSL as its source of truth, keep that canonical value in front matter and accept that strict Stitch linting may warn.
-- Component tokens are intentionally small: `backgroundColor`, `textColor`, `typography`, `rounded`, `padding`, `size`, `height`, and `width`. Anything richer belongs in `DESIGN.json`.
+- Component tokens are intentionally small: `backgroundColor`, `textColor`, `typography`, `rounded`, `padding`, `size`, `height`, and `width`. Anything richer belongs in `.impeccable/design.json`.
 - Do not invent top-level front matter groups like `motion`, `layout`, `breakpoints`, or `shadows`. Put those in the sidecar extensions or the markdown body.
 
 ## When To Run
@@ -67,8 +67,8 @@ If `DESIGN.md` already exists, do not silently overwrite it. Read it, summarize 
 
 ## Choose A Path
 
-- **Scan mode**: Use when there is an existing visual system to inspect. Extract real colors, typography, spacing, elevation, and components from source and rendered UI. Write both `DESIGN.md` and `DESIGN.json`.
-- **Seed mode**: Use when the project has little or no implemented UI. Ask a short visual-direction interview, write a starter `DESIGN.md` marked as seed, and skip `DESIGN.json` until there is real source to scan.
+- **Scan mode**: Use when there is an existing visual system to inspect. Extract real colors, typography, spacing, elevation, and components from source and rendered UI. Write both `DESIGN.md` and `.impeccable/design.json`.
+- **Seed mode**: Use when the project has little or no implemented UI. Ask a short visual-direction interview, write a starter `DESIGN.md` marked as seed, and skip `.impeccable/design.json` until there is real source to scan.
 
 ## Step 1: Load Context
 
@@ -130,7 +130,7 @@ Extraction rules:
 - Typography: one entry per repeated role. Include only real properties: `fontFamily`, `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, and similar typography fields.
 - Spacing and rounded: identify the repeated scale. Do not document every arbitrary margin.
 - Components: document stable component variants. Reference primitives with `{colors.*}`, `{rounded.*}`, and `{typography.*}`.
-- Shadows, motion, breakpoints, focus rings, and full HTML/CSS examples do not fit the front matter schema. Stage them for `DESIGN.json`.
+- Shadows, motion, breakpoints, focus rings, and full HTML/CSS examples do not fit the front matter schema. Stage them for `.impeccable/design.json`.
 
 ### Step 4: Ask For Human Visual Language
 
@@ -199,11 +199,11 @@ components:
 
 Keep all six sections even if one is short. Put layout, motion, responsive behavior, and shadow philosophy in Overview, Elevation, or Components unless the project has explicit tokens for them in the sidecar. The parser and live panel expect the six-section shape.
 
-### Step 5b: Write DESIGN.json
+### Step 5b: Write .impeccable/design.json
 
-After `DESIGN.md` is written, also write a machine-readable sidecar at project-root `DESIGN.json`. Front matter owns primitive tokens. The sidecar extends it with what the front matter cannot hold: tonal ramps, display names, shadow/elevation tokens, motion tokens, breakpoints, full component HTML/CSS snippets, and narrative.
+After `DESIGN.md` is written, also write a machine-readable sidecar at project-root `.impeccable/design.json`. Front matter owns primitive tokens. The sidecar extends it with what the front matter cannot hold: tonal ramps, display names, shadow/elevation tokens, motion tokens, breakpoints, full component HTML/CSS snippets, and narrative.
 
-Regenerate `DESIGN.json` whenever `DESIGN.md` is regenerated. If the user asks only to refresh the sidecar, preserve `DESIGN.md` and rewrite `DESIGN.json`.
+Regenerate `.impeccable/design.json` whenever `DESIGN.md` is regenerated. If the user asks only to refresh the sidecar, preserve `DESIGN.md` and rewrite `.impeccable/design.json`.
 
 Use this schema:
 
@@ -280,7 +280,7 @@ Then write `DESIGN.md` with this marker near the top:
 <!-- SEED - refresh with scan mode after the first real interface exists. -->
 ```
 
-Use the same six sections, but label uncertain choices as direction rather than extracted tokens. Do not write `DESIGN.json` in seed mode; the live design panel should wait for scan mode so it does not present guesses as system facts.
+Use the same six sections, but label uncertain choices as direction rather than extracted tokens. Do not write `.impeccable/design.json` in seed mode; the live design panel should wait for scan mode so it does not present guesses as system facts.
 
 ## Step 6: Confirm
 
@@ -289,7 +289,7 @@ After writing the file:
 1. Summarize the extracted token sources.
 2. Name any inferred choices that should be reviewed by the user.
 3. Mention whether PRODUCT.md influenced the visual interpretation.
-4. Mention whether `DESIGN.json` was written/refreshed for the live design panel, or skipped because this was seed mode.
+4. Mention whether `.impeccable/design.json` was written/refreshed for the live design panel, or skipped because this was seed mode.
 5. Offer a concise refinement pass for names, atmosphere language, or missing component categories.
 6. Run `node skills/impeccable/scripts/load-context.mjs` one final time and consume the full JSON output so the freshly written DESIGN.md is in session context for any follow-up command.
 
@@ -300,7 +300,7 @@ After writing the file:
 - Do not track one-off values as system rules.
 - Do not duplicate PRODUCT.md prose. Reference strategic principles only when they explain a visual decision.
 - Do not duplicate token values between front matter and prose. The front matter is normative.
-- Do not put non-Stitch token groups in front matter. Use `DESIGN.json.extensions`.
+- Do not put non-Stitch token groups in front matter. Use `.impeccable/design.json` `extensions`.
 - Include exact values for every token that can be extracted.
-- Keep `DESIGN.json` aligned with `DESIGN.md`.
+- Keep `.impeccable/design.json` aligned with `DESIGN.md`.
 - Keep the document useful for agents and humans, not just mechanically complete.

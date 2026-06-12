@@ -12,8 +12,9 @@ Execute in order. No step skipped, no step reordered.
 2. Navigate to the URL that serves `pageFile` (infer from `package.json`, docs, terminal output, or an open tab). If a browser tool is available, open the tab yourself before the first poll. Otherwise, tell the user once to open their dev/preview URL. Never use `serverPort` as that URL: it is the helper, not the app.
 3. Poll loop with the default long timeout (600000 ms). After every event or `--reply`, run `live-poll.mjs` again immediately. Never pass a short `--timeout=`.
 4. On `generate`: read screenshot if present; load the action's reference; plan three distinct directions; write all variants in one edit; `--reply done`; poll again.
-5. On `accept` / `discard`: the poll script already cleaned up; just poll again.
-6. On `exit`: run the cleanup at the bottom.
+5. On `accept` / `discard`: the poll script runs `live-accept.mjs`, acknowledges the delivered event, and prints `_completionAck`. Plain accepts/discards are terminal immediately. Carbonize accepts remain recoverable until you finish cleanup, run `live-complete.mjs --id EVENT_ID`, and only then poll again.
+6. If interrupted, run `live-status.mjs` or `live-resume.mjs` before guessing. The durable journal replays unacknowledged work after helper restart.
+7. On `exit`: run the cleanup at the bottom.
 
 Codex policy: run the poll in the foreground with the default long timeout. Do not background it, do not send it to a subagent, and do not shorten the timeout to end the chat turn. After each event or reply, immediately run `live-poll.mjs` again.
 
@@ -39,12 +40,30 @@ LOOP:
   Read JSON; dispatch on "type"
 
   "generate"  → Handle Generate; reply done; LOOP
-  "accept"    → Handle Accept; LOOP
+  "accept"    → Handle Accept; complete carbonize cleanup if required; LOOP
   "discard"   → Handle Discard; LOOP
   "prefetch"  → Handle Prefetch; LOOP
   "timeout"   → LOOP
   "exit"      → break → Cleanup
 ```
+
+## Recovery commands
+
+The live helper persists an append-only journal under `.impeccable/live/sessions/`. Browser checkpoints are advisory but durable. The journal is canonical. This is local recovery state, not project source.
+
+Use these commands when the chat was interrupted, polling was missed, the helper restarted, or the browser reloaded:
+
+```bash
+node {{scripts_path}}/live-status.mjs
+node {{scripts_path}}/live-resume.mjs --id SESSION_ID
+node {{scripts_path}}/live-complete.mjs --id SESSION_ID
+```
+
+- `live-status.mjs` prints connected helper state, active durable sessions, and queued pending events. It works even when the helper is down by reading the journal directly.
+- `live-resume.mjs` prints the active snapshot, pending event, checkpoint phase, visible variant, parameter values, and the next safe agent action.
+- `live-complete.mjs` is the canonical manual final acknowledgement. Use it after carbonize or manual cleanup is verified and no further poll acknowledgement will happen automatically.
+
+Server restart rule: start `live-server.mjs` again, then poll. Startup requeues unacknowledged pending events from the journal, so do not ask the user to click Go again unless `live-resume.mjs` says no active session exists.
 
 ## Handle `generate`
 
@@ -84,7 +103,14 @@ The helper searches ID first, then classes, then tag + class combo. If `event.pa
 
 If `--text` matches multiple candidates equally well, wrap exits with `{ error: "element_ambiguous", candidates: [...] }` and `fallback: "agent-driven"`: read the candidate line ranges, decide which one matches the picked element from page context, and write the wrapper manually per the fallback flow.
 
-Output on success: `{ file, insertLine, commentSyntax }`.
+Output on success: `{ file, insertLine, commentSyntax, styleMode, styleTag, cssSelectorPrefixExamples, cssAuthoring }`.
+
+`styleMode` controls how preview CSS must be authored. Treat it as a detected capability mode, not a framework guess:
+
+- `scoped`: use `@scope ([data-impeccable-variant="N"])` rules.
+- `astro-global-prefixed`: use explicit `[data-impeccable-variant="N"]` selector prefixes and the exact `styleTag` returned by the tool.
+
+Use `cssAuthoring` as the source of truth for the current file. It includes the exact `styleTag`, selector strategy, selector examples, requirements, and forbidden patterns. Do not apply a framework-specific exception unless the returned `styleMode` / `cssAuthoring.mode` says to.
 
 **Fallback errors.** Wrap only writes into files it judges to be source (tracked by git, not marked GENERATED, not listed in config's `generatedFiles`). If it can't land on a source file, it errors without writing: accepting a variant into a generated file is silent data loss. Three shapes:
 
@@ -202,13 +228,14 @@ When the prompt and PRODUCT.md anti-references conflict, the anti-references win
 
 Complete HTML replacement of the original element for each variant, not a CSS-only patch. Consider the element's context (computed styles, parent structure, CSS variables from `event.element`).
 
-Write CSS + all variants in ONE edit at the `insertLine` reported by `wrap`. Colocate scoped CSS as a `<style>` tag inside the variant wrapper: `<style>` works anywhere in modern browsers and this ensures CSS and HTML arrive atomically (no FOUC).
+Write CSS + all variants in ONE edit at the `insertLine` reported by `wrap`. Colocate CSS as a `<style>` tag inside the variant wrapper: `<style>` works anywhere in modern browsers and this ensures CSS and HTML arrive atomically (no FOUC).
+
+Use the `cssAuthoring` object returned by `live-wrap.mjs` to author the temporary preview CSS. The style opening tag shown below is the common case. Replace it with `cssAuthoring.styleTag` when the tool returns a different one. The variant markup shape is otherwise stable:
 
 ```html
 <!-- Variants: insert below this line -->
 <style data-impeccable-css="SESSION_ID">
-  @scope ([data-impeccable-variant="1"]) { ... }
-  @scope ([data-impeccable-variant="2"]) { ... }
+  /* rules matching cssAuthoring.rulePattern */
 </style>
 <div data-impeccable-variant="1">
   <!-- variant 1: full element replacement (single top-level element) -->
@@ -223,11 +250,11 @@ Write CSS + all variants in ONE edit at the `insertLine` reported by `wrap`. Col
 
 **Each variant div contains exactly one top-level element: the full replacement for the original.** Use the same tag as the original (e.g. `<section>` if the user picked a `<section>`). Loose siblings (heading + paragraph + div as direct children of the variant div) break the outline tracking and the accept flow, which both assume one child.
 
-The first variant has no `display: none` (visible by default). All others do. If variants use only inline styles and no scoped CSS, omit the `<style>` tag entirely. Use `@scope` for CSS isolation (Chrome 118+ / Firefox 128+ / Safari 17.4+).
+The first variant has no `display: none` (visible by default). All others do. If variants use only inline styles and no preview CSS, omit the `<style>` tag entirely.
 
 One edit, all variants: the browser's MutationObserver picks everything up in one pass.
 
-**Author every `:scope` rule with a descendant combinator.** The `@scope` boundary is the variant wrapper `<div data-impeccable-variant="N">`, not the element you're designing. A bare `:scope { background: cream; }` styles the wrapper, not the inner replacement, so the cream lands on a `display: contents` shell while the actual element keeps page defaults. Always step in: `:scope > .card`, `:scope > section`, `:scope .hero-title`, etc.
+For `styleMode: "scoped"`, author every `:scope` rule with a descendant combinator. The `@scope` boundary is the variant wrapper `<div data-impeccable-variant="N">`, not the element you're designing. A bare `:scope { background: cream; }` styles the wrapper, not the inner replacement, so the cream lands on a `display: contents` shell while the actual element keeps page defaults. Always step in: `:scope > .card`, `:scope > section`, `:scope .hero-title`, etc.
 
 **JSX / TSX target files.** Wrap `<style>` content in a template literal so the CSS `{` / `}` are not parsed as JSX expressions, and use `className=` / `style={{...}}` on every variant element. Keep `data-impeccable-*` attributes as plain strings:
 
@@ -308,10 +335,11 @@ Remove the wrapper you inserted in Step 2. Nothing else to do.
 
 ## Handle `accept`
 
-Event: `{id, variantId, _acceptResult}`. The poll script already ran `live-accept.mjs` to handle the file operation deterministically; the browser DOM is already updated.
+Event: `{id, variantId, _acceptResult, _completionAck}`. The poll script already ran `live-accept.mjs` to handle the file operation deterministically, then acknowledged event delivery to the helper. The browser DOM is already updated.
 
+- `_completionAck.ok !== true`: do not poll yet. Run `live-status.mjs` / `live-resume.mjs`, complete the cleanup manually if needed, then run `live-complete.mjs --id EVENT_ID`.
 - `_acceptResult.handled: true` and `carbonize: false`: nothing to do. Poll again.
-- `_acceptResult.handled: true` and `carbonize: true`: **post-accept cleanup is required before the next poll.** See the "Required after accept (carbonize)" section below. The `event._acceptResult.todo` field and a stderr banner both list the steps explicitly; neither is decorative.
+- `_acceptResult.handled: true` and `carbonize: true`: **post-accept cleanup is required before the next poll.** See the "Required after accept (carbonize)" section below. The `event._acceptResult.todo` field, `_completionAck.requiresComplete`, and a stderr banner all point at this required follow-up; none are decorative. After cleanup, run `live-complete.mjs --id EVENT_ID`, then poll again.
 - `_acceptResult.handled: false, mode: "fallback"`: the session lived in a generated file and the script refused to persist there. You've already written the accepted variant into true source during Handle fallback Step 3; just clean up the temporary wrapper in the served file if any, and poll again.
 - `_acceptResult.handled: false` without `mode`: manual cleanup: read file, find markers, edit.
 
@@ -327,13 +355,13 @@ Do these five steps in the current thread, synchronously, before the next poll. 
 4. **Unwrap the accepted content.** Delete the `<div data-impeccable-variant="N" style="display: contents">` that wraps it.
 5. **Delete the inline `<style>` block and both `<!-- impeccable-carbonize-start/end -->` markers.** Also drop any `@scope` rules for variants other than the accepted one: those are dead code now.
 
-Then poll again.
+After the file is clean, run `live-complete.mjs --id SESSION_ID`, verify it reports `phase: "completed"`, then poll again.
 
 The current thread is responsible for the rewrite and for verifying the five steps are complete before issuing the next poll. In practice, inline is usually faster and less error-prone.
 
 ## Handle `discard`
 
-Event: `{id, _acceptResult}`. The poll script already restored the original and removed all variant markers. Nothing to do. Poll again.
+Event: `{id, _acceptResult, _completionAck}`. The poll script already restored the original, removed all variant markers, and acknowledged `discarded` durable completion. Nothing to do unless `_completionAck.ok !== true`; in that case run `live-complete.mjs --id EVENT_ID --discarded`, then poll again.
 
 ## Handle `prefetch`
 
@@ -363,7 +391,7 @@ When the poll returns `exit`, proceed to cleanup. If the poll is still running a
 node {{scripts_path}}/live-server.mjs stop
 ```
 
-Stops the HTTP server and runs `live-inject.mjs --remove` to strip `localhost:…/live.js` from the HTML entry. To stop the server but keep the inject tag (for a quick restart), use `stop --keep-inject`. `config.json` persists for future sessions.
+Stops the HTTP server and runs `live-inject.mjs --remove` to strip `localhost:…/live.js` from the HTML entry. To stop the server but keep the inject tag (for a quick restart), use `stop --keep-inject`. `.impeccable/live/config.json` persists for future sessions.
 
 Then:
 - Remove any leftover variant wrappers (search for `impeccable-variants-start` markers).
@@ -371,7 +399,7 @@ Then:
 
 ## First-time setup (config missing or invalid)
 
-If `live.mjs` outputs `{ ok: false, error: "config_missing" | "config_invalid", path }`, write `config.json` at the reported path.
+If `live.mjs` outputs `{ ok: false, error: "config_missing" | "config_invalid", path }`, write the live config at the reported path. By default this is `.impeccable/live/config.json`.
 
 Schema:
 
@@ -450,7 +478,7 @@ node {{scripts_path}}/detect-csp.mjs
 
 Output: `{ shape, signals }` where `shape` is one of `append-arrays`, `append-string`, `middleware`, `meta-tag`, or `null`. The shape is named by *patch mechanism*, so one template covers many frameworks.
 
-- **`null`**: no CSP; skip to writing `config.json` with `cspChecked: true`.
+- **`null`**: no CSP; skip to writing `.impeccable/live/config.json` with `cspChecked: true`.
 - **`append-arrays`**: CSP defined as structured directive arrays. Auto-patchable. See *append-arrays* below. Covers:
   - Monorepo helpers with `additionalScriptSrc` / `additionalConnectSrc` options (Next.js + shared config package)
   - SvelteKit `kit.csp.directives`
@@ -527,6 +555,6 @@ Reference outputs:
 
 ### Troubleshooting
 
-If a user says "no" to the CSP patch at setup time and later complains that live doesn't work: their dev CSP blocks `http://localhost:8400`. Fix: delete `cspChecked` from `config.json` and re-run `live.mjs`: setup will ask again.
+If a user says "no" to the CSP patch at setup time and later complains that live doesn't work: their dev CSP blocks `http://localhost:8400`. Fix: delete `cspChecked` from `.impeccable/live/config.json` and re-run `live.mjs`: setup will ask again.
 
 Then re-run `live.mjs`.

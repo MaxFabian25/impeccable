@@ -36,7 +36,16 @@ extension/detector/
 .impeccable.md
 .impeccable/hook.cache.json
 
-# Live annotation captures
+# Impeccable-owned project files are split: generated sidecars/config may be
+# tracked, but runtime recovery state and local assets should stay local.
+.impeccable/live/server.json
+.impeccable/live/sessions/
+.impeccable/live/annotations/
+.impeccable/live/cache/
+.impeccable/history/
+
+# Legacy live annotation captures
+.impeccable-live.json
 .impeccable-live/
 
 # Evals (private, commercial)

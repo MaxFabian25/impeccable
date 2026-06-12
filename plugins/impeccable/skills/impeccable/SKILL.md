@@ -489,7 +489,7 @@ Write the file to `PRODUCT.md` in the project root. If PRODUCT.md already exists
 
 If the project has meaningful visual source to analyze, ask whether to run `$impeccable document` next. That flow generates `DESIGN.md` from CSS tokens, components, and rendered UI.
 
-If the project is empty or pre-implementation, offer `$impeccable document` in seed mode. Seed mode asks a few visual direction questions and writes a starter DESIGN.md without a DESIGN.json sidecar. Tell the user to refresh it after the first real interface exists.
+If the project is empty or pre-implementation, offer `$impeccable document` in seed mode. Seed mode asks a few visual direction questions and writes a starter DESIGN.md without a `.impeccable/design.json` sidecar. Tell the user to refresh it after the first real interface exists.
 
 ### Step 6: Confirm
 
