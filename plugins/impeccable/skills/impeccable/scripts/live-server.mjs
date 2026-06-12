@@ -21,6 +21,7 @@ import path from 'node:path';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { parseDesignMd } from './design-parser.mjs';
+import { resolveContextDir } from './load-context.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // PID file in the project root so both the server and agent can find it
@@ -113,7 +114,8 @@ function hasProjectContext() {
   // concern, surfaced by the design panel's own empty state. Legacy
   // .impeccable.md is auto-migrated to PRODUCT.md by load-context.mjs.
   try {
-    fs.accessSync(path.join(process.cwd(), 'PRODUCT.md'), fs.constants.R_OK);
+    const contextDir = resolveContextDir(process.cwd());
+    fs.accessSync(path.join(contextDir, 'PRODUCT.md'), fs.constants.R_OK);
     return true;
   } catch { return false; }
 }
@@ -320,8 +322,9 @@ function createRequestHandler({ detectScript, livePath }) {
       const token = url.searchParams.get('token');
       if (token !== state.token) { res.writeHead(401); res.end('Unauthorized'); return; }
 
-      const mdPath = path.join(process.cwd(), 'DESIGN.md');
-      const jsonPath = path.join(process.cwd(), 'DESIGN.json');
+      const contextDir = resolveContextDir(process.cwd());
+      const mdPath = path.join(contextDir, 'DESIGN.md');
+      const jsonPath = path.join(contextDir, 'DESIGN.json');
       const mdStat = statOrNull(mdPath);
       const jsonStat = statOrNull(jsonPath);
 

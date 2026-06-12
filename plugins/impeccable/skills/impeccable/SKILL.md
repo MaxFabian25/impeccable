@@ -36,6 +36,8 @@ For `$impeccable craft`, `shape=pass` is only valid after a separate user respon
 - **PRODUCT.md** (strategic, required): default register, target users, product purpose, jobs to be done, brand personality, anti-references, and design principles. Use it for "who, what, and why".
 - **DESIGN.md** (visual, optional but strongly recommended): colors, typography, spacing, radius, components, layout rules, and do/don't guidance. Use it for "how it should look".
 
+The loader checks the project root first, then `.agents/context/`, then `docs/` when the root is clean. Set `IMPECCABLE_CONTEXT_DIR=path/to/dir` (absolute or relative to cwd) to override. The loader JSON includes `contextDir` so agents can see where context was resolved from.
+
 Filename matching is case-insensitive. When context files overlap, **DESIGN.md wins on visual decisions; PRODUCT.md wins on strategy, voice, and audience decisions.**
 
 ### Session Cache
@@ -55,7 +57,7 @@ When context is not already loaded, run the shared loader from the project root:
 node skills/impeccable/scripts/load-context.mjs
 ```
 
-Consume the full JSON output. Do not pipe it through `head`, `tail`, `grep`, or field-filtering `jq`; design work needs the complete product and design context.
+Consume the full JSON output, including `contextDir`. Do not pipe it through `head`, `tail`, `grep`, or field-filtering `jq`; design work needs the complete product and design context.
 
 ### Dispatch
 

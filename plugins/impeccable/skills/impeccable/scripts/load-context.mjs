@@ -2,18 +2,41 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const PRODUCT_NAME = 'PRODUCT.md';
-const DESIGN_NAME = 'DESIGN.md';
-const LEGACY_NAME = '.impeccable.md';
+const PRODUCT_NAMES = ['PRODUCT.md', 'Product.md', 'product.md'];
+const DESIGN_NAMES = ['DESIGN.md', 'Design.md', 'design.md'];
+const LEGACY_NAMES = ['.impeccable.md'];
+const FALLBACK_DIRS = ['.agents/context', 'docs'];
+
+export function resolveContextDir(cwd = process.cwd()) {
+  const envDir = process.env.IMPECCABLE_CONTEXT_DIR;
+  if (envDir && envDir.trim()) {
+    const trimmed = envDir.trim();
+    return path.isAbsolute(trimmed) ? trimmed : path.resolve(cwd, trimmed);
+  }
+
+  if (firstExisting(cwd, [...PRODUCT_NAMES, ...DESIGN_NAMES, ...LEGACY_NAMES])) {
+    return cwd;
+  }
+
+  for (const rel of FALLBACK_DIRS) {
+    const candidate = path.resolve(cwd, rel);
+    if (firstExisting(candidate, [...PRODUCT_NAMES, ...DESIGN_NAMES])) {
+      return candidate;
+    }
+  }
+
+  return cwd;
+}
 
 export function loadContext(cwd = process.cwd()) {
   let migrated = false;
-  let productPath = findCaseInsensitive(cwd, PRODUCT_NAME);
+  const contextDir = resolveContextDir(cwd);
+  let productPath = firstExisting(contextDir, PRODUCT_NAMES);
 
-  if (!productPath) {
-    const legacyPath = findCaseInsensitive(cwd, LEGACY_NAME);
+  if (!productPath && contextDir === cwd) {
+    const legacyPath = firstExisting(cwd, LEGACY_NAMES);
     if (legacyPath) {
-      const targetPath = path.join(cwd, PRODUCT_NAME);
+      const targetPath = path.join(cwd, 'PRODUCT.md');
       try {
         fs.renameSync(legacyPath, targetPath);
         productPath = targetPath;
@@ -24,7 +47,7 @@ export function loadContext(cwd = process.cwd()) {
     }
   }
 
-  const designPath = findCaseInsensitive(cwd, DESIGN_NAME);
+  const designPath = firstExisting(contextDir, DESIGN_NAMES);
   const product = productPath ? safeRead(productPath) : null;
   const design = designPath ? safeRead(designPath) : null;
 
@@ -38,6 +61,7 @@ export function loadContext(cwd = process.cwd()) {
     designIsSeed: isSeedDesign(design),
     designPath: designPath ? path.relative(cwd, designPath) : null,
     migrated,
+    contextDir,
   };
 }
 
@@ -63,17 +87,25 @@ function isSeedDesign(markdown) {
   return Boolean(markdown && /<!--\s*SEED\b/i.test(markdown));
 }
 
-function findCaseInsensitive(cwd, targetName) {
+function firstExisting(dir, names) {
+  for (const name of names) {
+    const found = findCaseInsensitive(dir, name);
+    if (found) return found;
+  }
+  return null;
+}
+
+function findCaseInsensitive(dir, targetName) {
   let entries;
   try {
-    entries = fs.readdirSync(cwd, { withFileTypes: true });
+    entries = fs.readdirSync(dir, { withFileTypes: true });
   } catch {
     return null;
   }
 
   const target = targetName.toLowerCase();
   const match = entries.find((entry) => entry.isFile() && entry.name.toLowerCase() === target);
-  return match ? path.join(cwd, match.name) : null;
+  return match ? path.join(dir, match.name) : null;
 }
 
 function safeRead(filePath) {
