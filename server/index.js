@@ -40,6 +40,8 @@ const server = serve({
     "/": () => serveGenerated(path.join(ROOT_DIR, "public/index.html")),
     "/cheatsheet": () => serveGenerated(path.join(ROOT_DIR, "public/cheatsheet.html")),
     "/privacy": () => serveGenerated(path.join(ROOT_DIR, "public/privacy.html")),
+    "/anti-patterns": () => Response.redirect("/slop#catalog", 301),
+    "/visual-mode": () => Response.redirect("/slop#see-it", 301),
 
     // Generated sub-pages — served directly from the pre-generated files
     "/designing": () => serveGenerated(path.join(ROOT_DIR, "public/designing/index.html")),
@@ -48,8 +50,7 @@ const server = serve({
       const id = req.params.id.replace(/[^a-z0-9-]/gi, "");
       return serveGenerated(path.join(ROOT_DIR, `public/skills/${id}.html`));
     },
-    "/anti-patterns": () => serveGenerated(path.join(ROOT_DIR, "public/anti-patterns/index.html")),
-    "/visual-mode": () => serveGenerated(path.join(ROOT_DIR, "public/visual-mode/index.html")),
+    "/slop": () => serveGenerated(path.join(ROOT_DIR, "public/slop/index.html")),
     "/tutorials": () => serveGenerated(path.join(ROOT_DIR, "public/tutorials/index.html")),
     "/tutorials/:slug": (req) => {
       const slug = req.params.slug.replace(/[^a-z0-9-]/gi, "");

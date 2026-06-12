@@ -41,12 +41,17 @@ describe('codex-only site contract', () => {
     expect(cheatsheet).not.toContain('/polish');
   });
 
-  test('gallery redirects are removed from runtime and build routing', () => {
+  test('slop is canonical and old public pages redirect', () => {
     const serverIndex = readFileSync(join(REPO_ROOT, 'server', 'index.js'), 'utf8');
     const buildScript = readFileSync(join(REPO_ROOT, 'scripts', 'build.js'), 'utf8');
 
     expect(serverIndex).not.toContain('"/gallery"');
+    expect(serverIndex).toContain('"/slop"');
+    expect(serverIndex).toContain('"/anti-patterns": () => Response.redirect("/slop#catalog", 301)');
+    expect(serverIndex).toContain('"/visual-mode": () => Response.redirect("/slop#see-it", 301)');
     expect(buildScript).not.toContain('/gallery /visual-mode#try-it-live 301');
+    expect(buildScript).toContain('/anti-patterns /slop#catalog 301');
+    expect(buildScript).toContain('/visual-mode /slop#see-it 301');
     expect(buildScript).toContain("fs.rmSync(outdir, { recursive: true, force: true });");
   });
 
@@ -54,7 +59,9 @@ describe('codex-only site contract', () => {
     const sitemap = readFileSync(join(REPO_ROOT, 'public', 'sitemap.xml'), 'utf8');
 
     expect(sitemap).toContain('<loc>https://impeccable.style/designing</loc>');
-    expect(sitemap).toContain('<loc>https://impeccable.style/visual-mode</loc>');
+    expect(sitemap).toContain('<loc>https://impeccable.style/slop</loc>');
+    expect(sitemap).not.toContain('<loc>https://impeccable.style/anti-patterns</loc>');
+    expect(sitemap).not.toContain('<loc>https://impeccable.style/visual-mode</loc>');
     expect(sitemap).toContain('<loc>https://impeccable.style/skills/layout</loc>');
     expect(sitemap).toContain('<loc>https://impeccable.style/skills/onboard</loc>');
   });

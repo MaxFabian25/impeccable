@@ -1,5 +1,5 @@
 /**
- * Manual metadata for the /anti-patterns page.
+ * Manual metadata for the /slop catalog.
  *
  * The detection rules themselves live in src/detect-antipatterns.mjs and
  * are parsed at build time. This file adds three pieces of content that
@@ -17,7 +17,7 @@
  *
  *  3. LLM_ONLY_RULES: DON'T lines from source/skills/impeccable/SKILL.md
  *     that do not map to any detection rule. These can only be caught by
- *     the $critique skill's LLM pass. They appear on the /anti-patterns
+ *     the $critique skill's LLM pass. They appear on the /slop
  *     page alongside detected rules with an 'llm' layer badge.
  */
 
@@ -179,7 +179,7 @@ export const VISUAL_EXAMPLES = {
  * Each entry maps to:
  *   - public/antipattern-images/{id}.png  (preview thumbnail)
  *   - public/antipattern-examples/{id}.html  (standalone live example)
- * Rendered as a dedicated section on the /anti-patterns page, replacing
+ * Rendered as a dedicated section on the /slop page, replacing
  * the old /gallery route which was confusingly labeled in the top nav.
  */
 export const GALLERY_ITEMS = [

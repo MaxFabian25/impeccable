@@ -266,7 +266,7 @@ export function writeFile(filePath, content) {
 }
 
 // Curated short-list for the homepage Antidote section. The full catalog lives
-// on /anti-patterns; this teaser stays editorial instead of mirroring SKILL.md.
+// on /slop; this teaser stays editorial instead of mirroring SKILL.md.
 const CURATED_CATEGORIES = [
   {
     name: 'Typography',
@@ -352,7 +352,7 @@ const CURATED_CATEGORIES = [
  *
  * The homepage Antidote section is an editorial teaser, not an exhaustive
  * extraction of the current skill source. The full rule catalog is generated
- * separately under /anti-patterns.
+ * separately under /slop.
  */
 export function readPatterns(_rootDir) {
   return {

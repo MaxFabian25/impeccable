@@ -300,7 +300,7 @@ async function buildStaticSite(extraEntrypoints = []) {
       // Older Bun versions (e.g. the one Cloudflare Pages ships) don't dedupe
       // shared CSS/JS chunks across HTML entrypoints — every entry tries to
       // emit its own copy, and three different sub-pages all named index.html
-      // (under skills/, tutorials/, anti-patterns/) collide on the same
+      // (under skills/, tutorials/, slop/) collide on the same
       // chunk filename. Including [dir] in the chunk template scopes each
       // chunk to its entry's directory so the names stay unique even when
       // dedupe is off. Local Bun still emits a single shared chunk; CF Bun
@@ -511,11 +511,14 @@ function generateCFConfig(buildDir) {
 `;
   fs.writeFileSync(path.join(buildDir, '_headers'), headers);
 
-  // _redirects: rewrite JSON API routes to static files (200 = rewrite, not redirect)
+  // _redirects: rewrite JSON API routes to static files (200 = rewrite, not redirect).
+  // Keep public redirects from the old anti-pattern and visual-mode URLs.
   const redirects = `/api/skills /_data/api/skills.json 200
 /api/commands /_data/api/commands.json 200
 /api/patterns /_data/api/patterns.json 200
 /api/command-source/:id /_data/api/command-source/:id.json 200
+/anti-patterns /slop#catalog 301
+/visual-mode /slop#see-it 301
 `;
   fs.writeFileSync(path.join(buildDir, '_redirects'), redirects);
 
@@ -537,7 +540,7 @@ function generateCFConfig(buildDir) {
 async function build() {
   console.log('🔨 Building Codex CLI design skills...\n');
 
-  // Pre-generate sub-pages (skills, anti-patterns, tutorials) from source
+  // Pre-generate sub-pages (skills, slop, tutorials, designing) from source
   console.log('📝 Generating sub-pages...');
   const { files: subPageFiles } = await generateSubPages(ROOT_DIR);
   console.log(`✓ Generated ${subPageFiles.length} sub-page(s)\n`);

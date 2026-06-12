@@ -33,7 +33,7 @@ export function readHeaderPartial() {
  * the default nav href state. Matches on `data-nav="{activeNav}"`.
  *
  * @param {string} headerHtml
- * @param {string} activeNav - one of: home, skills, anti-patterns, tutorials, gallery, github
+ * @param {string} activeNav - one of: home, designing, docs, slop, github
  * @returns {string}
  */
 export function applyActiveNav(headerHtml, activeNav) {

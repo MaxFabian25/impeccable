@@ -1,7 +1,7 @@
 /*
  * impeccable.style — shared styles for sub-pages and the site-wide header
  *
- * Imported by all generated pages under /skills, /anti-patterns, /tutorials,
+ * Imported by all generated pages under /skills, /slop, /tutorials,
  * and by the hand-authored pages (index, cheatsheet, gallery, privacy) via
  * a direct <link> tag so they all share the same header + prose typography.
  */
@@ -750,27 +750,129 @@ main#main {
   align-items: baseline;
   justify-content: space-between;
   gap: var(--spacing-md);
-  padding-bottom: var(--spacing-sm);
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--color-mist);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
 .anti-patterns-section-title {
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3vw, 2.25rem);
-  font-weight: 500;
-  font-style: italic;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: var(--color-ink);
-  letter-spacing: -0.01em;
 }
 
 .anti-patterns-section-count {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--color-ash);
+}
+
+/* ============================================
+   SLOP PAGE (/slop)
+   ============================================ */
+
+.slop-content {
+  width: 100%;
+}
+
+.slop-header {
+  max-width: 720px;
+}
+
+.slop-section {
+  margin-top: clamp(3rem, 6vw, 4.5rem);
+  scroll-margin-top: 80px;
+}
+
+.slop-section-heading {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-weight: 500;
+  font-style: italic;
+  color: var(--color-ink);
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-mist);
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md);
+}
+
+.slop-section-num {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
+  font-style: normal;
   letter-spacing: 0.12em;
   color: var(--color-ash);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.slop-catalog-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.slop-catalog-lede {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--color-charcoal);
+  max-width: 72ch;
+  margin-top: var(--spacing-sm);
+}
+
+.slop-catalog-lede strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.slop-catalog-lede a {
+  color: var(--color-ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  font-weight: 500;
+}
+
+.slop-catalog-lede a:hover {
+  color: var(--color-accent);
+}
+
+.slop-sidebar-sublist {
+  list-style: none;
+  margin: 6px 0 4px 0;
+  padding: 0 0 0 var(--spacing-md);
+  border-left: 1px solid var(--color-mist);
+}
+
+.slop-sidebar-sublist li {
+  margin: 0;
+}
+
+.slop-sidebar-sublist a {
+  display: flex !important;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  font-size: 0.8125rem;
+  color: var(--color-ash);
+  padding: 4px 0;
+}
+
+.slop-sidebar-sublist a:hover {
+  color: var(--color-ink);
+}
+
+.slop-sidebar-sublist .anti-patterns-sidebar-count {
+  font-size: 0.625rem;
 }
 
 .rule-card-grid {
@@ -1118,26 +1220,8 @@ main#main {
 }
 
 /* ============================================
-   VISUAL MODE PAGE
+   SLOP PAGE: VISUAL OVERLAY BLOCKS
    ============================================ */
-
-.visual-mode-page-body main#main {
-  /* Reset the docs-layout override; this page uses its own max-width. */
-  max-width: none;
-  margin: 0;
-  padding: 0;
-}
-
-.visual-mode-page {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: clamp(2rem, 4vw, 3.5rem) clamp(var(--spacing-md), 4vw, var(--spacing-2xl)) clamp(4rem, 8vw, 6rem);
-}
-
-.visual-mode-page-header {
-  max-width: 720px;
-  margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
-}
 
 .visual-mode-demo-wrap {
   margin-bottom: clamp(3rem, 6vw, 4.5rem);
@@ -1151,12 +1235,9 @@ main#main {
   text-align: center;
 }
 
-/* Mac-window chrome around the iframe. Scoped to .visual-mode-page so
-   the sub-page's preview styles don't leak onto the homepage, which
-   carries its own .visual-mode-preview rules in main.css. The auto
-   margins below would disable grid-item stretch on the homepage and
-   collapse the preview to the iframe's 300px intrinsic width. */
-.visual-mode-page .visual-mode-preview {
+/* Mac-window chrome around the iframe. sub-pages.css is not loaded on the
+   homepage, which carries its own preview styles in main.css. */
+.visual-mode-preview {
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--color-mist);
@@ -1165,7 +1246,7 @@ main#main {
   margin: 0 auto;
 }
 
-.visual-mode-page .visual-mode-preview-header {
+.visual-mode-preview-header {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1174,18 +1255,18 @@ main#main {
   border-bottom: 1px solid var(--color-mist);
 }
 
-.visual-mode-page .visual-mode-preview-dot {
+.visual-mode-preview-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.visual-mode-page .visual-mode-preview-dot.red { background: #ff5f56; }
-.visual-mode-page .visual-mode-preview-dot.yellow { background: #ffbd2e; }
-.visual-mode-page .visual-mode-preview-dot.green { background: #27c93f; }
+.visual-mode-preview-dot.red { background: #ff5f56; }
+.visual-mode-preview-dot.yellow { background: #ffbd2e; }
+.visual-mode-preview-dot.green { background: #27c93f; }
 
-.visual-mode-page .visual-mode-preview-title {
+.visual-mode-preview-title {
   margin-left: auto;
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -1198,21 +1279,6 @@ main#main {
   height: 580px;
   border: none;
   background: white;
-}
-
-/* Three invocation methods. */
-.visual-mode-methods {
-  margin-bottom: clamp(3rem, 6vw, 4.5rem);
-}
-
-.visual-mode-methods-title {
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3vw, 2.25rem);
-  font-weight: 500;
-  font-style: italic;
-  color: var(--color-ink);
-  letter-spacing: -0.01em;
-  margin-bottom: var(--spacing-lg);
 }
 
 .visual-mode-methods-grid {
@@ -1299,19 +1365,8 @@ main#main {
   color: var(--color-accent);
 }
 
-/* Gallery (specimens) section */
 .visual-mode-gallery-header {
   margin-bottom: var(--spacing-lg);
-}
-
-.visual-mode-gallery-title {
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3vw, 2.25rem);
-  font-weight: 500;
-  font-style: italic;
-  color: var(--color-ink);
-  letter-spacing: -0.01em;
-  margin-bottom: var(--spacing-sm);
 }
 
 .visual-mode-gallery-lede {
@@ -1319,6 +1374,7 @@ main#main {
   line-height: 1.6;
   color: var(--color-charcoal);
   max-width: 60ch;
+  margin-top: var(--spacing-sm);
 }
 
 /* ============================================
