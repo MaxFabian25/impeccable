@@ -1497,7 +1497,11 @@
       for (const m of mutations) {
         if (m.target.closest?.('[data-impeccable-variants]')) { dominated = true; break; }
         for (const n of m.addedNodes) {
-          if (n.nodeType === 1 && (n.dataset?.impeccableVariants || n.dataset?.impeccableVariant)) {
+          if (n.nodeType !== 1) continue;
+          if (n.dataset?.impeccableVariants || n.dataset?.impeccableVariant) {
+            dominated = true; break;
+          }
+          if (n.querySelector?.('[data-impeccable-variants],[data-impeccable-variant]')) {
             dominated = true; break;
           }
         }
