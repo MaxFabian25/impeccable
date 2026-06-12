@@ -62,6 +62,51 @@ describe('codex-only build contract', () => {
     }
   });
 
+  test('live runtime carries Codex-safe upstream runtime guards', () => {
+    const scriptPairs = [
+      [
+        'source/skills/impeccable/scripts/live-browser.js',
+        'plugins/impeccable/skills/impeccable/scripts/live-browser.js',
+      ],
+      [
+        'source/skills/impeccable/scripts/live-accept.mjs',
+        'plugins/impeccable/skills/impeccable/scripts/live-accept.mjs',
+      ],
+      [
+        'source/skills/impeccable/scripts/live-inject.mjs',
+        'plugins/impeccable/skills/impeccable/scripts/live-inject.mjs',
+      ],
+    ];
+
+    const [authoredBrowser, generatedBrowser] = scriptPairs[0].map((file) => fs.readFileSync(path.join(process.cwd(), file), 'utf8'));
+    const [authoredAccept, generatedAccept] = scriptPairs[1].map((file) => fs.readFileSync(path.join(process.cwd(), file), 'utf8'));
+    const [authoredInject, generatedInject] = scriptPairs[2].map((file) => fs.readFileSync(path.join(process.cwd(), file), 'utf8'));
+
+    for (const script of [authoredBrowser, generatedBrowser]) {
+      expect(script).toContain('Variants ready.');
+      expect(script).toContain('function maybeWarnConditionalAncestor');
+      expect(script).toContain('Resumed deferred session');
+      expect(script).toContain('img.style.cssText = canvas.style.cssText;');
+      expect(script).not.toContain('window.location.reload();');
+      expect(script).not.toContain('Object.assign(img.style, canvas.style');
+    }
+
+    for (const script of [authoredAccept, generatedAccept]) {
+      expect(script).toContain("style={{ display: 'contents' }}");
+      expect(script).toContain("`}</style>'");
+      expect(script).toContain("const closeIdx = line.indexOf('</style>');");
+      expect(script).not.toContain("line.trimStart().startsWith('</style>')");
+    }
+
+    for (const script of [authoredInject, generatedInject]) {
+      expect(script).toContain("const CSP_MARKER_ATTR = 'data-impeccable-csp-original';");
+      expect(script).toContain('export function patchCspMeta');
+      expect(script).toContain('export function revertCspMeta');
+      expect(script).toContain('cspPatched: updated !== withTag');
+      expect(script).toContain('cspReverted: updated !== detagged');
+    }
+  });
+
   test('transformCodex writes skills into the codex distribution tree', () => {
     const skillDir = path.join(TEST_DIR, 'source/skills/test-skill');
     fs.mkdirSync(skillDir, { recursive: true });

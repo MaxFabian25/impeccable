@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { resolveFiles, validateConfig } from '../source/skills/impeccable/scripts/live-inject.mjs';
+import { patchCspMeta, resolveFiles, revertCspMeta, validateConfig } from '../source/skills/impeccable/scripts/live-inject.mjs';
 
 function withTempProject(fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'impeccable-live-inject-'));
@@ -55,5 +55,17 @@ describe('live inject config resolution', () => {
       insertBefore: '</body>',
       commentSyntax: 'html',
     }), /config\.exclude/);
+  });
+
+  it('patches and exactly restores in-document CSP meta tags', () => {
+    const html = '<!doctype html><head><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'"></head><body></body>';
+    const patched = patchCspMeta(html, 4173);
+
+    assert.match(patched, /data-impeccable-csp-original="/);
+    assert.match(patched, /script-src 'self' http:\/\/localhost:4173/);
+    assert.match(patched, /connect-src 'self' http:\/\/localhost:4173/);
+    assert.match(patched, /img-src 'self' blob:/);
+    assert.equal(patchCspMeta(patched, 4173), patched);
+    assert.equal(revertCspMeta(patched), html);
   });
 });

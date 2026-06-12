@@ -1609,17 +1609,18 @@
             }
             break;
           }
-          // HMR didn't propagate in time. Give it a 2s grace window, then
-          // reload the page. resumeSession counts variants off the rendered
-          // DOM on load and transitions straight to CYCLING — reload is the
-          // one universal recovery path: HTML, JSX/TSX, Vue, Svelte, static
-          // servers, anything. We used to try DOMParser on the raw source,
-          // but JSX expressions aren't valid HTML and the parse fails.
+          // Variants are in source but not in the DOM yet. Common when the
+          // picked element lived inside conditional render (closed modal,
+          // hidden tab, a route the user navigated away from). The variant
+          // observer stays armed and auto-transitions to CYCLING the moment
+          // the wrapper actually mounts.
           setTimeout(() => {
             if (arrivedVariants >= expectedVariants && expectedVariants > 0) return;
             if (state !== 'GENERATING') return;
-            saveSession();
-            window.location.reload();
+            showToast(
+              "Variants ready. If the picked element isn't visible, retrace the path that revealed it - they'll appear automatically.",
+              15000,
+            );
           }, 2000);
           break;
         case 'error':
@@ -1715,6 +1716,41 @@
     showBar('configure');
     startScrollTracking();
     maybePrefetchPage();
+    maybeWarnConditionalAncestor(selectedElement);
+  }
+
+  function maybeWarnConditionalAncestor(el) {
+    let node = el?.parentElement;
+    let depth = 0;
+    while (node && depth < 12) {
+      if (node.getAttribute && node.getAttribute('role') === 'dialog' && node.getAttribute('aria-modal') === 'true') {
+        showToast('Heads up: this element lives inside a dialog. If state resets during generation, you may need to re-open it.', 6000);
+        return;
+      }
+      if (node.dataset && node.dataset.state === 'open') {
+        showToast('Heads up: this element lives inside an open panel. If state resets during generation, you may need to re-open it.', 6000);
+        return;
+      }
+      if (node.getAttribute && node.getAttribute('role') === 'tabpanel') {
+        const list = document.querySelector('[role="tablist"]');
+        if (list) {
+          const tabs = list.querySelectorAll('[role="tab"]');
+          if (tabs.length > 1) {
+            showToast('Heads up: this element lives in a tab panel. If state resets during generation, switch back to this tab.', 6000);
+            return;
+          }
+        }
+      }
+      if (node.id) {
+        const trigger = document.querySelector(`[aria-controls="${CSS.escape(node.id)}"][aria-expanded="true"]`);
+        if (trigger) {
+          showToast('Heads up: this element lives inside an expandable section. If state resets during generation, re-expand it.', 6000);
+          return;
+        }
+      }
+      node = node.parentElement;
+      depth++;
+    }
   }
 
   // Fire a lightweight prefetch event the first time the user selects an
@@ -1781,6 +1817,7 @@
         showAnnotOverlay(selectedElement);
         showBar('configure');
         startScrollTracking();
+        maybeWarnConditionalAncestor(selectedElement);
         return;
       }
       if (next) {
@@ -1794,6 +1831,7 @@
           showAnnotOverlay(next);
           showBar('configure');
           startScrollTracking();
+          maybeWarnConditionalAncestor(selectedElement);
         }
         showHighlight(next);
         next.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -2172,7 +2210,9 @@ void main() {
       const img = document.createElement('img');
       img.src = URL.createObjectURL(blob);
       img.id = PREFIX + '-shader';
-      Object.assign(img.style, canvas.style, { outline: '2px dashed ' + C.brand, outlineOffset: '-2px' });
+      img.style.cssText = canvas.style.cssText;
+      img.style.outline = '2px dashed ' + C.brand;
+      img.style.outlineOffset = '-2px';
       document.body.appendChild(img);
       shaderState = { canvas: img, gl: null, program: null, texture: null, rafId: 0, startTime: 0 };
       return;
@@ -4071,6 +4111,15 @@ void main() {
     // Check for an active session to resume (variant wrapper already in DOM after HMR)
     if (!resumeSession()) {
       console.log('[impeccable] Live variant mode ready. Hover over elements to pick one.');
+      const scout = new MutationObserver(() => {
+        const wrapper = document.querySelector('[data-impeccable-variants]');
+        if (!wrapper) return;
+        scout.disconnect();
+        if (resumeSession()) {
+          console.log('[impeccable] Resumed deferred session ' + currentSessionId + ' (post-hydration).');
+        }
+      });
+      scout.observe(document.body, { childList: true, subtree: true });
     } else {
       console.log('[impeccable] Resumed active variant session ' + currentSessionId + ' (' + arrivedVariants + '/' + expectedVariants + ' variants).');
     }
