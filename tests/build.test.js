@@ -90,6 +90,15 @@ describe('codex-only build contract', () => {
       expect(script).toContain("n.querySelector?.('[data-impeccable-variants],[data-impeccable-variant]')");
       expect(script).toContain("s.id = PREFIX + '-input-style';");
       expect(script).toContain("input.style.borderColor = C.brand;");
+      expect(script).toContain('function defangOutsideHandlers');
+      expect(script).toContain("rootEl.style.setProperty('pointer-events', 'auto', 'important');");
+      expect(script).toContain('defangOutsideHandlers(barEl);');
+      expect(script).toContain('defangOutsideHandlers(pickerEl);');
+      expect(script).toContain('defangOutsideHandlers(globalBarEl);');
+      expect(script).toContain("defangOutsideHandlers(designHost, { setPointerEvents: false });");
+      expect(script).toContain("const barTopFromBottom = barRect && barRect.height > 0");
+      expect(script).toContain("window.matchMedia?.('(prefers-color-scheme: dark)').matches");
+      expect(script).toContain("padding: '0', boxSizing: 'border-box'");
       expect(script).not.toContain("input.style.background = C.white;");
       expect(script).not.toContain('window.location.reload();');
       expect(script).not.toContain('Object.assign(img.style, canvas.style');

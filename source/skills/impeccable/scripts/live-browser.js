@@ -175,6 +175,17 @@
 
   function id8() { return crypto.randomUUID().replace(/-/g, '').slice(0, 8); }
 
+  function defangOutsideHandlers(rootEl, { setPointerEvents = true } = {}) {
+    if (!rootEl) return;
+    if (setPointerEvents) {
+      rootEl.style.setProperty('pointer-events', 'auto', 'important');
+    }
+    const stop = (e) => e.stopPropagation();
+    rootEl.addEventListener('pointerdown', stop);
+    rootEl.addEventListener('mousedown', stop);
+    rootEl.addEventListener('focusin', stop);
+  }
+
   // ---------------------------------------------------------------------------
   // Highlight overlay
   // ---------------------------------------------------------------------------
@@ -314,6 +325,7 @@
     annotOverlayEl.addEventListener('pointerup', onAnnotUp);
     annotOverlayEl.addEventListener('pointercancel', onAnnotUp);
     document.body.appendChild(annotOverlayEl);
+    defangOutsideHandlers(annotOverlayEl, { setPointerEvents: false });
   }
 
   function updateClearChip() {
@@ -775,6 +787,7 @@
       maxWidth: '460px', minWidth: '320px',
     });
     document.body.appendChild(barEl);
+    defangOutsideHandlers(barEl);
   }
 
   function positionBar() {
@@ -1214,6 +1227,7 @@
 
     pickerEl.appendChild(grid);
     document.body.appendChild(pickerEl);
+    defangOutsideHandlers(pickerEl);
   }
 
   function toggleActionPicker() {
@@ -2465,8 +2479,12 @@ void main() {
 
   function showToast(message, duration) {
     if (toastEl) toastEl.remove();
+    const barRect = globalBarEl?.getBoundingClientRect();
+    const barTopFromBottom = barRect && barRect.height > 0
+      ? Math.max(16, window.innerHeight - barRect.top + 12)
+      : 16;
     toastEl = el('div', {
-      position: 'fixed', bottom: '16px', left: '50%',
+      position: 'fixed', bottom: barTopFromBottom + 'px', left: '50%',
       transform: 'translateX(-50%) translateY(8px)',
       background: C.ink, color: C.white,
       fontFamily: FONT, fontSize: '12px',
@@ -2579,13 +2597,23 @@ void main() {
   // dark pages. This keeps the bar from fighting with the host design.
   function detectPageTheme() {
     try {
-      const bg = getComputedStyle(document.body).backgroundColor
-        || getComputedStyle(document.documentElement).backgroundColor;
-      const m = bg.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
-      if (!m) return 'light';
-      const [, r, g, b] = m;
+      function readOpaque(el) {
+        if (!el) return null;
+        const bg = getComputedStyle(el).backgroundColor;
+        const m = bg.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/);
+        if (!m) return null;
+        const alpha = m[4] == null ? 1 : parseFloat(m[4]);
+        if (alpha < 0.5) return null;
+        return [+m[1], +m[2], +m[3]];
+      }
+
+      const rgb = readOpaque(document.body) || readOpaque(document.documentElement);
+      if (!rgb) {
+        return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      const [r, g, b] = rgb;
       // Perceptual luminance (Rec. 709)
-      const L = (0.2126 * +r + 0.7152 * +g + 0.0722 * +b) / 255;
+      const L = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
       return L > 0.55 ? 'light' : 'dark';
     } catch { return 'light'; }
   }
@@ -2786,15 +2814,18 @@ void main() {
     });
     inner.appendChild(divider);
 
-    // Exit (subtle × on the right) — SVG for baseline-free centering
+    // Exit (subtle × on the right) — SVG for baseline-free centering.
+    // Padding and box sizing are pinned so host page button resets cannot
+    // inflate this control and push the icon out of view.
     const exitBtn = el('button', {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      width: '26px', height: '26px', borderRadius: '6px',
+      padding: '0', boxSizing: 'border-box',
+      width: '24px', height: '24px', borderRadius: '6px',
       border: 'none', background: 'transparent',
       color: P.textDim, fontFamily: FONT, fontSize: '0', lineHeight: '0',
       cursor: 'pointer', transition: 'color 0.12s ease, background 0.12s ease',
     });
-    exitBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="2.5" y1="2.5" x2="9.5" y2="9.5"/><line x1="9.5" y1="2.5" x2="2.5" y2="9.5"/></svg>';
+    exitBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>';
     exitBtn.title = 'Exit live mode';
     exitBtn.addEventListener('mouseenter', () => { exitBtn.style.color = P.text; exitBtn.style.background = P.exitHover; });
     exitBtn.addEventListener('mouseleave', () => { exitBtn.style.color = P.textDim; exitBtn.style.background = 'transparent'; });
@@ -2812,6 +2843,7 @@ void main() {
     });
 
     document.body.appendChild(globalBarEl);
+    defangOutsideHandlers(globalBarEl);
 
     requestAnimationFrame(() => {
       globalBarEl.style.opacity = '1';
@@ -3023,6 +3055,7 @@ void main() {
     designShadow.appendChild(root);
 
     document.body.appendChild(designHost);
+    defangOutsideHandlers(designHost, { setPointerEvents: false });
 
     loadDesignPrefs();
     renderDesignChrome();
