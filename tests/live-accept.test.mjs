@@ -1,67 +1,232 @@
-import { describe, it } from 'node:test';
+/**
+ * Tests for live-accept.mjs — the deterministic accept/discard helper.
+ * Run with: node --test tests/live-accept.test.mjs
+ */
+
+import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
-const ACCEPT_SCRIPT = path.join(ROOT, 'source/skills/impeccable/scripts/live-accept.mjs');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ACCEPT = resolve(__dirname, '..', 'source/skills/impeccable/scripts/live-accept.mjs');
 
-function withTempProject(fn) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'impeccable-live-accept-'));
+function runAccept(cwd, args) {
   try {
-    return fn(root);
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    const out = execFileSync('node', [ACCEPT, ...args], {
+      cwd,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    return JSON.parse(out.trim());
+  } catch (err) {
+    const body = err.stdout?.toString().trim() || err.stderr?.toString().trim() || '';
+    return JSON.parse(body || '{}');
   }
 }
 
-describe('live accept', () => {
-  it('writes JSX-safe carbonize style and wrapper syntax', () => withTempProject((root) => {
-    const appPath = path.join(root, 'src/App.jsx');
-    fs.mkdirSync(path.dirname(appPath), { recursive: true });
-    fs.writeFileSync(appPath, `export function App() {
-  return (
-    <main>
-      {/* impeccable-variants-start abc123 */}
-      <div data-impeccable-variants="abc123" data-impeccable-variant-count="2">
-        <style data-impeccable-css="abc123">{\`
-          @scope ([data-impeccable-variant="2"]) {
-            .card { color: red; }
-          }
-        \`}</style>
-        <div data-impeccable-variant="original">
-          <section className="card">Original</section>
-        </div>
-        <div data-impeccable-variant="2">
-          <section className="card">Accepted</section>
-        </div>
-      </div>
-      {/* impeccable-variants-end abc123 */}
-    </main>
-  );
-}
-`);
+describe('live-accept — style-element edge cases', () => {
+  let tmp;
+  beforeEach(() => { tmp = mkdtempSync(join(tmpdir(), 'impeccable-accept-test-')); });
+  afterEach(() => { rmSync(tmp, { recursive: true, force: true }); });
 
-    const result = spawnSync(process.execPath, [ACCEPT_SCRIPT, '--id', 'abc123', '--variant', '2'], {
-      cwd: root,
-      encoding: 'utf8',
-    });
+  // Historical bug: extractVariant flipped into "inStyle" mode on <style and
+  // scanned for </style> line-by-line. JSX self-closing <style ... /> has no
+  // separate closer, so it got stuck forever and missed data-impeccable-variant
+  // divs that came after.
+  it('finds the accepted variant after a JSX self-closing <style /> block', () => {
+    const html = `<body>
+  <!-- impeccable-variants-start SELFC -->
+  <div data-impeccable-variants="SELFC" data-impeccable-variant-count="3" style="display: contents">
+    <div data-impeccable-variant="original">
+      <p class="hook">original text</p>
+    </div>
+    <style data-impeccable-css="SELFC" dangerouslySetInnerHTML={{ __html: '@scope ([data-impeccable-variant="1"]) { .hook { color: red; } }' }} />
+    <div data-impeccable-variant="1">
+      <p class="hook">variant one</p>
+    </div>
+    <div data-impeccable-variant="2" style="display: none">
+      <p class="hook">variant two</p>
+    </div>
+    <div data-impeccable-variant="3" style="display: none">
+      <p class="hook">variant three</p>
+    </div>
+  </div>
+  <!-- impeccable-variants-end SELFC -->
+</body>`;
+    writeFileSync(join(tmp, 'page.html'), html);
 
-    assert.equal(result.status, 0, result.stderr || result.stdout);
-    const output = JSON.parse(result.stdout);
-    assert.equal(output.handled, true);
-    assert.equal(output.carbonize, true);
+    const result = runAccept(tmp, ['--id', 'SELFC', '--variant', '2']);
+    assert.equal(result.handled, true, `accept should succeed: ${JSON.stringify(result)}`);
 
-    const updated = fs.readFileSync(appPath, 'utf8');
-    assert.match(updated, /<style data-impeccable-css="abc123">\{`/);
-    assert.match(updated, /`}\s*<\/style>/);
-    assert.match(updated, /<div data-impeccable-variant="2" style=\{\{ display: 'contents' \}\}>/);
-    assert.match(updated, /<section className="card">Accepted<\/section>/);
-    assert.doesNotMatch(updated, /style="display: contents"/);
-    assert.doesNotMatch(updated, /Original/);
-  }));
+    const after = readFileSync(join(tmp, 'page.html'), 'utf-8');
+    // Self-closing style has no extractable CSS body, so there's nothing to carbonize —
+    // no carbonize block, no data-impeccable-variant wrapper (it would serve no purpose).
+    assert.ok(!after.includes('impeccable-carbonize-start'), 'no carbonize block (self-closing style has no body)');
+    assert.ok(!after.includes('impeccable-variants-start'), 'variant markers removed');
+    assert.ok(after.includes('variant two'), 'variant 2 content kept');
+    assert.ok(!after.includes('variant three'), 'other variant content dropped');
+    assert.ok(!after.includes('variant one'), 'other variant content dropped');
+    assert.ok(!after.includes('original text'), 'original content dropped');
+  });
+
+  // Variant: same-line <style>…</style> block should also be treated as a
+  // single skipped unit; the line has both open and close tags.
+  it('finds the accepted variant after a single-line <style>…</style> block', () => {
+    const html = `<body>
+  <!-- impeccable-variants-start ONELINE -->
+  <div data-impeccable-variants="ONELINE" data-impeccable-variant-count="3" style="display: contents">
+    <div data-impeccable-variant="original"><p class="hook">original</p></div>
+    <style data-impeccable-css="ONELINE">@scope ([data-impeccable-variant="1"]) { .hook { color: red; } }</style>
+    <div data-impeccable-variant="1"><p class="hook">variant one</p></div>
+    <div data-impeccable-variant="2" style="display: none"><p class="hook">variant two</p></div>
+    <div data-impeccable-variant="3" style="display: none"><p class="hook">variant three</p></div>
+  </div>
+  <!-- impeccable-variants-end ONELINE -->
+</body>`;
+    writeFileSync(join(tmp, 'page.html'), html);
+
+    const result = runAccept(tmp, ['--id', 'ONELINE', '--variant', '3']);
+    assert.equal(result.handled, true, `accept should succeed: ${JSON.stringify(result)}`);
+
+    const after = readFileSync(join(tmp, 'page.html'), 'utf-8');
+    assert.ok(after.includes('data-impeccable-variant="3"'), 'accepted wrapper for variant 3 present');
+    assert.ok(after.includes('variant three'), 'variant 3 content kept');
+    assert.ok(!after.includes('variant two'), 'other variant content dropped');
+  });
+
+  // Baseline: the standard multi-line <style>...</style> case must keep working.
+  it('finds the accepted variant after a multi-line <style>…</style> block (regression baseline)', () => {
+    const html = `<body>
+  <!-- impeccable-variants-start MULTI -->
+  <div data-impeccable-variants="MULTI" data-impeccable-variant-count="3" style="display: contents">
+    <div data-impeccable-variant="original"><p class="hook">original</p></div>
+    <style data-impeccable-css="MULTI">
+      @scope ([data-impeccable-variant="1"]) { .hook { color: red; } }
+      @scope ([data-impeccable-variant="2"]) { .hook { color: green; } }
+    </style>
+    <div data-impeccable-variant="1"><p class="hook">variant one</p></div>
+    <div data-impeccable-variant="2" style="display: none"><p class="hook">variant two</p></div>
+  </div>
+  <!-- impeccable-variants-end MULTI -->
+</body>`;
+    writeFileSync(join(tmp, 'page.html'), html);
+
+    const result = runAccept(tmp, ['--id', 'MULTI', '--variant', '1']);
+    assert.equal(result.handled, true, `accept should succeed: ${JSON.stringify(result)}`);
+
+    const after = readFileSync(join(tmp, 'page.html'), 'utf-8');
+    assert.ok(after.includes('data-impeccable-variant="1"'), 'accepted wrapper for variant 1 present');
+    assert.ok(after.includes('variant one'), 'variant 1 content kept');
+  });
+
+  // Regression: the agent writes JSX <style>{`…`}</style> and live-accept's
+  // extractCss used to capture the `{` … `` ` ``}` template-literal punctuation
+  // as CSS content. handleAccept then re-wrapped with another `{` …
+  // `` ` ``}`, producing nested template literals (`<style>{`{`@scope…`}`}`)
+  // that oxc rejects with "Expected `}` but found `@`". extractCss must
+  // strip the JSX wrap regardless of where the agent placed it.
+  it('carbonize does not double-wrap when the variants block uses JSX template literals on their own lines', () => {
+    const tsx = `export default function App() {\n` +
+      `  return (\n` +
+      `    <main>\n` +
+      `      <>\n` +
+      `        {/* impeccable-variants-start TPL */}\n` +
+      `        <div data-impeccable-variants="TPL" data-impeccable-variant-count="2" style={{ display: 'contents' }}>\n` +
+      `          <div data-impeccable-variant="original"><p className="hook">orig</p></div>\n` +
+      `          <style data-impeccable-css="TPL">\n` +
+      "            {`\n" +
+      `              @scope ([data-impeccable-variant="1"]) { .hook { color: red; } }\n` +
+      `              @scope ([data-impeccable-variant="2"]) { .hook { color: green; } }\n` +
+      "            `}\n" +
+      `          </style>\n` +
+      `          <div data-impeccable-variant="1"><p className="hook">variant one</p></div>\n` +
+      `          <div data-impeccable-variant="2" style={{ display: 'none' }}><p className="hook">variant two</p></div>\n` +
+      `        </div>\n` +
+      `        {/* impeccable-variants-end TPL */}\n` +
+      `      </>\n` +
+      `    </main>\n` +
+      `  );\n` +
+      `}\n`;
+    writeFileSync(join(tmp, 'App.tsx'), tsx);
+
+    const result = runAccept(tmp, ['--id', 'TPL', '--variant', '1']);
+    assert.equal(result.handled, true, `accept should succeed: ${JSON.stringify(result)}`);
+
+    const after = readFileSync(join(tmp, 'App.tsx'), 'utf-8');
+    // Exactly one `{` opener after the carbonized <style ...> tag — not two.
+    const carbonStyleMatch = after.match(/<style data-impeccable-css="TPL">([\s\S]*?)<\/style>/);
+    assert.ok(carbonStyleMatch, 'carbonize <style> block present');
+    const inner = carbonStyleMatch[1];
+    // Inner must open with one `{` ... and end with one ` `` ... — no nesting.
+    const openCount = (inner.match(/\{`/g) || []).length;
+    const closeCount = (inner.match(/`\}/g) || []).length;
+    assert.equal(openCount, 1, `expected exactly one {\` opener, got ${openCount}`);
+    assert.equal(closeCount, 1, `expected exactly one \`} closer, got ${closeCount}`);
+    // CSS content survived intact.
+    assert.ok(inner.includes('@scope ([data-impeccable-variant="1"])'), 'variant-1 scope kept');
+  });
+
+  // Same shape, but the agent put `{`` and ``\`}` attached to first/last CSS
+  // lines instead of on dedicated lines. Tests the inline-strip branch.
+  it('carbonize does not double-wrap when JSX template-literal punctuation hugs the CSS lines', () => {
+    const tsx = `export default function App() {\n` +
+      `  return (\n` +
+      `    <main>\n` +
+      `      <>\n` +
+      `        {/* impeccable-variants-start INLINE */}\n` +
+      `        <div data-impeccable-variants="INLINE" data-impeccable-variant-count="2" style={{ display: 'contents' }}>\n` +
+      `          <div data-impeccable-variant="original"><p className="hook">orig</p></div>\n` +
+      `          <style data-impeccable-css="INLINE">\n` +
+      "            {`@scope ([data-impeccable-variant=\"1\"]) { .hook { color: red; } }\n" +
+      "             @scope ([data-impeccable-variant=\"2\"]) { .hook { color: green; } }`}\n" +
+      `          </style>\n` +
+      `          <div data-impeccable-variant="1"><p className="hook">variant one</p></div>\n` +
+      `          <div data-impeccable-variant="2" style={{ display: 'none' }}><p className="hook">variant two</p></div>\n` +
+      `        </div>\n` +
+      `        {/* impeccable-variants-end INLINE */}\n` +
+      `      </>\n` +
+      `    </main>\n` +
+      `  );\n` +
+      `}\n`;
+    writeFileSync(join(tmp, 'App.tsx'), tsx);
+
+    const result = runAccept(tmp, ['--id', 'INLINE', '--variant', '1']);
+    assert.equal(result.handled, true, `accept should succeed: ${JSON.stringify(result)}`);
+
+    const after = readFileSync(join(tmp, 'App.tsx'), 'utf-8');
+    const inner = after.match(/<style data-impeccable-css="INLINE">([\s\S]*?)<\/style>/)[1];
+    const openCount = (inner.match(/\{`/g) || []).length;
+    const closeCount = (inner.match(/`\}/g) || []).length;
+    assert.equal(openCount, 1, `expected one {\` opener, got ${openCount}`);
+    assert.equal(closeCount, 1, `expected one \`} closer, got ${closeCount}`);
+    assert.ok(inner.includes('@scope ([data-impeccable-variant="1"])'), 'variant-1 scope kept');
+  });
+
+  // Discard must restore the original element after a self-closing <style />,
+  // proving extractOriginal also survives the style pattern.
+  it('discard restores the original element after a JSX self-closing <style />', () => {
+    const html = `<body>
+  <!-- impeccable-variants-start DISC -->
+  <div data-impeccable-variants="DISC" data-impeccable-variant-count="2" style="display: contents">
+    <div data-impeccable-variant="original"><p class="hook">ORIGINAL CONTENT</p></div>
+    <style data-impeccable-css="DISC" dangerouslySetInnerHTML={{ __html: '@scope ([data-impeccable-variant="1"]) { .hook { color: red; } }' }} />
+    <div data-impeccable-variant="1"><p class="hook">variant one</p></div>
+    <div data-impeccable-variant="2" style="display: none"><p class="hook">variant two</p></div>
+  </div>
+  <!-- impeccable-variants-end DISC -->
+</body>`;
+    writeFileSync(join(tmp, 'page.html'), html);
+
+    const result = runAccept(tmp, ['--id', 'DISC', '--discard']);
+    assert.equal(result.handled, true, `discard should succeed: ${JSON.stringify(result)}`);
+
+    const after = readFileSync(join(tmp, 'page.html'), 'utf-8');
+    assert.ok(after.includes('ORIGINAL CONTENT'), 'original restored');
+    assert.ok(!after.includes('impeccable-variants-start'), 'wrapper markers gone');
+    assert.ok(!after.includes('variant one'), 'variants dropped');
+  });
 });

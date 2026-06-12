@@ -7,8 +7,8 @@
  *
  * For discard: removes the entire variant wrapper and restores the original.
  * For accept: replaces the wrapper with the chosen variant's content. If the
- * session had a colocated <style> block, it is preserved with carbonize markers
- * so the current Codex thread can integrate it into the project's CSS.
+ * session had a colocated <style> block, it's preserved with carbonize markers
+ * for a background agent to integrate into the project's CSS.
  *
  * Output: JSON to stdout.
  */
@@ -45,10 +45,17 @@ Output (JSON):
 
   const id = argVal(args, '--id');
   const variantNum = argVal(args, '--variant');
+  const paramValuesRaw = argVal(args, '--param-values');
   const isDiscard = args.includes('--discard');
 
   if (!id) { console.error('Missing --id'); process.exit(1); }
   if (!isDiscard && !variantNum) { console.error('Need --discard or --variant N'); process.exit(1); }
+
+  let paramValues = null;
+  if (paramValuesRaw) {
+    try { paramValues = JSON.parse(paramValuesRaw); }
+    catch { paramValues = null; } // malformed blob: skip the comment rather than failing the accept
+  }
 
   // Find the file containing this session's markers
   const found = findSessionFile(id, process.cwd());
@@ -78,7 +85,7 @@ Output (JSON):
     const result = handleDiscard(id, lines, targetFile);
     console.log(JSON.stringify({ handled: true, file: relFile, carbonize: false, ...result }));
   } else {
-    const result = handleAccept(id, variantNum, lines, targetFile);
+    const result = handleAccept(id, variantNum, lines, targetFile, paramValues);
     // Single-line attention-grabber when cleanup is required. The full
     // five-step checklist lives in reference/live.md (loaded once per
     // session); repeating it per-event would waste tokens.
@@ -99,14 +106,16 @@ function handleDiscard(id, lines, targetFile) {
 
   const original = extractOriginal(lines, block);
   const indent = lines[block.start].match(/^(\s*)/)[1];
+  const isJsx = detectCommentSyntax(targetFile).open === '{/*';
+  const replaceRange = expandReplaceRange(block, lines, isJsx);
 
   // De-indent the original content back to the marker's indentation level
   const restored = deindentContent(original, indent);
 
   const newLines = [
-    ...lines.slice(0, block.start),
+    ...lines.slice(0, replaceRange.start),
     ...restored,
-    ...lines.slice(block.end + 1),
+    ...lines.slice(replaceRange.end + 1),
   ];
   fs.writeFileSync(targetFile, newLines.join('\n'), 'utf-8');
   return {};
@@ -116,12 +125,13 @@ function handleDiscard(id, lines, targetFile) {
 // Accept
 // ---------------------------------------------------------------------------
 
-function handleAccept(id, variantNum, lines, targetFile) {
+function handleAccept(id, variantNum, lines, targetFile, paramValues) {
   const block = findMarkerBlock(id, lines);
   if (!block) return { handled: false, error: 'Markers not found' };
 
   const indent = lines[block.start].match(/^(\s*)/)[1];
   const commentSyntax = detectCommentSyntax(targetFile);
+  const isJsx = commentSyntax.open === '{/*';
 
   // Extract the chosen variant's inner content
   const variantContent = extractVariant(lines, block, variantNum);
@@ -140,7 +150,6 @@ function handleAccept(id, variantNum, lines, targetFile) {
   // Build the replacement
   const restored = deindentContent(variantContent, indent);
   const replacement = [];
-  const isJsx = commentSyntax.open === '{/*';
 
   if (cssContent) {
     replacement.push(indent + commentSyntax.open + ' impeccable-carbonize-start ' + id + ' ' + commentSyntax.close);
@@ -152,6 +161,11 @@ function handleAccept(id, variantNum, lines, targetFile) {
       replacement.push(indent + cssLine.trimStart());
     }
     replacement.push(indent + (isJsx ? '`}</style>' : '</style>'));
+    if (paramValues && Object.keys(paramValues).length > 0) {
+      // Preserve the user's knob positions for the carbonize-cleanup agent
+      // to bake into the final CSS when it collapses scoped rules.
+      replacement.push(indent + commentSyntax.open + ' impeccable-param-values ' + id + ': ' + JSON.stringify(paramValues) + ' ' + commentSyntax.close);
+    }
     replacement.push(indent + commentSyntax.open + ' impeccable-carbonize-end ' + id + ' ' + commentSyntax.close);
   }
 
@@ -161,8 +175,9 @@ function handleAccept(id, variantNum, lines, targetFile) {
   // isn't affected). The carbonize agent strips this attribute + wrapper when
   // it moves the CSS to a proper stylesheet.
   //
-  // Style attribute syntax has to follow the host file's flavor. JSX files
-  // need the object form; React 19 rejects the HTML string form.
+  // Style attribute syntax has to follow the host file's flavor — JSX files
+  // need the object form, otherwise React 19 throws "Failed to set indexed
+  // property [0] on CSSStyleDeclaration" while parsing the string char-by-char.
   if (cssContent) {
     const styleAttr = isJsx ? "style={{ display: 'contents' }}" : 'style="display: contents"';
     replacement.push(indent + '<div data-impeccable-variant="' + variantNum + '" ' + styleAttr + '>');
@@ -172,10 +187,11 @@ function handleAccept(id, variantNum, lines, targetFile) {
     replacement.push(...restored);
   }
 
+  const replaceRange = expandReplaceRange(block, lines, isJsx);
   const newLines = [
-    ...lines.slice(0, block.start),
+    ...lines.slice(0, replaceRange.start),
     ...replacement,
-    ...lines.slice(block.end + 1),
+    ...lines.slice(replaceRange.end + 1),
   ];
   fs.writeFileSync(targetFile, newLines.join('\n'), 'utf-8');
 
@@ -202,6 +218,60 @@ function findMarkerBlock(id, lines) {
   }
 
   return (start !== -1 && end !== -1) ? { start, end } : null;
+}
+
+/**
+ * Compute the line range to REPLACE (vs. just the marker range to extract
+ * from). For JSX/TSX wrappers, live-wrap places the marker comments INSIDE
+ * the `<div data-impeccable-variants="ID">` outer wrapper so the picked
+ * element's JSX slot keeps a single child — a Fragment `<></>` would have
+ * solved the multi-sibling case but failed inside `asChild` / cloneElement
+ * parents with "Invalid prop supplied to React.Fragment".
+ *
+ * That means the marker block is enclosed by the wrapper `<div>` opener
+ * (with `data-impeccable-variants="ID"`) and its matching `</div>`. We
+ * walk back to the opener and forward to the closer so accept/discard
+ * remove the entire scaffold, not just the inner markers.
+ *
+ * Marker lines themselves stay where they were so extractOriginal /
+ * extractVariant / extractCss continue to walk the same range.
+ */
+function expandReplaceRange(block, lines, isJsx) {
+  if (!isJsx) return { start: block.start, end: block.end };
+
+  let { start, end } = block;
+
+  // Walk back for the wrapper `<div data-impeccable-variants="..."` opener.
+  // The attr may sit on a continuation line of a multi-line opening tag, so
+  // also walk to the line that actually contains `<div`.
+  for (let i = start - 1; i >= Math.max(0, start - 12); i--) {
+    if (/data-impeccable-variants=/.test(lines[i])) {
+      let opener = i;
+      while (opener > 0 && !/<div\b/.test(lines[opener])) opener--;
+      start = opener;
+      break;
+    }
+  }
+
+  // Walk forward to the matching `</div>` by div-depth tracking from the
+  // wrapper opener. Self-closing `<div … />` doesn't contribute depth.
+  const openRe = /<div\b/g;
+  const selfCloseRe = /<div\b[^>]*\/\s*>/g;
+  const closeRe = /<\/div\s*>/g;
+  let depth = 0;
+  for (let i = start; i < lines.length; i++) {
+    const line = lines[i];
+    const opens = (line.match(openRe) || []).length;
+    const selfCloses = (line.match(selfCloseRe) || []).length;
+    const closes = (line.match(closeRe) || []).length;
+    depth += opens - selfCloses - closes;
+    if (depth <= 0 && i >= end) {
+      end = i;
+      break;
+    }
+  }
+
+  return { start, end };
 }
 
 /**
@@ -331,7 +401,7 @@ function extractCss(lines, block, id) {
       // Same-line open + close: extract inner text.
       const sameLine = line.match(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/);
       if (sameLine) {
-        const inner = sameLine[1];
+        const inner = stripJsxTemplateWrap(sameLine[1]);
         return inner.length > 0 ? inner.split('\n') : null;
       }
       inStyle = true;
@@ -339,15 +409,69 @@ function extractCss(lines, block, id) {
     }
 
     if (inStyle) {
-      // Detect </style> anywhere on the line. JSX template-literal closes put
-      // the close mid-line, and we don't want that punctuation as CSS content.
+      // Detect </style> anywhere on the line — JSX template-literal closes
+      // (`}</style>`) put the close mid-line, and we don't want to absorb the
+      // template-literal punctuation as CSS content.
       const closeIdx = line.indexOf('</style>');
       if (closeIdx !== -1) break;
       content.push(line);
     }
   }
 
-  return content.length > 0 ? content : null;
+  if (content.length === 0) return null;
+  return stripJsxTemplateLines(content);
+}
+
+/**
+ * Strip a JSX template-literal wrap (`{` … `}`) from CSS extracted out of a
+ * `<style>` element in a JSX/TSX file. The agent may write the wrap with
+ * `{` and `}` directly attached to the `<style>` tags, on their own lines,
+ * or attached to the first/last CSS lines — all three are JSX-legal.
+ *
+ * Stripping is required because handleAccept re-wraps the CSS itself when
+ * carbonizing. Without this, two consecutive accepts (or a previously-
+ * accepted variants block being carbonized) would produce nested
+ * `{` `{` … `}` `}`, which oxc rejects with "Expected `}` but found `@`".
+ */
+function stripJsxTemplateLines(content) {
+  const out = content.slice();
+
+  // Drop any leading blank lines so we don't miss a `{` line buried below
+  // them; same for trailing.
+  while (out.length > 0 && out[0].trim() === '') out.shift();
+  while (out.length > 0 && out[out.length - 1].trim() === '') out.pop();
+  if (out.length === 0) return null;
+
+  // Leading `{`: own line, or attached to the first CSS line.
+  const firstTrim = out[0].trimStart();
+  if (firstTrim === '{`') {
+    out.shift();
+  } else if (firstTrim.startsWith('{`')) {
+    const idx = out[0].indexOf('{`');
+    out[0] = out[0].slice(0, idx) + out[0].slice(idx + 2);
+    if (out[0].trim() === '') out.shift();
+  }
+  if (out.length === 0) return null;
+
+  // Trailing `` ` `` `}`: own line, or attached to the last CSS line.
+  const lastIdx = out.length - 1;
+  const lastTrim = out[lastIdx].trimEnd();
+  if (lastTrim === '`}') {
+    out.pop();
+  } else if (lastTrim.endsWith('`}')) {
+    const text = out[lastIdx];
+    const idx = text.lastIndexOf('`}');
+    out[lastIdx] = text.slice(0, idx) + text.slice(idx + 2);
+    if (out[lastIdx].trim() === '') out.pop();
+  }
+
+  return out.length > 0 ? out : null;
+}
+
+function stripJsxTemplateWrap(text) {
+  const lines = text.split('\n');
+  const stripped = stripJsxTemplateLines(lines);
+  return stripped ? stripped.join('\n') : '';
 }
 
 /**

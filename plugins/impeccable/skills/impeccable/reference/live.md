@@ -70,7 +70,7 @@ Reading annotations precisely:
 ### 2. Wrap the element
 
 ```bash
-node skills/impeccable/scripts/live-wrap.mjs --id EVENT_ID --count EVENT_COUNT --element-id "ELEMENT_ID" --classes "class1,class2" --tag "div"
+node skills/impeccable/scripts/live-wrap.mjs --id EVENT_ID --count EVENT_COUNT --element-id "ELEMENT_ID" --classes "class1,class2" --tag "div" --text "TEXT_SNIPPET"
 ```
 
 Flag mapping — keep them separate, don't collapse into `--query`:
@@ -78,8 +78,11 @@ Flag mapping — keep them separate, don't collapse into `--query`:
 - `--element-id` ← `event.element.id`
 - `--classes` ← `event.element.classes` joined with commas
 - `--tag` ← `event.element.tagName`
+- `--text` ← first ~80 chars of `event.element.textContent` (trim, single-line). Pass this every call. When the picked element shares classes and tag with sibling components (a list of cards, repeated sections), this disambiguates which source branch to wrap.
 
 The helper searches ID first, then classes, then tag + class combo. If `event.pageUrl` implies the file (e.g. `/` is usually `index.html`), pass `--file PATH` to skip the search. `--query` is a fallback for raw text search only — do not use it for normal element lookups.
+
+If `--text` matches multiple candidates equally well, wrap exits with `{ error: "element_ambiguous", candidates: [...] }` and `fallback: "agent-driven"` — read the candidate line ranges, decide which one matches the picked element from page context, and write the wrapper manually per the fallback flow.
 
 Output on success: `{ file, insertLine, commentSyntax }`.
 
@@ -88,6 +91,7 @@ Output on success: `{ file, insertLine, commentSyntax }`.
 - `{ error: "file_is_generated", file, hint }` — user-supplied `--file` points at a generated file.
 - `{ error: "element_not_in_source", generatedMatch, hint }` — element exists only in a generated file (the next build would wipe any edits).
 - `{ error: "element_not_found", hint }` — element isn't in any project file; likely runtime-injected (JS component, data-driven render).
+- `{ error: "element_ambiguous", candidates, hint }` — multiple source elements match both structural hints and text content. Read the candidate ranges and write the wrapper manually around the correct one.
 
 All three carry `fallback: "agent-driven"`. Follow **Handle fallback** below.
 
@@ -176,6 +180,23 @@ Write CSS + all variants in ONE edit at the `insertLine` reported by `wrap`. Col
 The first variant has no `display: none` (visible by default). All others do. If variants use only inline styles and no scoped CSS, omit the `<style>` tag entirely. Use `@scope` for CSS isolation (Chrome 118+ / Firefox 128+ / Safari 17.4+).
 
 One edit, all variants — the browser's MutationObserver picks everything up in one pass.
+
+**JSX / TSX target files.** Wrap `<style>` content in a template literal so the CSS `{` / `}` are not parsed as JSX expressions, and use `className=` / `style={{...}}` on every variant element. Keep `data-impeccable-*` attributes as plain strings:
+
+```tsx
+<style data-impeccable-css="SESSION_ID">{`
+  @scope ([data-impeccable-variant="1"]) { ... }
+  @scope ([data-impeccable-variant="2"]) { ... }
+`}</style>
+<div data-impeccable-variant="1">
+  {/* variant 1 */}
+</div>
+<div data-impeccable-variant="2" style={{ display: 'none' }}>
+  {/* variant 2 */}
+</div>
+```
+
+The wrap script already gives JSX a single-rooted wrapper: a `<div data-impeccable-variants="...">` outer element with marker comments tucked inside. Drop the variants block above into the "Variants: insert below this line" comment and the source stays valid TSX.
 
 ### 7. Signal done
 
