@@ -30,6 +30,38 @@ describe('codex-only build contract', () => {
     });
   });
 
+  test('authored and generated impeccable skills omit one-time cleanup bootstrap', () => {
+    const authored = fs.readFileSync(path.join(process.cwd(), 'source/skills/impeccable/SKILL.md'), 'utf8');
+    const generated = fs.readFileSync(
+      path.join(process.cwd(), 'plugins/impeccable/skills/impeccable/SKILL.md'),
+      'utf8'
+    );
+
+    expect(authored).not.toContain('<post-update-cleanup>');
+    expect(generated).not.toContain('<post-update-cleanup>');
+    expect(fs.existsSync(path.join(process.cwd(), 'source/skills/impeccable/scripts/cleanup-deprecated.mjs'))).toBe(true);
+    expect(fs.existsSync(
+      path.join(process.cwd(), 'plugins/impeccable/skills/impeccable/scripts/cleanup-deprecated.mjs')
+    )).toBe(true);
+  });
+
+  test('live browser accept fallback preserves variant attributes for scoped styles', () => {
+    const authored = fs.readFileSync(
+      path.join(process.cwd(), 'source/skills/impeccable/scripts/live-browser.js'),
+      'utf8'
+    );
+    const generated = fs.readFileSync(
+      path.join(process.cwd(), 'plugins/impeccable/skills/impeccable/scripts/live-browser.js'),
+      'utf8'
+    );
+
+    for (const script of [authored, generated]) {
+      expect(script).toContain("accepted.style.display = 'contents';");
+      expect(script).toContain('parent.replaceChild(accepted, wrapper);');
+      expect(script).not.toContain('accepted.firstElementChild.cloneNode(true)');
+    }
+  });
+
   test('transformCodex writes skills into the codex distribution tree', () => {
     const skillDir = path.join(TEST_DIR, 'source/skills/test-skill');
     fs.mkdirSync(skillDir, { recursive: true });
