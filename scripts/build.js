@@ -164,23 +164,72 @@ function validateAntipatternRules(rootDir) {
 }
 
 /**
- * Scan user-facing copy for em dashes (— or &mdash;).
- * Em dashes in project copy are a known anti-pattern here; flag them loudly.
+ * Scan user-facing copy for prose tells that make the public site feel generic.
  * Only scans files where we author copy, not vendored or generated output.
  *
  * Returns the number of occurrences found.
  */
-function validateNoEmDashes(rootDir) {
+function validateProse(rootDir) {
   const targets = [
     'site/content',
     'site/components',
     'site/layouts',
     'site/pages',
+    'README.md',
+    'README.npm.md',
     'scripts/lib/sub-pages-data.js',
   ];
   const extensions = new Set(['.astro', '.html', '.md', '.js', '.mjs', '.css', '.ts']);
   const emDashPatterns = [/—/g, /&mdash;/gi, /&#8212;/gi, /&#x2014;/gi];
+  const phraseRules = [
+    { re: /\bload-bearing\b/i, rationale: 'AI tell. Stolen-engineer diction; name what the thing actually does.' },
+    { re: /\bhighest-leverage\b/i, rationale: 'AI tell. Vague claim of impact; say what specifically pays off.' },
+    { re: /\bbiggest unlock\b/i, rationale: 'Marketing-speak; describe the actual change.' },
+    { re: /\breflex defaults?\b/i, rationale: 'Internal jargon leaking into user copy; say "first guesses" or name the behavior.' },
+    { re: /\bcollapses? into monoculture\b/i, rationale: 'Internal eval-speak; describe what actually went wrong.' },
+    { re: /\bdata-driven\b/i, rationale: 'Empty marketing adjective; cite the evidence instead.' },
+    { re: /\bseamless(?:ly)?\b/i, rationale: 'Hollow positive; say what specifically works without friction.' },
+    { re: /\brobust(?:ness)?\b/i, rationale: 'Hollow positive; cite the failure mode it handles.' },
+    { re: /\bdelves?\b|\bdelved\b|\bdelving\b/i, rationale: 'Top AI tell; use "explore", "look at", or delete the setup.' },
+    { re: /\belevate(?:s|d)?\b/i, rationale: 'Marketing verb; use the specific verb.' },
+    { re: /\bempower(?:s|ed|ing)?\b/i, rationale: 'Marketing verb; use "let you" or "make possible".' },
+    { re: /\bunderscore(?:s|d)?\b/i, rationale: 'AI tell; use "show" or "make clear".' },
+    { re: /\bpivotal\b/i, rationale: 'Hollow positive; use "central", "key", or describe the role.' },
+    { re: /\bin today's\b/i, rationale: 'Throat-clearing opener; start at the point.' },
+    { re: /\bgone are the days\b/i, rationale: 'Throat-clearing; make the point directly.' },
+    { re: /\bwhether you're\b/i, rationale: 'Audience-pandering; pick one reader.' },
+    { re: /\blet's dive in\b/i, rationale: 'Throat-clearing; just start.' },
+    { re: /\bin summary\b|\bin conclusion\b/i, rationale: 'Summarizing closer; end on the strongest sentence.' },
+    { re: /\bmoreover\b|\bfurthermore\b/i, rationale: 'Transition crutch; drop it, use "also", or restructure.' },
+    { re: /\btapestry\b/i, rationale: 'AI scenery noun; cut it.' },
+  ];
   let errors = 0;
+
+  const checkLine = (line, rel, lineNum) => {
+    for (const re of emDashPatterns) {
+      if (re.test(line)) {
+        console.error(`  ❌ ${rel}:${lineNum}: em dash in copy → ${line.trim().slice(0, 120)}`);
+        console.error('        Use commas, colons, semicolons, periods, or parentheses.');
+        errors++;
+        re.lastIndex = 0;
+        break;
+      }
+      re.lastIndex = 0;
+    }
+    if (/ -- /.test(line)) {
+      console.error(`  ❌ ${rel}:${lineNum}: \` -- \` em-dash substitute → ${line.trim().slice(0, 120)}`);
+      console.error('        Pick real punctuation.');
+      errors++;
+    }
+    for (const rule of phraseRules) {
+      if (rule.re.test(line)) {
+        const matched = line.match(rule.re)?.[0] ?? '';
+        console.error(`  ❌ ${rel}:${lineNum}: "${matched}" → ${line.trim().slice(0, 120)}`);
+        console.error(`        ${rule.rationale}`);
+        errors++;
+      }
+    }
+  };
 
   const scan = (absPath, rel) => {
     const stat = fs.statSync(absPath);
@@ -193,16 +242,7 @@ function validateNoEmDashes(rootDir) {
     if (!extensions.has(path.extname(absPath))) return;
     const src = fs.readFileSync(absPath, 'utf-8');
     const lines = src.split('\n');
-    lines.forEach((line, i) => {
-      for (const re of emDashPatterns) {
-        if (re.test(line)) {
-          console.error(`  ❌ ${rel}:${i + 1}: em dash in copy → ${line.trim().slice(0, 120)}`);
-          errors++;
-          break;
-        }
-        re.lastIndex = 0;
-      }
-    });
+    lines.forEach((line, i) => checkLine(line, rel, i + 1));
   };
 
   for (const target of targets) {
@@ -211,9 +251,9 @@ function validateNoEmDashes(rootDir) {
   }
 
   if (errors === 0) {
-    console.log(`✓ No em dashes in project copy`);
+    console.log(`✓ Prose validator: no AI tells in user-facing copy`);
   } else {
-    console.error(`\n❌ ${errors} em dash(es) in project copy. Use commas, colons, or parentheses.`);
+    console.error(`\n❌ ${errors} prose issue(s) in user-facing copy. See STYLE.md for the rules.`);
   }
   return errors;
 }
@@ -486,10 +526,10 @@ async function build() {
   // Verify every hand-authored HTML page carries the shared site header
   const headerErrors = validateSiteHeader();
 
-  // Scan user-facing copy for em dashes
-  const emDashErrors = validateNoEmDashes(ROOT_DIR);
+  // Scan user-facing copy for AI tells (em dashes, marketing fluff, denylisted phrases)
+  const proseErrors = validateProse(ROOT_DIR);
 
-  if (countErrors > 0 || validationErrors > 0 || headerErrors > 0 || emDashErrors > 0) {
+  if (countErrors > 0 || validationErrors > 0 || headerErrors > 0 || proseErrors > 0) {
     process.exit(1);
   }
 

@@ -21,7 +21,7 @@ The skill runs a structured discovery interview in conversation. It will not wri
 
 You answer naturally. The skill asks follow-ups, not a form. At the end it produces a design brief: a structured artifact you can hand to `$impeccable` or any other implementation skill.
 
-Note: if you want the full flow -- discovery interview, then straight into building -- use `$impeccable craft` instead. It runs `$shape` internally, then continues into implementation with visual iteration. `$shape` standalone is for when you want just the brief, so you can take it to whatever implementation approach you prefer.
+Note: if you want the full flow, from discovery interview straight into building, use `$impeccable craft` instead. It runs `$shape` internally, then continues into implementation with visual iteration. `$shape` standalone is for when you want just the brief, so you can take it to whatever implementation approach you prefer.
 
 ## Try it
 

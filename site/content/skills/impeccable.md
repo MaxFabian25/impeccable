@@ -18,7 +18,7 @@ One-time project setup. Runs a short discovery interview about your brand, audie
 
 ### $impeccable extract {#extract}
 
-Pull reusable components, design tokens, and patterns out of your code and into the design system. Finds repeated UI patterns (buttons in 12 places, three card variants, scattered hex colors), extracts them into shared primitives, and migrates all callers. Best used after a product has shipped enough features to reveal the patterns -- premature extraction creates abstractions that do not match reality.
+Pull reusable components, design tokens, and patterns out of your code and into the design system. Finds repeated UI patterns (buttons in 12 places, three card variants, scattered hex colors), extracts them into shared primitives, and migrates all callers. Best used after a product has shipped enough features to reveal the patterns; premature extraction creates abstractions that do not match reality.
 
 ## How it works
 

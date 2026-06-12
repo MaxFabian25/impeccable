@@ -45,3 +45,4 @@ node --test tests/cleanup-deprecated.test.mjs tests/detect-antipatterns-fixtures
 - Keep the command prefix Codex-native: `$audit`, `$polish`, `$impeccable`, and so on.
 - Treat `plugins/impeccable/skills` plus `plugins/impeccable/.codex-plugin/plugin.json` as the installable surface.
 - Keep `source/skills` as the single authored source of truth.
+- Follow `STYLE.md` for public copy. `scripts/build.js` enforces the prose denylist for the site and README surfaces.
