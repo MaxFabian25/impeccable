@@ -3986,7 +3986,7 @@ code {
   padding: var(--spacing-lg);
 }
 
-/* Steps 2-4: vertical accordion. Native <details name="install-steps">
+/* Steps 2-5: vertical accordion. Native <details name="install-steps">
    gives mutual exclusion (opening one closes the others). Items are
    separated by hairlines, not card chrome. */
 .install-accordion {
@@ -4171,6 +4171,64 @@ code {
   margin-right: 4px;
 }
 
+.install-howto-rows {
+  display: flex;
+  flex-direction: column;
+  margin: var(--spacing-sm) 0 0;
+  padding: 0;
+}
+
+.install-howto-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
+  gap: var(--spacing-md);
+  align-items: baseline;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-mist);
+}
+
+.install-howto-row:first-child {
+  padding-top: 0;
+}
+
+.install-howto-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.install-howto-row dt,
+.install-howto-row dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.install-howto-row dt code {
+  padding: 3px 8px;
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: var(--color-accent-dim);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.install-howto-row dd {
+  color: var(--color-ink);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.install-howto-row dd code {
+  padding: 1px 5px;
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 0.8125em;
+  background: var(--color-mist);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
 .install-path-link {
   margin-top: auto;
   padding-top: var(--spacing-md);
@@ -4234,6 +4292,7 @@ code {
   font-size: 0.75rem;
   color: var(--color-ash);
   line-height: 1.5;
+  text-wrap: pretty;
 }
 
 .install-cmd-note code {
@@ -4243,6 +4302,18 @@ code {
   padding: 2px 5px;
   border-radius: 3px;
   color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.install-cmd-note a {
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .install-howto-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
 }
 
 

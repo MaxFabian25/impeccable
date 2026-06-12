@@ -783,32 +783,33 @@
         </div>
       </div>
 
-      <!-- Steps 2-4: vertical accordion, mutually exclusive (only one open at a time) -->
+      <!-- Steps 2-5: vertical accordion, mutually exclusive (only one open at a time) -->
       <div class="install-accordion" data-reveal>
-        <!-- Step 2: CLI -->
+        <!-- Step 2: Use it -->
         <details name="install-steps" class="install-step">
           <summary class="install-step-summary">
-            <h3 class="install-path-title"><span class="install-path-step">2</span>Add the CLI <span class="install-path-badge install-path-badge-muted">Beta</span></h3>
+            <h3 class="install-path-title"><span class="install-path-step">2</span>Use it</h3>
             <svg class="install-step-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
           </summary>
           <div class="install-step-body">
-            <p class="install-path-desc">Scan any file, directory, or live URL for anti-patterns from the terminal. Catches gradient text, AI color palettes, nested cards, low contrast, and 20+ more rules across HTML, CSS, JSX/TSX, Vue, and Svelte. Use it in CI pipelines, pre-commit hooks, or one-off audits to keep AI slop out of production.</p>
+            <p class="install-path-desc">Impeccable gives you a shared design vocabulary with Codex: 19 commands that each encode a specific design discipline, so you can steer with precision.</p>
 
-            <div class="install-cmd-block">
-              <div class="install-cmd-line">
-                <span class="terminal-prompt">$</span>
-                <code>npm i -g impeccable</code>
-                <button class="copy-btn" aria-label="Copy command" data-copy="npm i -g impeccable">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
-                  </svg>
-                </button>
+            <dl class="install-howto-rows">
+              <div class="install-howto-row">
+                <dt><code><span class="install-path-slash">$</span>impeccable redo this hero</code></dt>
+                <dd>Let the skill pick the approach. No names to memorize.</dd>
               </div>
-              <span class="install-cmd-note">Or use <code>npx impeccable detect src/</code> directly without installing.</span>
-            </div>
+              <div class="install-howto-row">
+                <dt><code><span class="install-path-slash">$</span>audit checkout</code></dt>
+                <dd>Reach for a command directly. Type <code><span class="install-path-slash">$</span>impeccable</code> to see the full vocabulary.</dd>
+              </div>
+              <div class="install-howto-row">
+                <dt><code><span class="install-path-slash">$</span>impeccable pin audit</code></dt>
+                <dd>Pin favorites. <code><span class="install-path-slash">$</span>audit</code> becomes a standalone shortcut.</dd>
+              </div>
+            </dl>
 
-            <p class="install-path-link"><a href="https://www.npmjs.com/package/impeccable" target="_blank" rel="noopener">Full command reference on npm &rarr;</a></p>
+            <p class="install-path-link"><a href="/cheatsheet">Open the quick reference &rarr;</a></p>
           </div>
         </details>
 
@@ -824,10 +825,35 @@
           </div>
         </details>
 
-        <!-- Step 4: Stay updated -->
+        <!-- Step 4: CLI -->
         <details name="install-steps" class="install-step">
           <summary class="install-step-summary">
-            <h3 class="install-path-title"><span class="install-path-step">4</span>Stay updated</h3>
+            <h3 class="install-path-title"><span class="install-path-step">4</span>Add the CLI <span class="install-path-badge install-path-badge-muted">Optional</span></h3>
+            <svg class="install-step-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+          </summary>
+          <div class="install-step-body">
+            <p class="install-path-desc">Scan any file, directory, or live URL for anti-patterns from the terminal. Catches gradient text, AI color palettes, nested cards, low contrast, and more across HTML, CSS, JSX/TSX, Vue, and Svelte. Use it in CI pipelines, pre-commit hooks, or one-off audits.</p>
+
+            <div class="install-cmd-block">
+              <div class="install-cmd-line">
+                <span class="terminal-prompt">$</span>
+                <code>npm i -g impeccable</code>
+                <button class="copy-btn" aria-label="Copy command" data-copy="npm i -g impeccable">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+                  </svg>
+                </button>
+              </div>
+              <span class="install-cmd-note">Or use <code>npx impeccable detect src/</code> directly without installing. <a href="https://www.npmjs.com/package/impeccable" target="_blank" rel="noopener">View on npm &rarr;</a></span>
+            </div>
+          </div>
+        </details>
+
+        <!-- Step 5: Stay updated -->
+        <details name="install-steps" class="install-step">
+          <summary class="install-step-summary">
+            <h3 class="install-path-title"><span class="install-path-step">5</span>Stay updated</h3>
             <svg class="install-step-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
           </summary>
           <div class="install-step-body">
