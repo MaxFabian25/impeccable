@@ -76,11 +76,21 @@ describe('codex-only build contract', () => {
         'source/skills/impeccable/scripts/live-inject.mjs',
         'plugins/impeccable/skills/impeccable/scripts/live-inject.mjs',
       ],
+      [
+        'source/skills/impeccable/scripts/live-poll.mjs',
+        'plugins/impeccable/skills/impeccable/scripts/live-poll.mjs',
+      ],
+      [
+        'source/skills/impeccable/scripts/live-server.mjs',
+        'plugins/impeccable/skills/impeccable/scripts/live-server.mjs',
+      ],
     ];
 
     const [authoredBrowser, generatedBrowser] = scriptPairs[0].map((file) => fs.readFileSync(path.join(process.cwd(), file), 'utf8'));
     const [authoredAccept, generatedAccept] = scriptPairs[1].map((file) => fs.readFileSync(path.join(process.cwd(), file), 'utf8'));
     const [authoredInject, generatedInject] = scriptPairs[2].map((file) => fs.readFileSync(path.join(process.cwd(), file), 'utf8'));
+    const [authoredPoll, generatedPoll] = scriptPairs[3].map((file) => fs.readFileSync(path.join(process.cwd(), file), 'utf8'));
+    const [authoredServer, generatedServer] = scriptPairs[4].map((file) => fs.readFileSync(path.join(process.cwd(), file), 'utf8'));
 
     for (const script of [authoredBrowser, generatedBrowser]) {
       expect(script).toContain('Variants ready.');
@@ -117,6 +127,24 @@ describe('codex-only build contract', () => {
       expect(script).toContain('export function revertCspMeta');
       expect(script).toContain('cspPatched: updated !== withTag');
       expect(script).toContain('cspReverted: updated !== detagged');
+    }
+
+    for (const script of [authoredPoll, generatedPoll]) {
+      expect(script).toContain("import { execFileSync } from 'node:child_process';");
+      expect(script).toContain("execFileSync(\n          'node',\n          [acceptScript, ...scriptArgs],");
+      expect(script).toContain("scriptArgs.push('--param-values', JSON.stringify(event.paramValues));");
+      expect(script).not.toContain('execSync(');
+      expect(script).not.toContain('scriptArgs.join');
+    }
+
+    for (const script of [authoredServer, generatedServer]) {
+      expect(script).toContain('const ID_PATTERN = /^[0-9a-f]{8}$/;');
+      expect(script).toContain('const VARIANT_ID_PATTERN = /^[0-9]{1,3}$/;');
+      expect(script).toContain('function isValidId');
+      expect(script).toContain('accept: missing or malformed id');
+      expect(script).toContain('accept: missing or malformed variantId');
+      expect(script).toContain('accept: paramValues must be an object');
+      expect(script).toContain('discard: missing or malformed id');
     }
   });
 

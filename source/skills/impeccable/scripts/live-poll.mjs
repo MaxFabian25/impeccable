@@ -8,7 +8,7 @@
  *   node live-poll.mjs --reply <id> error "msg" # Reply with error
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -145,9 +145,13 @@ Options:
       const scriptArgs = event.type === 'discard'
         ? ['--id', event.id, '--discard']
         : ['--id', event.id, '--variant', event.variantId];
+      if (event.type === 'accept' && event.paramValues && Object.keys(event.paramValues).length > 0) {
+        scriptArgs.push('--param-values', JSON.stringify(event.paramValues));
+      }
       try {
-        const out = execSync(
-          `node "${acceptScript}" ${scriptArgs.join(' ')}`,
+        const out = execFileSync(
+          'node',
+          [acceptScript, ...scriptArgs],
           { encoding: 'utf-8', cwd: process.cwd(), timeout: 30_000 }
         );
         event._acceptResult = JSON.parse(out.trim());
