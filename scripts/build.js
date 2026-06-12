@@ -13,7 +13,13 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { readSourceFiles, readPatterns, readSkillPatterns } from './lib/utils.js';
+import {
+  readSourceFiles,
+  readPatterns,
+  readSkillPatterns,
+  stashPerProjectArtifacts,
+  restorePerProjectArtifacts,
+} from './lib/utils.js';
 import { createTransformer, PROVIDERS } from './lib/transformers/index.js';
 import { createAllZips } from './lib/zip.js';
 import { generateSubPages } from './build-sub-pages.js';
@@ -596,8 +602,10 @@ async function build() {
   const skillsDest = path.join(ROOT_DIR, 'plugins', 'impeccable', syncConfig.skillsPath);
 
   if (fs.existsSync(skillsSrc)) {
+    const stashed = stashPerProjectArtifacts(skillsDest);
     if (fs.existsSync(skillsDest)) fs.rmSync(skillsDest, { recursive: true });
     copyDirSync(skillsSrc, skillsDest);
+    restorePerProjectArtifacts(skillsDest, stashed);
   }
 
   // Remove deprecated skill stubs from local harness dirs. They exist

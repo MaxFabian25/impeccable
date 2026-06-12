@@ -11,7 +11,9 @@ import {
   generateYamlFrontmatter,
   readPatterns,
   readSkillPatterns,
-  replacePlaceholders
+  replacePlaceholders,
+  stashPerProjectArtifacts,
+  restorePerProjectArtifacts,
 } from '../../scripts/lib/utils.js';
 
 // Temporary test directory
@@ -531,6 +533,26 @@ Impeccable design instructions.`;
 
     expect(skills).toHaveLength(1);
     expect(skills[0].scripts.map((script) => script.name)).toEqual(['live.mjs']);
+  });
+
+  test('should preserve per-project script artifacts across sync', () => {
+    const skillsRoot = path.join(testRootDir, 'plugins/impeccable/skills');
+    const scriptsDir = path.join(skillsRoot, 'impeccable/scripts');
+    ensureDir(scriptsDir);
+    fs.writeFileSync(path.join(scriptsDir, 'config.json'), '{"files":["public/index.html"]}');
+    fs.writeFileSync(path.join(scriptsDir, 'live.mjs'), 'console.log("old");');
+
+    const stashed = stashPerProjectArtifacts(skillsRoot);
+    expect(stashed.map((item) => item.relPath)).toEqual(['impeccable/scripts/config.json']);
+
+    cleanDir(skillsRoot);
+    ensureDir(scriptsDir);
+    fs.writeFileSync(path.join(scriptsDir, 'live.mjs'), 'console.log("new");');
+
+    restorePerProjectArtifacts(skillsRoot, stashed);
+
+    expect(fs.readFileSync(path.join(scriptsDir, 'config.json'), 'utf-8')).toBe('{"files":["public/index.html"]}');
+    expect(fs.readFileSync(path.join(scriptsDir, 'live.mjs'), 'utf-8')).toBe('console.log("new");');
   });
 
   test('should handle missing skills directory', () => {

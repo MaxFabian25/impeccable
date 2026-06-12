@@ -1,9 +1,45 @@
 import fs from 'fs';
 import path from 'path';
 
-const PER_PROJECT_ARTIFACTS = new Set([
+// Per-project artifacts live inside `scripts/` of an installed skill but
+// belong to the consuming project, not the distributable skill. The build
+// excludes them from dist, and the plugin sync preserves them across rm+recopy.
+export const PER_PROJECT_SCRIPT_ARTIFACTS = new Set([
   'config.json',
 ]);
+
+export function stashPerProjectArtifacts(rootDir) {
+  if (!fs.existsSync(rootDir)) return [];
+  const stashed = [];
+
+  const walk = (dir) => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const filePath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(filePath);
+        continue;
+      }
+      if (path.basename(path.dirname(filePath)) !== 'scripts') continue;
+      if (!PER_PROJECT_SCRIPT_ARTIFACTS.has(entry.name)) continue;
+      stashed.push({
+        relPath: path.relative(rootDir, filePath),
+        content: fs.readFileSync(filePath),
+      });
+    }
+  };
+
+  walk(rootDir);
+  return stashed;
+}
+
+export function restorePerProjectArtifacts(rootDir, stashed) {
+  for (const { relPath, content } of stashed) {
+    const target = path.join(rootDir, relPath);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, content);
+  }
+}
 
 /**
  * Parse frontmatter from markdown content
@@ -166,7 +202,7 @@ export function readSourceFiles(rootDir) {
           const scriptsDir = path.join(entryPath, 'scripts');
           if (fs.existsSync(scriptsDir)) {
             const scriptFiles = fs.readdirSync(scriptsDir)
-              .filter(f => fs.statSync(path.join(scriptsDir, f)).isFile() && !PER_PROJECT_ARTIFACTS.has(f))
+              .filter(f => fs.statSync(path.join(scriptsDir, f)).isFile() && !PER_PROJECT_SCRIPT_ARTIFACTS.has(f))
               .sort((a, b) => a.localeCompare(b));
             for (const scriptFile of scriptFiles) {
               const scriptPath = path.join(scriptsDir, scriptFile);

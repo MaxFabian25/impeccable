@@ -295,9 +295,11 @@ function createRequestHandler({ detectScript, livePath }) {
       return;
     }
 
-    // --- Design system sidecar + raw ---
-    //   /design-system.json    prefers DESIGN.json; falls back to parsed DESIGN.md
-    //                          returns { mode, model, mdNewerThanJson, ... }
+    // --- Design system (unified v2 response) + raw ---
+    //   /design-system.json    returns parsed DESIGN.md and DESIGN.json sidecar
+    //                          when present. Panel merges them:
+    //                            { present, parsed, sidecar, hasMd, hasSidecar,
+    //                              mdNewerThanJson, parseError?, sidecarError? }
     //   /design-system/raw     returns DESIGN.md markdown verbatim
     if (p === '/design-system.json' || p === '/design-system/raw') {
       const token = url.searchParams.get('token');
@@ -321,43 +323,31 @@ function createRequestHandler({ detectScript, livePath }) {
         return;
       }
 
-      // Prefer DESIGN.json — it's the richer source (live component HTML).
-      // For schemaVersion 2, token primitives live in DESIGN.md frontmatter;
-      // enrich the sidecar payload with parsed markdown when available.
-      if (jsonStat) {
-        let model;
-        let parsedMd = null;
+      const response = {
+        present: true,
+        hasMd: !!mdStat,
+        hasSidecar: !!jsonStat,
+        mdNewerThanJson: !!(mdStat && jsonStat && mdStat.mtimeMs > jsonStat.mtimeMs + 1000),
+      };
+
+      if (mdStat) {
         try {
-          model = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-          if (mdStat) {
-            const raw = fs.readFileSync(mdPath, 'utf-8');
-            parsedMd = parseDesignMd(raw);
-            if (model.schemaVersion === 2 && parsedMd.frontmatter && !model.frontmatter) {
-              model.frontmatter = parsedMd.frontmatter;
-            }
-          }
+          response.parsed = parseDesignMd(fs.readFileSync(mdPath, 'utf-8'));
         } catch (err) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ present: true, error: 'Failed to parse DESIGN.json: ' + err.message }));
-          return;
+          response.parseError = err.message;
         }
-        const mdNewerThanJson = !!(mdStat && mdStat.mtimeMs > jsonStat.mtimeMs + 1000);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ present: true, mode: 'sidecar', model, parsedMd, mdNewerThanJson }));
-        return;
       }
 
-      // Fallback: DESIGN.md present but no sidecar. Panel shows a "basic mode"
-      // view + a CTA to run /impeccable document for the full visualization.
-      try {
-        const raw = fs.readFileSync(mdPath, 'utf-8');
-        const parsedMd = parseDesignMd(raw);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ present: true, mode: 'parsed-md', parsedMd }));
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ present: true, error: err.message }));
+      if (jsonStat) {
+        try {
+          response.sidecar = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+        } catch (err) {
+          response.sidecarError = 'Failed to parse DESIGN.json: ' + err.message;
+        }
       }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(response));
       return;
     }
 

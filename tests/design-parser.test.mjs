@@ -125,7 +125,7 @@ Body.
 });
 
 describe('loadDesignSystemPayload', () => {
-  it('prefers DESIGN.json and marks stale markdown', async () => {
+  it('returns parsed DESIGN.md and sidecar DESIGN.json together', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 'impeccable-design-payload-'));
     try {
       writeFileSync(join(tmp, 'DESIGN.json'), JSON.stringify({
@@ -137,16 +137,17 @@ describe('loadDesignSystemPayload', () => {
       const payload = await loadDesignSystemPayload(tmp);
 
       assert.equal(payload.present, true);
-      assert.equal(payload.mode, 'sidecar');
-      assert.equal(payload.model.title, 'Design System: Sidecar');
-      assert.equal(payload.parsedMd.title, 'Design System');
+      assert.equal(payload.hasMd, true);
+      assert.equal(payload.hasSidecar, true);
+      assert.equal(payload.sidecar.title, 'Design System: Sidecar');
+      assert.equal(payload.parsed.title, 'Design System');
       assert.equal(typeof payload.mdNewerThanJson, 'boolean');
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
   });
 
-  it('enriches schemaVersion 2 sidecars with DESIGN.md frontmatter', async () => {
+  it('exposes schemaVersion 2 sidecars alongside DESIGN.md frontmatter', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 'impeccable-design-payload-'));
     try {
       writeFileSync(join(tmp, 'DESIGN.json'), JSON.stringify({
@@ -170,16 +171,17 @@ colors:
       const payload = await loadDesignSystemPayload(tmp);
 
       assert.equal(payload.present, true);
-      assert.equal(payload.mode, 'sidecar');
-      assert.equal(payload.model.schemaVersion, 2);
-      assert.equal(payload.model.frontmatter.colors.accent, '#ec4899');
-      assert.equal(payload.parsedMd.frontmatter.name, 'Demo');
+      assert.equal(payload.hasMd, true);
+      assert.equal(payload.hasSidecar, true);
+      assert.equal(payload.sidecar.schemaVersion, 2);
+      assert.equal(payload.parsed.frontmatter.name, 'Demo');
+      assert.equal(payload.parsed.frontmatter.colors.accent, '#ec4899');
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
   });
 
-  it('falls back to parsed DESIGN.md when no sidecar exists', async () => {
+  it('returns parsed DESIGN.md when no sidecar exists', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 'impeccable-design-payload-'));
     try {
       writeFileSync(join(tmp, 'DESIGN.md'), '# Design System\n\n## Colors\n\n### Primary\n- **Ink** (`oklch(10% 0 0)`): Text.\n', 'utf-8');
@@ -187,8 +189,9 @@ colors:
       const payload = await loadDesignSystemPayload(tmp);
 
       assert.equal(payload.present, true);
-      assert.equal(payload.mode, 'parsed-md');
-      assert.equal(payload.parsedMd.colors.groups[0].colors[0].name, 'Ink');
+      assert.equal(payload.hasMd, true);
+      assert.equal(payload.hasSidecar, false);
+      assert.equal(payload.parsed.colors.groups[0].colors[0].name, 'Ink');
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

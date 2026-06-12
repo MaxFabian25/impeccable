@@ -2911,9 +2911,10 @@ void main() {
   let designState = {
     open: false,
     tab: 'visual',          // 'visual' | 'raw'
-    mode: null,             // 'sidecar' | 'parsed-md' | null
-    model: null,            // DESIGN.json object (sidecar mode)
-    parsedMd: null,         // fallback parsed-md output
+    parsed: null,           // parseDesignMd output (frontmatter + sections)
+    sidecar: null,          // DESIGN.json payload (extensions/components/narrative)
+    hasMd: false,
+    hasSidecar: false,
     present: null,          // true/false once fetch resolves
     raw: null,              // raw DESIGN.md for the raw tab
     mdNewerThanJson: false, // stale-hint flag
@@ -3346,12 +3347,13 @@ void main() {
       ]);
       const jsonData = await jsonRes.json();
       designState.present = jsonData.present === true;
-      designState.mode = jsonData.mode || null;
-      designState.model = jsonData.model || null;
-      designState.parsedMd = jsonData.parsedMd || null;
+      designState.parsed = jsonData.parsed || null;
+      designState.sidecar = jsonData.sidecar || null;
+      designState.hasMd = !!jsonData.hasMd;
+      designState.hasSidecar = !!jsonData.hasSidecar;
       designState.mdNewerThanJson = !!jsonData.mdNewerThanJson;
       designState.raw = designState.present && rawRes.ok ? await rawRes.text() : null;
-      designState.error = jsonData.error || null;
+      designState.error = jsonData.parseError || jsonData.sidecarError || null;
     } catch (err) {
       designState.error = err?.message || 'Failed to load design system.';
     } finally {
@@ -3388,15 +3390,10 @@ void main() {
 
     // Visual tab
     if (designState.mdNewerThanJson) body.appendChild(renderStaleHint());
-
-    if (designState.mode === 'sidecar' && designState.model) {
-      renderSidecarVisual(body, designState.model);
-    } else if (designState.mode === 'parsed-md' && designState.parsedMd) {
+    if (designState.hasMd && !designState.hasSidecar) {
       body.appendChild(renderParsedMdCta());
-      renderParsedMdVisual(body, designState.parsedMd);
-    } else {
-      body.appendChild(msgDiv('empty', 'No design system data available.'));
     }
+    renderDesignVisual(body, designState.parsed, designState.sidecar);
   }
 
   function msgDiv(cls, text) {
@@ -3423,83 +3420,155 @@ void main() {
     return box;
   }
 
-  // --- Sidecar (DESIGN.json) rendering --------------------------------------
+  // --- Unified render: merge parsed DESIGN.md frontmatter with sidecar data --
 
-  function renderSidecarVisual(body, model) {
-    const tokens = model.tokens || {};
-    const frontmatter = model.frontmatter || {};
-    const extensions = model.extensions || {};
-    const colors = tokens.colors?.length
-      ? tokens.colors
-      : colorsFromFrontmatter(frontmatter.colors, extensions.colorMeta);
-    const typography = tokens.typography?.length
-      ? tokens.typography
-      : typographyFromFrontmatter(frontmatter.typography, extensions.typographyMeta);
-    const radii = tokens.radii?.length
-      ? tokens.radii
-      : scaleFromFrontmatter(frontmatter.rounded);
-    const shadows = tokens.shadows?.length
-      ? tokens.shadows
-      : Array.isArray(extensions.shadows) ? extensions.shadows : [];
+  function renderDesignVisual(body, parsed, sidecar) {
+    const before = body.childElementCount;
+    const frontmatter = parsed?.frontmatter || sidecar?.frontmatter || {};
+    const extensions = sidecar?.extensions || {};
+    const legacyTokens = sidecar?.tokens || {};
 
-    if (colors.length)      renderColorTiles(body, colors);
-    if (typography.length)  renderTypeTiles(body, typography);
-    if (radii.length)       renderRadiiTile(body, radii);
-    if (shadows.length)     renderShadowTiles(body, shadows);
-    if (Array.isArray(model.components) && model.components.length) {
-      renderComponentTiles(body, model.components);
+    const colors = buildColorModels(frontmatter.colors, extensions.colorMeta, parsed?.colors, legacyTokens.colors);
+    if (colors.length) renderColorTiles(body, colors);
+
+    const typography = buildTypographyModels(frontmatter.typography, extensions.typographyMeta, legacyTokens.typography, parsed);
+    if (typography.length) renderTypeTiles(body, typography);
+
+    const radii = buildRadiiModels(frontmatter.rounded, legacyTokens.radii);
+    if (radii.length) renderRadiiTile(body, radii);
+
+    const shadows = Array.isArray(extensions.shadows) && extensions.shadows.length
+      ? extensions.shadows
+      : Array.isArray(legacyTokens.shadows) && legacyTokens.shadows.length
+        ? legacyTokens.shadows
+        : parsed?.elevation?.shadows || [];
+    if (shadows.length) renderShadowTiles(body, shadows);
+
+    const components = Array.isArray(sidecar?.components) ? sidecar.components : [];
+    if (components.length) renderComponentTiles(body, components);
+
+    const narrative = sidecar?.narrative || synthesizeNarrative(parsed);
+    if (narrative.rules?.length) body.appendChild(renderRulesCollapsible(narrative.rules));
+    if ((narrative.dos?.length || narrative.donts?.length)) body.appendChild(renderDosDontsCollapsible(narrative));
+    if (narrative.overview || narrative.northStar || narrative.keyCharacteristics?.length) {
+      body.appendChild(renderOverviewCollapsible(narrative));
     }
 
-    // Narrative → collapsibles (closed by default)
-    const n = model.narrative || {};
-    if (n.rules?.length) body.appendChild(renderRulesCollapsible(n.rules));
-    if ((n.dos?.length || n.donts?.length)) body.appendChild(renderDosDontsCollapsible(n));
-    if (n.overview || n.northStar || n.keyCharacteristics?.length) {
-      body.appendChild(renderOverviewCollapsible(n));
+    if (body.childElementCount === before) {
+      body.appendChild(msgDiv('empty', 'No design system data available.'));
     }
   }
 
-  function colorsFromFrontmatter(colors, meta = {}) {
-    if (!colors || typeof colors !== 'object') return [];
-    return Object.entries(colors)
-      .filter(([, value]) => typeof value === 'string' && value.trim())
-      .map(([key, value]) => {
-        const m = meta[key] || {};
-        return {
-          role: m.role || key,
-          name: m.displayName || humanizeToken(key),
-          value,
-          description: m.purpose || m.description || null,
-          tonalRamp: Array.isArray(m.tonalRamp) ? m.tonalRamp : undefined,
-        };
-      });
+  function buildColorModels(fmColors, colorMeta, proseColors, legacyColors) {
+    if (fmColors && typeof fmColors === 'object') {
+      const meta = colorMeta || {};
+      return Object.entries(fmColors)
+        .filter(([, value]) => typeof value === 'string' && value.trim())
+        .map(([key, value]) => {
+          const m = meta[key] || {};
+          return {
+            role: m.role || key,
+            name: m.displayName || humanizeToken(key),
+            value,
+            canonical: m.canonical || null,
+            description: m.purpose || m.description || findProseDescription(proseColors, key, m.displayName),
+            tonalRamp: Array.isArray(m.tonalRamp) ? m.tonalRamp : undefined,
+          };
+        });
+    }
+    if (Array.isArray(legacyColors) && legacyColors.length) return legacyColors;
+    return (proseColors?.groups || []).flatMap((group) =>
+      (group.colors || []).map((color) => ({
+        role: group.role,
+        name: color.name,
+        value: color.value,
+        description: color.description,
+      }))
+    );
   }
 
-  function typographyFromFrontmatter(typography, meta = {}) {
-    if (!typography || typeof typography !== 'object') return [];
-    return Object.entries(typography)
-      .filter(([, value]) => value && typeof value === 'object')
-      .map(([key, value]) => {
-        const m = meta[key] || {};
-        return {
-          role: key,
-          name: m.displayName || humanizeToken(key),
-          family: value.fontFamily || '',
-          weight: value.fontWeight || '',
-          style: value.fontStyle || '',
-          sampleSize: value.fontSize || '',
-          lineHeight: value.lineHeight || '',
-          letterSpacing: value.letterSpacing || '',
-          purpose: m.purpose || m.description || '',
-        };
-      });
+  function buildTypographyModels(fmTypography, typographyMeta, legacyTypography, parsed) {
+    if (fmTypography && typeof fmTypography === 'object') {
+      const meta = typographyMeta || {};
+      return Object.entries(fmTypography)
+        .filter(([, value]) => value && typeof value === 'object')
+        .map(([key, value]) => {
+          const m = meta[key] || {};
+          const { family, fallback } = splitFontFamily(value.fontFamily);
+          return {
+            role: key,
+            name: m.displayName || humanizeToken(key),
+            family,
+            fallback,
+            weight: value.fontWeight ?? 400,
+            style: value.fontStyle || m.style || 'normal',
+            sampleSize: value.fontSize || '',
+            lineHeight: value.lineHeight != null ? String(value.lineHeight) : '',
+            letterSpacing: value.letterSpacing || '',
+            purpose: m.purpose || m.description || '',
+          };
+        });
+    }
+    if (Array.isArray(legacyTypography) && legacyTypography.length) return legacyTypography;
+    return Object.entries(parsed?.typography?.fonts || {}).map(([role, font]) => ({
+      role,
+      name: font.family || humanizeToken(role),
+      family: font.family || '',
+      fallback: font.fallback || '',
+      weight: 400,
+      style: 'normal',
+      purpose: font.purpose || '',
+    }));
   }
 
-  function scaleFromFrontmatter(scale) {
-    if (!scale || typeof scale !== 'object') return [];
-    return Object.entries(scale)
-      .filter(([, value]) => typeof value === 'string' || typeof value === 'number')
-      .map(([key, value]) => ({ name: humanizeToken(key), value: String(value) }));
+  function buildRadiiModels(fmRounded, legacyRadii) {
+    if (fmRounded && typeof fmRounded === 'object') {
+      return Object.entries(fmRounded)
+        .filter(([, value]) => typeof value === 'string' || typeof value === 'number')
+        .map(([key, value]) => ({ name: humanizeToken(key), value: String(value) }));
+    }
+    return Array.isArray(legacyRadii) ? legacyRadii : [];
+  }
+
+  function splitFontFamily(stack) {
+    if (!stack || typeof stack !== 'string') return { family: '', fallback: '' };
+    const parts = stack.split(',').map((item) => item.trim().replace(/^['"]|['"]$/g, ''));
+    return {
+      family: parts[0] || '',
+      fallback: parts.slice(1).join(', '),
+    };
+  }
+
+  function findProseDescription(proseColors, key, displayName) {
+    if (!proseColors?.groups) return null;
+    const needles = [key, displayName].filter(Boolean).map((value) => String(value).toLowerCase());
+    for (const group of proseColors.groups) {
+      for (const color of group.colors || []) {
+        const hay = String(color.name || '').toLowerCase();
+        if (hay && needles.some((needle) => hay.includes(needle) || needle.includes(hay))) {
+          return color.description || null;
+        }
+      }
+    }
+    return null;
+  }
+
+  function synthesizeNarrative(parsed) {
+    if (!parsed) return {};
+    return {
+      northStar: parsed.overview?.creativeNorthStar || parsed.overview?.northStar,
+      overview: Array.isArray(parsed.overview?.philosophy)
+        ? parsed.overview.philosophy.join(' ')
+        : parsed.overview?.overview,
+      keyCharacteristics: parsed.overview?.keyCharacteristics || [],
+      rules: [
+        ...(parsed.colors?.rules || []).map((rule) => ({ ...rule, section: 'colors' })),
+        ...(parsed.typography?.rules || []).map((rule) => ({ ...rule, section: 'typography' })),
+        ...(parsed.elevation?.rules || []).map((rule) => ({ ...rule, section: 'elevation' })),
+      ],
+      dos: parsed.dosDonts?.dos || [],
+      donts: parsed.dosDonts?.donts || [],
+    };
   }
 
   function humanizeToken(value) {
@@ -3837,42 +3906,6 @@ void main() {
     }
     body.appendChild(ov);
     return wrap;
-  }
-
-  // --- Parsed-md fallback visual (limited view: no live components) ---------
-
-  function renderParsedMdVisual(body, md) {
-    // Reuse sidecar renderers by projecting parsed-md output into the model shape.
-    const pseudoColors = (md.colors?.groups || []).flatMap((g) =>
-      (g.colors || []).map((c) => ({ role: g.role, name: c.name, value: c.value, description: c.description }))
-    );
-    if (pseudoColors.length) renderColorTiles(body, pseudoColors);
-
-    const pseudoTypes = Object.entries(md.typography?.fonts || {}).map(([role, f]) => ({
-      role, name: f.family, family: f.family, fallback: f.fallback, weight: 400,
-      purpose: f.purpose,
-    }));
-    if (pseudoTypes.length) renderTypeTiles(body, pseudoTypes);
-
-    if (md.elevation?.shadows?.length) renderShadowTiles(body, md.elevation.shadows);
-
-    const n = {
-      northStar: md.overview?.creativeNorthStar,
-      overview: (md.overview?.philosophy || []).join(' '),
-      keyCharacteristics: md.overview?.keyCharacteristics || [],
-      rules: [
-        ...(md.colors?.rules || []).map((r) => ({ ...r, section: 'colors' })),
-        ...(md.typography?.rules || []).map((r) => ({ ...r, section: 'typography' })),
-        ...(md.elevation?.rules || []).map((r) => ({ ...r, section: 'elevation' })),
-      ],
-      dos: md.dosDonts?.dos || [],
-      donts: md.dosDonts?.donts || [],
-    };
-    if (n.rules.length) body.appendChild(renderRulesCollapsible(n.rules));
-    if (n.dos.length || n.donts.length) body.appendChild(renderDosDontsCollapsible(n));
-    if (n.overview || n.northStar || n.keyCharacteristics.length) {
-      body.appendChild(renderOverviewCollapsible(n));
-    }
   }
 
   function cssSafe(v) {
