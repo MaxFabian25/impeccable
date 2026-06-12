@@ -322,10 +322,20 @@ function createRequestHandler({ detectScript, livePath }) {
       }
 
       // Prefer DESIGN.json — it's the richer source (live component HTML).
+      // For schemaVersion 2, token primitives live in DESIGN.md frontmatter;
+      // enrich the sidecar payload with parsed markdown when available.
       if (jsonStat) {
         let model;
+        let parsedMd = null;
         try {
           model = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+          if (mdStat) {
+            const raw = fs.readFileSync(mdPath, 'utf-8');
+            parsedMd = parseDesignMd(raw);
+            if (model.schemaVersion === 2 && parsedMd.frontmatter && !model.frontmatter) {
+              model.frontmatter = parsedMd.frontmatter;
+            }
+          }
         } catch (err) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ present: true, error: 'Failed to parse DESIGN.json: ' + err.message }));
@@ -333,7 +343,7 @@ function createRequestHandler({ detectScript, livePath }) {
         }
         const mdNewerThanJson = !!(mdStat && mdStat.mtimeMs > jsonStat.mtimeMs + 1000);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ present: true, mode: 'sidecar', model, mdNewerThanJson }));
+        res.end(JSON.stringify({ present: true, mode: 'sidecar', model, parsedMd, mdNewerThanJson }));
         return;
       }
 

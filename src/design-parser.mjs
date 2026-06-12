@@ -16,8 +16,86 @@ const CANONICAL_SECTIONS = {
 
 const VALUE_RE = /(`([^`]+)`|\((#[0-9a-fA-F]{3,8}|oklch\([^)]+\)|rgba?\([^)]+\)|[^)]+)\))/;
 
-function stripFrontmatter(markdown) {
-  return markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
+function parseFrontmatter(markdown) {
+  const lines = markdown.split(/\r?\n/);
+  if (lines[0]?.trim() !== '---') return { frontmatter: null, body: markdown };
+
+  let end = -1;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === '---') {
+      end = i;
+      break;
+    }
+  }
+  if (end === -1) return { frontmatter: null, body: markdown };
+
+  const yaml = lines.slice(1, end).join('\n');
+  const body = lines.slice(end + 1).join('\n');
+  try {
+    return { frontmatter: parseYamlSubset(yaml), body };
+  } catch {
+    return { frontmatter: null, body: markdown };
+  }
+}
+
+function parseYamlSubset(yaml) {
+  const root = {};
+  const stack = [{ indent: -1, obj: root }];
+
+  for (const raw of yaml.split(/\r?\n/)) {
+    if (!raw.trim() || /^\s*#/.test(raw)) continue;
+
+    const indent = raw.match(/^\s*/)[0].length;
+    const content = raw.slice(indent);
+    const colonIdx = findTopLevelColon(content);
+    if (colonIdx === -1) continue;
+
+    while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {
+      stack.pop();
+    }
+
+    const key = content.slice(0, colonIdx).trim();
+    const rest = content.slice(colonIdx + 1).trim();
+    const parent = stack[stack.length - 1].obj;
+
+    if (rest === '') {
+      const obj = {};
+      parent[key] = obj;
+      stack.push({ indent, obj });
+    } else {
+      parent[key] = parseScalar(rest);
+    }
+  }
+
+  return root;
+}
+
+function findTopLevelColon(value) {
+  let inQuote = null;
+  for (let i = 0; i < value.length; i++) {
+    const ch = value[i];
+    if (inQuote) {
+      if (ch === inQuote && value[i - 1] !== '\\') inQuote = null;
+    } else if (ch === '"' || ch === "'") {
+      inQuote = ch;
+    } else if (ch === ':') {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function parseScalar(raw) {
+  const value = raw.trim();
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    return value.slice(1, -1);
+  }
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  if (value === 'null' || value === '~') return null;
+  if (/^-?\d+$/.test(value)) return Number(value);
+  if (/^-?\d*\.\d+$/.test(value)) return Number(value);
+  return value;
 }
 
 function normalizeHeading(raw) {
@@ -39,8 +117,7 @@ function canonicalSection(raw) {
 }
 
 function splitSections(markdown) {
-  const body = stripFrontmatter(markdown);
-  const lines = body.split(/\r?\n/);
+  const lines = markdown.split(/\r?\n/);
   const sections = {};
   let title = null;
   let current = null;
@@ -240,9 +317,12 @@ function parseDosDonts(section) {
 }
 
 export function parseDesignMd(markdown) {
-  const { title, sections } = splitSections(markdown);
+  const { frontmatter, body } = parseFrontmatter(markdown);
+  const { title, sections } = splitSections(body);
   return {
+    schemaVersion: 2,
     title,
+    frontmatter,
     overview: parseOverview(sections.Overview),
     colors: parseColors(sections.Colors),
     typography: parseTypography(sections.Typography),

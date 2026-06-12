@@ -5542,10 +5542,20 @@ async function loadDesignSystemPayload(projectRoot = process.cwd()) {
 
   if (jsonStat) {
     const model = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+    let parsedMd = null;
+    if (mdStat) {
+      const { parseDesignMd } = await import('./design-parser.mjs');
+      const raw = fs.readFileSync(mdPath, 'utf-8');
+      parsedMd = parseDesignMd(raw);
+      if (model.schemaVersion === 2 && parsedMd.frontmatter && !model.frontmatter) {
+        model.frontmatter = parsedMd.frontmatter;
+      }
+    }
     return {
       present: true,
       mode: 'sidecar',
       model,
+      parsedMd,
       mdNewerThanJson: !!(mdStat && mdStat.mtimeMs > jsonStat.mtimeMs + 1000),
     };
   }

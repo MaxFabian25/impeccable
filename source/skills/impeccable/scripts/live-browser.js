@@ -1596,7 +1596,7 @@
       switch (msg.type) {
         case 'connected':
           hasProjectContext = !!msg.hasProjectContext;
-          if (!hasProjectContext) showToast('No PRODUCT.md found. Variants will be brand-agnostic. Run /impeccable teach to generate one.', 7000);
+          if (!hasProjectContext) showToast('No PRODUCT.md found. Variants will be brand-agnostic. Run $impeccable teach to generate one.', 7000);
           console.log('[impeccable] Live mode connected.');
           if (state === 'IDLE') state = 'PICKING';
           break;
@@ -3376,7 +3376,7 @@ void main() {
     if (designState.present === false) {
       const empty = document.createElement('div');
       empty.className = 'empty';
-      empty.innerHTML = `<strong>No DESIGN.md yet</strong>Create one by running <code>/impeccable document</code> in your terminal, then re-open this panel.`;
+      empty.innerHTML = `<strong>No DESIGN.md yet</strong>Create one by running <code>$impeccable document</code> in your terminal, then re-open this panel.`;
       body.appendChild(empty);
       return;
     }
@@ -3411,7 +3411,7 @@ void main() {
     box.className = 'stale';
     box.innerHTML = `
       <span class="stale-dot"></span>
-      <span class="stale-text"><strong>DESIGN.md is newer than DESIGN.json.</strong> Run <code>/impeccable document</code> to refresh the sidecar.</span>
+      <span class="stale-text"><strong>DESIGN.md is newer than DESIGN.json.</strong> Run <code>$impeccable document</code> to refresh the sidecar.</span>
     `;
     return box;
   }
@@ -3419,7 +3419,7 @@ void main() {
   function renderParsedMdCta() {
     const box = document.createElement('div');
     box.className = 'parsed-md-cta';
-    box.innerHTML = `<strong>Basic view</strong>Running <code>/impeccable document</code> generates <code>DESIGN.json</code> alongside your <code>DESIGN.md</code>, which lets this panel render your project's actual button, input, and nav primitives — not generic approximations.`;
+    box.innerHTML = `<strong>Basic view</strong>This panel reads the tokens in your <code>DESIGN.md</code> frontmatter. Running <code>$impeccable document</code> also generates a <code>DESIGN.json</code> sidecar with your project's actual component snippets (button, input, nav) and tonal ramps, rendered live below the tokens.`;
     return box;
   }
 
@@ -3427,10 +3427,25 @@ void main() {
 
   function renderSidecarVisual(body, model) {
     const tokens = model.tokens || {};
-    if (tokens.colors?.length)      renderColorTiles(body, tokens.colors);
-    if (tokens.typography?.length)  renderTypeTiles(body, tokens.typography);
-    if (tokens.radii?.length)       renderRadiiTile(body, tokens.radii);
-    if (tokens.shadows?.length)     renderShadowTiles(body, tokens.shadows);
+    const frontmatter = model.frontmatter || {};
+    const extensions = model.extensions || {};
+    const colors = tokens.colors?.length
+      ? tokens.colors
+      : colorsFromFrontmatter(frontmatter.colors, extensions.colorMeta);
+    const typography = tokens.typography?.length
+      ? tokens.typography
+      : typographyFromFrontmatter(frontmatter.typography, extensions.typographyMeta);
+    const radii = tokens.radii?.length
+      ? tokens.radii
+      : scaleFromFrontmatter(frontmatter.rounded);
+    const shadows = tokens.shadows?.length
+      ? tokens.shadows
+      : Array.isArray(extensions.shadows) ? extensions.shadows : [];
+
+    if (colors.length)      renderColorTiles(body, colors);
+    if (typography.length)  renderTypeTiles(body, typography);
+    if (radii.length)       renderRadiiTile(body, radii);
+    if (shadows.length)     renderShadowTiles(body, shadows);
     if (Array.isArray(model.components) && model.components.length) {
       renderComponentTiles(body, model.components);
     }
@@ -3442,6 +3457,55 @@ void main() {
     if (n.overview || n.northStar || n.keyCharacteristics?.length) {
       body.appendChild(renderOverviewCollapsible(n));
     }
+  }
+
+  function colorsFromFrontmatter(colors, meta = {}) {
+    if (!colors || typeof colors !== 'object') return [];
+    return Object.entries(colors)
+      .filter(([, value]) => typeof value === 'string' && value.trim())
+      .map(([key, value]) => {
+        const m = meta[key] || {};
+        return {
+          role: m.role || key,
+          name: m.displayName || humanizeToken(key),
+          value,
+          description: m.purpose || m.description || null,
+          tonalRamp: Array.isArray(m.tonalRamp) ? m.tonalRamp : undefined,
+        };
+      });
+  }
+
+  function typographyFromFrontmatter(typography, meta = {}) {
+    if (!typography || typeof typography !== 'object') return [];
+    return Object.entries(typography)
+      .filter(([, value]) => value && typeof value === 'object')
+      .map(([key, value]) => {
+        const m = meta[key] || {};
+        return {
+          role: key,
+          name: m.displayName || humanizeToken(key),
+          family: value.fontFamily || '',
+          weight: value.fontWeight || '',
+          style: value.fontStyle || '',
+          sampleSize: value.fontSize || '',
+          lineHeight: value.lineHeight || '',
+          letterSpacing: value.letterSpacing || '',
+          purpose: m.purpose || m.description || '',
+        };
+      });
+  }
+
+  function scaleFromFrontmatter(scale) {
+    if (!scale || typeof scale !== 'object') return [];
+    return Object.entries(scale)
+      .filter(([, value]) => typeof value === 'string' || typeof value === 'number')
+      .map(([key, value]) => ({ name: humanizeToken(key), value: String(value) }));
+  }
+
+  function humanizeToken(value) {
+    return String(value || '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, (ch) => ch.toUpperCase());
   }
 
   function renderColorTiles(body, colors) {

@@ -5,7 +5,7 @@ Generate or refresh a project-root `DESIGN.md` that captures the current visual 
 - PRODUCT.md answers who, what, why, voice, and strategic principles.
 - DESIGN.md answers colors, typography, spacing, shape, components, layout, and visual do/don't guidance.
 
-Follow the Google Stitch DESIGN.md shape. The markdown body must use these six top-level sections in this order:
+Follow the Google Stitch DESIGN.md two-layer shape: YAML front matter carrying machine-readable design tokens, followed by a markdown body that explains how to use them. The markdown body must use these six top-level sections in this order:
 
 1. `## Overview`
 2. `## Colors`
@@ -14,7 +14,46 @@ Follow the Google Stitch DESIGN.md shape. The markdown body must use these six t
 5. `## Components`
 6. `## Do's and Don'ts`
 
-Optional YAML front matter is allowed for compact token metadata, but the six sections are the durable contract. Do not rename or reorder them.
+The front matter is normative for token values. The markdown body is where you explain purpose, context, and usage. Do not rename or reorder the six body sections.
+
+## Front Matter Token Schema
+
+Use front matter for compact, machine-readable tokens. Keep it to values the project actually uses:
+
+```yaml
+---
+name: <project or product name>
+description: <one sentence visual system summary>
+colors:
+  accent: "#b8422e"
+  surface: "#faf7f2"
+typography:
+  display:
+    fontFamily: "Cormorant Garamond, Georgia, serif"
+    fontSize: "clamp(2.5rem, 7vw, 4.5rem)"
+    fontWeight: 300
+    lineHeight: 1
+rounded:
+  sm: "4px"
+  md: "8px"
+spacing:
+  sm: "8px"
+  md: "16px"
+components:
+  button-primary:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.surface}"
+    rounded: "{rounded.sm}"
+    padding: "12px 20px"
+---
+```
+
+Rules:
+
+- Token references use `{path.to.token}`, such as `{colors.accent}` or `{rounded.md}`.
+- Stitch validates colors as hex sRGB. If a project deliberately uses OKLCH, Display-P3, or HSL as its source of truth, keep that canonical value in front matter and accept that strict Stitch linting may warn.
+- Component tokens are intentionally small: `backgroundColor`, `textColor`, `typography`, `rounded`, `padding`, `size`, `height`, and `width`. Anything richer belongs in `DESIGN.json`.
+- Do not invent top-level front matter groups like `motion`, `layout`, `breakpoints`, or `shadows`. Put those in the sidecar extensions or the markdown body.
 
 ## When To Run
 
@@ -58,12 +97,11 @@ Search the project in this order:
 
 Record both the token values and where they came from. Prefer values used repeatedly over one-off styling.
 
-### Step 3: Extract Token Candidates
+### Step 3: Extract And Stage Token Candidates
 
-Build a draft model:
+Build the front matter draft:
 
 ```yaml
-version: alpha
 name: <project or product name>
 description: <one sentence visual system summary>
 colors:
@@ -88,11 +126,11 @@ Use semantic token names when the codebase already has them. If the codebase use
 
 Extraction rules:
 
-- Colors: group by role: background, surface, text, border, accent, state, data visualization. Include hex values; add OKLCH values only if the project already uses OKLCH or the conversion helps explain contrast/chroma.
-- Typography: record actual font families, sizes, weights, line heights, and letter spacing used in repeated roles.
-- Spacing: identify the base unit and the repeated scale. Do not document every arbitrary margin.
-- Rounded and shadows: document repeated radii and elevation/depth treatments.
-- Components: document stable component patterns, not every page-specific variant.
+- Colors: one front matter entry per repeated color. Use semantic names. Use hex when strict Stitch interoperability matters; use OKLCH only when the project already treats OKLCH as canonical.
+- Typography: one entry per repeated role. Include only real properties: `fontFamily`, `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, and similar typography fields.
+- Spacing and rounded: identify the repeated scale. Do not document every arbitrary margin.
+- Components: document stable component variants. Reference primitives with `{colors.*}`, `{rounded.*}`, and `{typography.*}`.
+- Shadows, motion, breakpoints, focus rings, and full HTML/CSS examples do not fit the front matter schema. Stage them for `DESIGN.json`.
 
 ### Step 4: Ask For Human Visual Language
 
@@ -108,11 +146,10 @@ Keep this to one short interaction when possible. Offer concrete suggestions bas
 
 ### Step 5: Write DESIGN.md
 
-Write `DESIGN.md` at the project root. Use optional YAML front matter for compact token metadata, then the six fixed Stitch sections:
+Write `DESIGN.md` at the project root. Open with the staged YAML front matter, then write the six fixed Stitch sections:
 
 ```markdown
 ---
-version: alpha
 name: <system name>
 description: <short summary>
 colors:
@@ -155,16 +192,16 @@ components:
 - **Inputs**: [stroke, background, focus treatment]
 - **Navigation**: [layout, active states, mobile behavior]
 
-## Do's And Don'ts
+## Do's and Don'ts
 - Do [specific visual rule].
 - Don't [specific visual anti-pattern].
 ```
 
-Keep all six sections even if one is short. Put layout guidance in Overview or Components unless the project has a separate layout token system. The parser and live panel expect the six-section shape.
+Keep all six sections even if one is short. Put layout, motion, responsive behavior, and shadow philosophy in Overview, Elevation, or Components unless the project has explicit tokens for them in the sidecar. The parser and live panel expect the six-section shape.
 
 ### Step 5b: Write DESIGN.json
 
-After `DESIGN.md` is written, also write a machine-readable sidecar at project-root `DESIGN.json`. The live design panel reads this file to render color swatches, type specimens, shadows, spacing, and self-contained component previews.
+After `DESIGN.md` is written, also write a machine-readable sidecar at project-root `DESIGN.json`. Front matter owns primitive tokens. The sidecar extends it with what the front matter cannot hold: tonal ramps, display names, shadow/elevation tokens, motion tokens, breakpoints, full component HTML/CSS snippets, and narrative.
 
 Regenerate `DESIGN.json` whenever `DESIGN.md` is regenerated. If the user asks only to refresh the sidecar, preserve `DESIGN.md` and rewrite `DESIGN.json`.
 
@@ -172,37 +209,32 @@ Use this schema:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "generatedAt": "ISO-8601 string",
   "title": "Design System: <project name>",
-  "tokens": {
-    "colors": [
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Editorial Magenta",
+        "tonalRamp": ["...", "...", "..."]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero headlines only."
+      }
+    },
+    "shadows": [
       {
-        "role": "primary | secondary | neutral | accent",
-        "name": "Descriptive Name",
-        "value": "#HEX or oklch(...) or rgba(...)",
-        "description": "One sentence about where and why this color is used.",
-        "tonalRamp": ["darkest", "darker", "base", "lighter", "lightest"]
+        "name": "Soft Lift",
+        "value": "0 4px 24px rgba(0,0,0,0.12)",
+        "purpose": "When to use it."
       }
     ],
-    "typography": [
-      {
-        "role": "display | headline | body | label | mono",
-        "name": "Display",
-        "family": "Font Family",
-        "fallback": "system-ui, sans-serif",
-        "weight": 400,
-        "style": "normal",
-        "sampleSize": "2rem",
-        "lineHeight": "1.2",
-        "letterSpacing": "normal",
-        "textTransform": "none",
-        "purpose": "Where this role is used."
-      }
-    ],
-    "radii": [{ "name": "md", "value": "8px" }],
-    "shadows": [{ "name": "Soft Lift", "value": "0 4px 24px rgba(0,0,0,0.12)", "purpose": "When to use it." }],
-    "spacing": [{ "name": "md", "value": "24px" }]
+    "motion": [],
+    "breakpoints": []
   },
   "components": [
     {
@@ -223,6 +255,8 @@ Use this schema:
   }
 }
 ```
+
+If an older project already has schemaVersion 1, preserve useful values by migrating primitive token arrays into `DESIGN.md` front matter and moving extra metadata into `extensions`.
 
 Component previews must be self-contained. Expand Tailwind utilities or CSS-in-JS theme values into literal CSS or project CSS variables. Prefix classes with `ds-`. Include hover and focus-visible rules where meaningful. Do not reference framework runtimes, icon packages, image paths, or external CSS bundles.
 
@@ -265,6 +299,8 @@ After writing the file:
 - Do not invent tokens that are not present or approved.
 - Do not track one-off values as system rules.
 - Do not duplicate PRODUCT.md prose. Reference strategic principles only when they explain a visual decision.
+- Do not duplicate token values between front matter and prose. The front matter is normative.
+- Do not put non-Stitch token groups in front matter. Use `DESIGN.json.extensions`.
 - Include exact values for every token that can be extracted.
 - Keep `DESIGN.json` aligned with `DESIGN.md`.
 - Keep the document useful for agents and humans, not just mechanically complete.

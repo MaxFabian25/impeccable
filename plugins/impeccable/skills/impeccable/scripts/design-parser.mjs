@@ -1,5 +1,9 @@
 // Parse a DESIGN.md (Stitch-spec format) into a structured JSON model that
 // the live-mode design-system panel can render. Deterministic, dependency-free.
+//
+// Two-layer: YAML frontmatter (machine-readable tokens) + markdown body
+// (prose with six canonical H2 sections). When frontmatter is present, it is
+// exposed on `model.frontmatter` alongside the prose-scraped sections.
 
 const CANONICAL_SECTIONS = [
   'Overview',
@@ -9,6 +13,91 @@ const CANONICAL_SECTIONS = [
   'Components',
   "Do's and Don'ts",
 ];
+
+// ---------- Frontmatter (Stitch YAML subset) ----------
+
+function parseFrontmatter(md) {
+  const lines = md.split(/\r?\n/);
+  if (lines[0]?.trim() !== '---') return { frontmatter: null, body: md };
+
+  let end = -1;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === '---') {
+      end = i;
+      break;
+    }
+  }
+  if (end === -1) return { frontmatter: null, body: md };
+
+  const yaml = lines.slice(1, end).join('\n');
+  const body = lines.slice(end + 1).join('\n');
+  try {
+    return { frontmatter: parseYamlSubset(yaml), body };
+  } catch {
+    return { frontmatter: null, body: md };
+  }
+}
+
+function parseYamlSubset(yaml) {
+  const lines = yaml.split(/\r?\n/);
+  const root = {};
+  const stack = [{ indent: -1, obj: root }];
+
+  for (const raw of lines) {
+    if (!raw.trim() || /^\s*#/.test(raw)) continue;
+
+    const indent = raw.match(/^\s*/)[0].length;
+    const content = raw.slice(indent);
+    const colonIdx = findTopLevelColon(content);
+    if (colonIdx === -1) continue;
+
+    while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {
+      stack.pop();
+    }
+
+    const key = content.slice(0, colonIdx).trim();
+    const rest = content.slice(colonIdx + 1).trim();
+    const parent = stack[stack.length - 1].obj;
+
+    if (rest === '') {
+      const obj = {};
+      parent[key] = obj;
+      stack.push({ indent, obj });
+    } else {
+      parent[key] = parseScalar(rest);
+    }
+  }
+
+  return root;
+}
+
+function findTopLevelColon(s) {
+  let inQuote = null;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inQuote) {
+      if (ch === inQuote && s[i - 1] !== '\\') inQuote = null;
+    } else if (ch === '"' || ch === "'") {
+      inQuote = ch;
+    } else if (ch === ':') {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function parseScalar(raw) {
+  const s = raw.trim();
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    return s.slice(1, -1);
+  }
+  if (s === 'true') return true;
+  if (s === 'false') return false;
+  if (s === 'null' || s === '~') return null;
+  if (/^-?\d+$/.test(s)) return Number(s);
+  if (/^-?\d*\.\d+$/.test(s)) return Number(s);
+  return s;
+}
 
 const HEX_RE = /#[0-9a-fA-F]{3,8}\b/g;
 const OKLCH_RE = /oklch\([^)]+\)/gi;
@@ -706,10 +795,12 @@ function assessCoverage(model) {
 // ---------- Main ----------
 
 export function parseDesignMd(md) {
-  const { title, sections } = splitSections(md);
+  const { frontmatter, body } = parseFrontmatter(md);
+  const { title, sections } = splitSections(body);
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     title,
+    frontmatter,
     overview: extractOverview(sections['Overview']),
     colors: extractColors(sections['Colors']),
     typography: extractTypography(sections['Typography']),

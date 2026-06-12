@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { parseDesignMd } from '../src/design-parser.mjs';
+import { parseDesignMd as parseSkillDesignMd } from '../source/skills/impeccable/scripts/design-parser.mjs';
 import { loadDesignSystemPayload } from '../src/detect-antipatterns.mjs';
 
 describe('parseDesignMd', () => {
@@ -50,6 +51,8 @@ The system is direct and type-led.
 `);
 
     assert.equal(parsed.title, 'Design System: Demo');
+    assert.equal(parsed.schemaVersion, 2);
+    assert.equal(parsed.frontmatter.version, 'alpha');
     assert.equal(parsed.overview.northStar, 'Editorial Workshop');
     assert.deepEqual(parsed.overview.keyCharacteristics, ['Sparse color', 'Dense information']);
     assert.equal(parsed.colors.groups[0].colors[0].name, 'Signal Magenta');
@@ -72,6 +75,53 @@ The system is direct and type-led.
     assert.deepEqual(parsed.dosDonts.dos, ['Do keep typography crisp.']);
     assert.deepEqual(parsed.dosDonts.donts, ["Don't use glow."]);
   });
+
+  it('parses nested Stitch frontmatter tokens without stripping body sections', () => {
+    const parsed = parseDesignMd(`---
+name: Demo System
+colors:
+  primary: "#b8422e"
+typography:
+  display:
+    fontFamily: "Cormorant Garamond, Georgia, serif"
+    fontWeight: 300
+components:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+---
+
+# Design System: Demo
+
+## Overview
+Body.
+`);
+
+    assert.equal(parsed.frontmatter.name, 'Demo System');
+    assert.equal(parsed.frontmatter.colors.primary, '#b8422e');
+    assert.equal(parsed.frontmatter.typography.display.fontWeight, 300);
+    assert.equal(parsed.frontmatter.components['button-primary'].backgroundColor, '{colors.primary}');
+    assert.equal(parsed.title, 'Design System: Demo');
+    assert.ok(parsed.overview);
+  });
+
+  it('keeps the skill-bundled parser aligned on frontmatter shape', () => {
+    const parsed = parseSkillDesignMd(`---
+name: Skill Demo
+colors:
+  accent: "#ec4899"
+---
+
+# Design System: Skill Demo
+
+## Overview
+Body.
+`);
+
+    assert.equal(parsed.schemaVersion, 2);
+    assert.equal(parsed.frontmatter.name, 'Skill Demo');
+    assert.equal(parsed.frontmatter.colors.accent, '#ec4899');
+    assert.equal(parsed.title, 'Design System: Skill Demo');
+  });
 });
 
 describe('loadDesignSystemPayload', () => {
@@ -89,7 +139,41 @@ describe('loadDesignSystemPayload', () => {
       assert.equal(payload.present, true);
       assert.equal(payload.mode, 'sidecar');
       assert.equal(payload.model.title, 'Design System: Sidecar');
+      assert.equal(payload.parsedMd.title, 'Design System');
       assert.equal(typeof payload.mdNewerThanJson, 'boolean');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('enriches schemaVersion 2 sidecars with DESIGN.md frontmatter', async () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'impeccable-design-payload-'));
+    try {
+      writeFileSync(join(tmp, 'DESIGN.json'), JSON.stringify({
+        schemaVersion: 2,
+        title: 'Design System: Sidecar',
+        extensions: {
+          colorMeta: {
+            accent: { displayName: 'Editorial Magenta' },
+          },
+        },
+      }), 'utf-8');
+      writeFileSync(join(tmp, 'DESIGN.md'), `---
+name: Demo
+colors:
+  accent: "#ec4899"
+---
+
+# Design System
+`, 'utf-8');
+
+      const payload = await loadDesignSystemPayload(tmp);
+
+      assert.equal(payload.present, true);
+      assert.equal(payload.mode, 'sidecar');
+      assert.equal(payload.model.schemaVersion, 2);
+      assert.equal(payload.model.frontmatter.colors.accent, '#ec4899');
+      assert.equal(payload.parsedMd.frontmatter.name, 'Demo');
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
