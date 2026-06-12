@@ -181,6 +181,8 @@ The first variant has no `display: none` (visible by default). All others do. If
 
 One edit, all variants — the browser's MutationObserver picks everything up in one pass.
 
+**Author every `:scope` rule with a descendant combinator.** The `@scope` boundary is the variant wrapper `<div data-impeccable-variant="N">`, not the element you're designing. A bare `:scope { background: cream; }` styles the wrapper, not the inner replacement, so the cream lands on a `display: contents` shell while the actual element keeps page defaults. Always step in: `:scope > .card`, `:scope > section`, `:scope .hero-title`, etc.
+
 **JSX / TSX target files.** Wrap `<style>` content in a template literal so the CSS `{` / `}` are not parsed as JSX expressions, and use `className=` / `style={{...}}` on every variant element. Keep `data-impeccable-*` attributes as plain strings:
 
 ```tsx
@@ -207,6 +209,16 @@ node {{scripts_path}}/live-poll.mjs --reply EVENT_ID done --file RELATIVE_PATH
 `RELATIVE_PATH` is relative to project root (`public/index.html`, `src/App.tsx`, etc.) — the browser fetches source directly if the dev server lacks HMR.
 
 Then run `live-poll.mjs` again immediately.
+
+### Aborting an In-Flight Session
+
+If wrap or generation fails after the browser has flipped to GENERATING, tell the browser so its bar resets to PICKING:
+
+```bash
+node {{scripts_path}}/live-poll.mjs --reply EVENT_ID error "Short reason"
+```
+
+Do not run `live-accept --discard` for this. That is a pure file mutator, the browser does not see it, and the bar gets stuck on the GENERATING dots until the user refreshes. `--discard` is only correct when the browser initiated the discard and the agent is just running source-side cleanup the browser already triggered.
 
 ## Handle fallback
 

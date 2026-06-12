@@ -438,28 +438,35 @@ function findAllElements(lines, query, tag = null) {
 }
 
 /**
- * Narrow a candidate set to those whose source body literally contains a
- * meaningful prefix of the picked element's textContent. The compare ignores
- * tags, JSX expressions (`{title}`), and whitespace so a match survives JSX
- * formatting variation. A snippet shorter than 6 chars after stripping is
- * treated as too weak to disambiguate — the caller should fall back.
+ * Narrow a candidate set to those whose source body matches a meaningful
+ * prefix of the picked element's textContent. The compare strips tags and
+ * JSX expressions, then checks two whitespace normalizations side-by-side:
+ *
+ *   - single-space ("hero two second card body")
+ *   - no-whitespace ("herotwosecondcardbody")
+ *
+ * Both are needed because `el.textContent` concatenates sibling text without
+ * inserting whitespace (e.g. `<h1>Hero Two</h1><p>Second...</p>` reads as
+ * `"Hero TwoSecond..."`), while the source has whitespace between tags. If
+ * EITHER normalization matches, the candidate keeps. A snippet shorter than
+ * 8 chars after stripping is too weak to disambiguate — the caller falls
+ * back to first-match.
  */
 function filterByText(candidates, lines, text) {
-  const target = text
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase()
-    .slice(0, 80);
-  if (target.length < 6) return candidates.slice();
+  const trimmed = text.replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 80);
+  if (trimmed.length < 8) return candidates.slice();
+  const targetSpaced = trimmed;
+  const targetCompact = trimmed.replace(/\s+/g, '');
+
   return candidates.filter((c) => {
     const body = lines.slice(c.startLine, c.endLine + 1).join(' ');
-    const norm = body
+    const inner = body
       .replace(/<[^>]*>/g, ' ')   // strip HTML/JSX tags
       .replace(/\{[^}]*\}/g, ' ')  // strip JSX expressions
-      .replace(/\s+/g, ' ')
-      .trim()
       .toLowerCase();
-    return norm.includes(target);
+    const sourceSpaced = inner.replace(/\s+/g, ' ').trim();
+    const sourceCompact = inner.replace(/\s+/g, '');
+    return sourceSpaced.includes(targetSpaced) || sourceCompact.includes(targetCompact);
   });
 }
 

@@ -534,6 +534,44 @@ describe('live-wrap — JSX / TSX correctness', () => {
     assert.ok(!inside.includes('Gamma card'), 'did not wrap Gamma');
   });
 
+  it('disambiguates when the picked element has multiple text-node children (textContent has no inter-element whitespace)', () => {
+    // Real-world regression: textContent concatenates child text without
+    // inserting whitespace, so <h1>Hero Two</h1><p>Second...</p> reads as
+    // "Hero TwoSecond..." while source has whitespace between tags.
+    const tsx = `export default function Page() {
+  return (
+    <main>
+      <aside className="card">
+        <h1 className="hero-title">Hero One</h1>
+        <p className="hero-hook">First card body copy.</p>
+      </aside>
+      <aside className="card">
+        <h1 className="hero-title">Hero Two</h1>
+        <p className="hero-hook">Second card body copy.</p>
+      </aside>
+      <aside className="card">
+        <h1 className="hero-title">Hero Three</h1>
+        <p className="hero-hook">Third card body copy.</p>
+      </aside>
+    </main>
+  );
+}`;
+    writeFileSync(join(tmp, 'Page.tsx'), tsx);
+
+    execSync(
+      `node source/skills/impeccable/scripts/live-wrap.mjs --id concat1 --count 3 --classes "card" --tag "aside" --text "Hero TwoSecond card body copy." --file "${join(tmp, 'Page.tsx')}"`,
+      { cwd: process.cwd(), encoding: 'utf-8' }
+    );
+
+    const modified = readFileSync(join(tmp, 'Page.tsx'), 'utf-8');
+    const originalMatch = modified.match(/data-impeccable-variant="original"[\s\S]*?<\/div>/);
+    assert.ok(originalMatch, 'original wrapper present');
+    const inside = originalMatch[0];
+    assert.ok(inside.includes('Hero Two'), 'wrapped Hero Two (the picked card)');
+    assert.ok(!inside.includes('Hero One'), 'did not wrap Hero One');
+    assert.ok(!inside.includes('Hero Three'), 'did not wrap Hero Three');
+  });
+
   it('falls back to first-match when --text is not literally present in source (e.g. {title})', () => {
     // textContent the browser sends is the rendered text, but the source uses
     // a JSX expression. No candidate's source body contains the literal
