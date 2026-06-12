@@ -8,6 +8,7 @@ package-lock.json
 # Generated files
 dist/
 build/
+.astro/
 
 # Build artifacts
 *.log
@@ -41,7 +42,14 @@ extension/detector/
 # Evals (private, commercial)
 evals/
 
-# Generated sub-pages (built from source/skills + content/site at build time)
+# Generated site data copied by Astro
+public/_data/
+public/_headers
+public/_redirects
+public/_routes.json
+public/js/detect-antipatterns-browser.js
+
+# Legacy generated sub-page artifacts (do not commit)
 public/skills/
 public/anti-patterns/
 public/tutorials/

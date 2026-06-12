@@ -6,8 +6,8 @@
  * - source/skills/{id}/SKILL.md          → skill frontmatter + body
  * - source/skills/{id}/reference/*.md     → skill reference files
  * - src/detect-antipatterns.mjs           → ANTIPATTERNS array (parsed)
- * - content/site/skills/{id}.md           → optional editorial wrapper
- * - content/site/tutorials/{slug}.md       → full tutorial content
+ * - site/content/skills/{id}.md           → optional editorial wrapper
+ * - site/content/tutorials/{slug}.md       → full tutorial content
  */
 
 import fs from 'node:fs';
@@ -19,13 +19,13 @@ import {
   VISUAL_EXAMPLES,
   LLM_ONLY_RULES,
   GALLERY_ITEMS,
-} from '../../content/site/anti-patterns-catalog.js';
+} from '../../site/content/anti-patterns-catalog.js';
 
 export {
   LAYER_LABELS,
   LAYER_DESCRIPTIONS,
   GALLERY_ITEMS,
-} from '../../content/site/anti-patterns-catalog.js';
+} from '../../site/content/anti-patterns-catalog.js';
 
 /**
  * Skills that should be excluded from the index and not get a detail page.
@@ -165,7 +165,7 @@ export async function loadCommandDemos(rootDir) {
  */
 export async function buildSubPageData(rootDir) {
   const { skills: rawSkills } = readSourceFiles(rootDir);
-  const contentDir = path.join(rootDir, 'content/site');
+  const contentDir = path.join(rootDir, 'site/content');
   const commandDemos = await loadCommandDemos(rootDir);
 
   // Filter to user-invocable, non-deprecated skills.
@@ -217,7 +217,7 @@ export async function buildSubPageData(rootDir) {
   }));
   const rules = [...detectedRules, ...llmRules];
 
-  // Tutorials: each required file in content/site/tutorials/.
+  // Tutorials: each required file in site/content/tutorials/.
   const tutorialsDir = path.join(contentDir, 'tutorials');
   const tutorials = [];
   if (fs.existsSync(tutorialsDir)) {

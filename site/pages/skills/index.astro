@@ -1,0 +1,100 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import '../../styles/footer.css';
+import {
+  SKILL_CATEGORIES,
+  CATEGORY_ORDER,
+  CATEGORY_LABELS,
+  CATEGORY_DESCRIPTIONS,
+} from '../../../scripts/lib/sub-pages-data.js';
+
+const entries = await getCollection('skills');
+
+const grouped: Record<string, typeof entries> = {};
+for (const cat of CATEGORY_ORDER) {
+  grouped[cat] = entries
+    .filter(entry => SKILL_CATEGORIES[entry.id] === cat)
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+---
+
+<Base
+  title="Skills | Impeccable"
+  description="19 commands that teach Codex how to design. Browse by category: create, evaluate, refine, simplify, harden."
+  activeNav="docs"
+  canonicalPath="/skills"
+  bodyClass="sub-page skills-layout-page"
+>
+  <div class="skills-layout">
+    <aside class="skills-sidebar" aria-label="Documentation">
+      <button class="skills-sidebar-toggle" type="button" aria-expanded="false" aria-controls="skills-sidebar-inner">
+        <span class="skills-sidebar-toggle-label">Docs menu</span>
+        <svg class="skills-sidebar-toggle-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="skills-sidebar-inner" id="skills-sidebar-inner">
+        <p class="skills-sidebar-label">Docs</p>
+        <div class="skills-sidebar-group" data-category="tutorials">
+          <p class="skills-sidebar-group-title">Tutorials</p>
+          <ul class="skills-sidebar-list">
+            <li><a href="/tutorials/getting-started">Getting started</a></li>
+            <li><a href="/tutorials/critique-with-overlay">Critique with the visual overlay</a></li>
+          </ul>
+        </div>
+        <hr class="skills-sidebar-divider">
+
+        {CATEGORY_ORDER.map(cat => (
+          <div class="skills-sidebar-group" data-category={cat}>
+            <p class="skills-sidebar-group-title">{CATEGORY_LABELS[cat]}</p>
+            <ul class="skills-sidebar-list">
+              {grouped[cat].map(entry => (
+                <li><a href={`/skills/${entry.id}`}>${entry.id}</a></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </aside>
+
+    <div class="skills-main">
+      <div class="skills-overview-content">
+        <header class="skills-overview-header">
+          <p class="sub-page-eyebrow">19 commands</p>
+          <h1 class="sub-page-title">Skills</h1>
+          <p class="sub-page-lede">One skill, <a href="/skills/impeccable">$impeccable</a>, teaches your AI design. Nineteen commands steer the result. Each command does one job with an opinion about what good looks like.</p>
+        </header>
+
+        <section class="skills-overview-howto">
+          <h2 class="skills-overview-howto-title">How to pick one</h2>
+          <p>Skills are named after the intent you bring to them. Reviewing something? <a href="/skills/critique">$critique</a> or <a href="/skills/audit">$audit</a>. Fixing type? <a href="/skills/typeset">$typeset</a>. Last-mile pass before shipping? <a href="/skills/polish">$polish</a>. The categories below group skills by the job.</p>
+        </section>
+
+        <div class="skills-overview-categories">
+          {CATEGORY_ORDER.map(cat => (
+            <section class="skills-overview-category" data-category={cat} id={`category-${cat}`}>
+              <div class="skills-overview-category-meta">
+                <h2 class="skills-overview-category-title">{CATEGORY_LABELS[cat]}</h2>
+                <p class="skills-overview-category-count">{grouped[cat].length} skills</p>
+              </div>
+              <p class="skills-overview-category-desc">{CATEGORY_DESCRIPTIONS[cat]}</p>
+              <div class="skills-overview-chips">
+                {grouped[cat].map(entry => (
+                  <a class="skills-overview-chip" href={`/skills/${entry.id}`}>${entry.id}</a>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    document.addEventListener('click', (e) => {
+      const toggle = e.target.closest('.skills-sidebar-toggle');
+      if (!toggle) return;
+      const expanded = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!expanded));
+    });
+  </script>
+</Base>

@@ -1,0 +1,34 @@
+---
+import { getCollection, render } from 'astro:content';
+import Doc from '../../layouts/Doc.astro';
+import { SKILL_CATEGORIES } from '../../../scripts/lib/sub-pages-data.js';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('skills');
+  const allCommands = entries.map(entry => ({
+    slug: entry.id,
+    category: SKILL_CATEGORIES[entry.id] || 'system',
+  }));
+
+  return entries.map(entry => ({
+    params: { slug: entry.id },
+    props: { entry, allCommands },
+  }));
+}
+
+const { entry, allCommands } = Astro.props;
+const { Content } = await render(entry);
+const slug = entry.id;
+const category = SKILL_CATEGORIES[slug] || 'system';
+---
+
+<Doc
+  title={slug}
+  description={entry.data.tagline}
+  tagline={entry.data.tagline}
+  slug={slug}
+  category={category}
+  allCommands={allCommands}
+>
+  <Content />
+</Doc>

@@ -1,0 +1,57 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+const tutorials = (await getCollection('tutorials'))
+  .sort((a, b) => a.data.order - b.data.order);
+---
+
+<Base
+  title="Tutorials | Impeccable"
+  description="Practical tutorials for installing and using Impeccable in Codex CLI."
+  activeNav="docs"
+  canonicalPath="/tutorials"
+  bodyClass="sub-page skills-layout-page"
+>
+  <div class="skills-layout">
+    <aside class="skills-sidebar" aria-label="Documentation">
+      <div class="skills-sidebar-inner" id="skills-sidebar-inner">
+        <p class="skills-sidebar-label">Docs</p>
+        <div class="skills-sidebar-group" data-category="tutorials">
+          <p class="skills-sidebar-group-title">Tutorials</p>
+          <ul class="skills-sidebar-list">
+            {tutorials.map(entry => (
+              <li><a href={`/tutorials/${entry.id}`}>{entry.data.title}</a></li>
+            ))}
+          </ul>
+        </div>
+        <hr class="skills-sidebar-divider">
+        <div class="skills-sidebar-group" data-category="skills">
+          <p class="skills-sidebar-group-title">Reference</p>
+          <ul class="skills-sidebar-list">
+            <li><a href="/skills">All skills</a></li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <div class="skills-main">
+      <div class="skills-overview-content">
+        <header class="skills-overview-header">
+          <p class="sub-page-eyebrow">Tutorials</p>
+          <h1 class="sub-page-title">Tutorials</h1>
+          <p class="sub-page-lede">Short workflows for installing Impeccable, teaching it your project context, and using visual critique in Codex.</p>
+        </header>
+
+        <div class="docs-card-grid">
+          {tutorials.map(entry => (
+            <a href={`/tutorials/${entry.id}`} class="docs-command-card">
+              <h2 class="docs-command-name">{entry.data.title}</h2>
+              <p class="docs-command-tagline">{entry.data.tagline}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</Base>

@@ -23,7 +23,7 @@ scripts/build.js                build orchestration
 scripts/lib/transformers/       Codex transformer config
 lib/download-providers.js       Codex download registry
 functions/api/download/         download routes
-server/                         local dev server
+site/                           Astro site source
 src/                            detector + CLI runtime
 tests/                          contract coverage
 ```
@@ -31,7 +31,7 @@ tests/                          contract coverage
 ## Commands
 
 ```bash
-# Build the Codex bundle
+# Build the Codex bundle and Astro site
 bun run build
 
 # Run the detector test suites

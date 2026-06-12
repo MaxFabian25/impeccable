@@ -1,0 +1,65 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('tutorials');
+  return entries.map(entry => ({
+    params: { slug: entry.id },
+    props: { entry, entries },
+  }));
+}
+
+const { entry, entries } = Astro.props;
+const tutorials = entries.sort((a, b) => a.data.order - b.data.order);
+const { Content } = await render(entry);
+---
+
+<Base
+  title={`${entry.data.title} | Impeccable`}
+  description={entry.data.description}
+  activeNav="docs"
+  canonicalPath={`/tutorials/${entry.id}`}
+  bodyClass="sub-page skills-layout-page"
+>
+  <div class="skills-layout">
+    <aside class="skills-sidebar" aria-label="Documentation">
+      <div class="skills-sidebar-inner" id="skills-sidebar-inner">
+        <p class="skills-sidebar-label">Docs</p>
+        <div class="skills-sidebar-group" data-category="tutorials">
+          <p class="skills-sidebar-group-title">Tutorials</p>
+          <ul class="skills-sidebar-list">
+            {tutorials.map(item => (
+              <li><a href={`/tutorials/${item.id}`} aria-current={item.id === entry.id ? 'page' : undefined}>{item.data.title}</a></li>
+            ))}
+          </ul>
+        </div>
+        <hr class="skills-sidebar-divider">
+        <div class="skills-sidebar-group" data-category="skills">
+          <p class="skills-sidebar-group-title">Reference</p>
+          <ul class="skills-sidebar-list">
+            <li><a href="/skills">All skills</a></li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <div class="skills-main">
+      <article class="skills-detail">
+        <nav class="skills-breadcrumb" aria-label="Breadcrumb">
+          <a href="/tutorials">Tutorials</a>
+          <span aria-hidden="true">/</span>
+          <span>{entry.data.title}</span>
+        </nav>
+        <header class="sub-page-header">
+          <span class="sub-page-eyebrow">Tutorial</span>
+          <h1 class="sub-page-title">{entry.data.title}</h1>
+          <p class="sub-page-lede">{entry.data.tagline}</p>
+        </header>
+        <div class="skills-detail-body docs-body">
+          <Content />
+        </div>
+      </article>
+    </div>
+  </div>
+</Base>

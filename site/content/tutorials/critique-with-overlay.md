@@ -35,7 +35,7 @@ It labels the tab it opens with `[LLM]` in the title so you can tell which one i
 
 ### What the automated detector does
 
-The second assessment runs `npx impeccable detect` against the page. This is deterministic: 25 specific pattern checks that fire or do not fire. Gradient text, purple palettes, side-tab borders, nested cards, line length problems, low contrast, tiny body text, and the rest.
+The second assessment runs `npx impeccable detect` against the page. This is deterministic: 29 specific pattern checks that fire or do not fire. Gradient text, purple palettes, side-tab borders, nested cards, line length problems, low contrast, tiny body text, and the rest.
 
 You get back a JSON list of every finding with its element selector, the rule that fired, and a short description.
 

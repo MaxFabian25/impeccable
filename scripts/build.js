@@ -22,13 +22,12 @@ import {
 } from './lib/utils.js';
 import { createTransformer, PROVIDERS } from './lib/transformers/index.js';
 import { createAllZips } from './lib/zip.js';
-import { generateSubPages } from './build-sub-pages.js';
 
 /**
  * Generate authoritative counts from source data and write to public/js/generated/counts.js.
  * Also validates that key HTML files reference the correct numbers.
  */
-function generateCounts(rootDir, skills, buildDir) {
+function generateCounts(rootDir, skills) {
   // Count active (non-deprecated) user-invocable commands
   const activeCommands = skills.filter(s => {
     if (!s.userInvocable) return false;
@@ -57,8 +56,8 @@ function generateCounts(rootDir, skills, buildDir) {
 
   // Validate counts in key files
   const filesToCheck = [
-    'public/index.html',
-    'public/cheatsheet.html',
+    'site/pages/index.astro',
+    'site/pages/cheatsheet.astro',
     'README.md',
     'NOTICE.md',
     'AGENTS.md',
@@ -173,14 +172,13 @@ function validateAntipatternRules(rootDir) {
  */
 function validateNoEmDashes(rootDir) {
   const targets = [
-    'content/site',
-    'public/index.html',
-    'public/cheatsheet.html',
-    'public/privacy.html',
-    'scripts/build-sub-pages.js',
+    'site/content',
+    'site/components',
+    'site/layouts',
+    'site/pages',
     'scripts/lib/sub-pages-data.js',
   ];
-  const extensions = new Set(['.html', '.md', '.js', '.mjs', '.css']);
+  const extensions = new Set(['.astro', '.html', '.md', '.js', '.mjs', '.css', '.ts']);
   const emDashPatterns = [/—/g, /&mdash;/gi, /&#8212;/gi, /&#x2014;/gi];
   let errors = 0;
 
@@ -226,31 +224,9 @@ function validateNoEmDashes(rootDir) {
  *
  * Returns the number of validation errors. Build fails if > 0.
  */
-function validateSiteHeader(rootDir) {
-  const pages = [
-    'public/index.html',
-    'public/cheatsheet.html',
-    'public/privacy.html',
-  ];
-  const marker = '<!-- site-header v1 -->';
-  let errors = 0;
-  for (const rel of pages) {
-    const full = path.join(rootDir, rel);
-    if (!fs.existsSync(full)) {
-      console.error(`  ❌ ${rel} is missing`);
-      errors++;
-      continue;
-    }
-    const src = fs.readFileSync(full, 'utf-8');
-    if (!src.includes(marker)) {
-      console.error(`  ❌ ${rel} is missing the shared site header marker '${marker}'`);
-      errors++;
-    }
-  }
-  if (errors === 0) {
-    console.log(`✓ Validated site header on ${pages.length} hand-authored pages`);
-  }
-  return errors;
+function validateSiteHeader() {
+  console.log('✓ Site header is a shared Astro component');
+  return 0;
 }
 
 /**
@@ -274,101 +250,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
-
-/**
- * Build static site using Bun's HTML bundler
- * Bun's HTML loader resolves <link rel="stylesheet"> and inlines CSS @imports.
- */
-async function buildStaticSite(extraEntrypoints = []) {
-  const entrypoints = [
-    path.join(ROOT_DIR, 'public', 'index.html'),
-    path.join(ROOT_DIR, 'public', 'cheatsheet.html'),
-    path.join(ROOT_DIR, 'public', 'privacy.html'),
-    ...extraEntrypoints,
-  ];
-  const outdir = path.join(ROOT_DIR, 'build');
-
-  console.log(`📦 Building static site with Bun (${entrypoints.length} HTML entries)...`);
-  fs.rmSync(outdir, { recursive: true, force: true });
-
-  try {
-    const result = await Bun.build({
-      entrypoints: entrypoints,
-      outdir: outdir,
-      minify: true,
-      sourcemap: 'linked',
-      // Older Bun versions (e.g. the one Cloudflare Pages ships) don't dedupe
-      // shared CSS/JS chunks across HTML entrypoints — every entry tries to
-      // emit its own copy, and three different sub-pages all named index.html
-      // (under skills/, tutorials/, slop/) collide on the same
-      // chunk filename. Including [dir] in the chunk template scopes each
-      // chunk to its entry's directory so the names stay unique even when
-      // dedupe is off. Local Bun still emits a single shared chunk; CF Bun
-      // emits one per entry but each lands in its own directory.
-      naming: {
-        entry: '[dir]/[name].[ext]',
-        chunk: '[dir]/[name]-[hash].[ext]',
-        asset: '[dir]/[name]-[hash].[ext]',
-      },
-    });
-
-    if (!result.success) {
-      console.error('Build failed:');
-      for (const log of result.logs) {
-        console.error(log.message || log);
-        if (log.position) {
-          console.error(`  at ${log.position.file}:${log.position.line}:${log.position.column}`);
-        }
-      }
-      process.exit(1);
-    }
-
-    // Calculate total size
-    const totalSize = result.outputs.reduce((sum, o) => sum + o.size, 0);
-    const htmlFiles = result.outputs.filter(o => o.path.endsWith('.html'));
-    const jsFiles = result.outputs.filter(o => o.path.endsWith('.js'));
-    const cssFiles = result.outputs.filter(o => o.path.endsWith('.css'));
-
-    // When entrypoints span multiple depths under public/ (e.g. public/index.html
-    // + public/skills/polish.html), Bun's HTML loader preserves the full public/
-    // prefix in the output tree. Flatten build/public/* up to build/*.
-    const nestedPublic = path.join(outdir, 'public');
-    if (fs.existsSync(nestedPublic)) {
-      for (const entry of fs.readdirSync(nestedPublic, { withFileTypes: true })) {
-        const from = path.join(nestedPublic, entry.name);
-        const to = path.join(outdir, entry.name);
-        if (fs.existsSync(to)) fs.rmSync(to, { recursive: true, force: true });
-        fs.renameSync(from, to);
-      }
-      fs.rmdirSync(nestedPublic);
-    }
-
-    console.log(`✓ Static site built to ./build/`);
-    console.log(`  HTML: ${htmlFiles.length} file(s)`);
-    console.log(`  JS: ${jsFiles.length} file(s) (${(jsFiles.reduce((s, f) => s + f.size, 0) / 1024).toFixed(1)} KB)`);
-    console.log(`  CSS: ${cssFiles.length} file(s) (${(cssFiles.reduce((s, f) => s + f.size, 0) / 1024).toFixed(1)} KB)`);
-    console.log(`  Total: ${(totalSize / 1024).toFixed(1)} KB\n`);
-
-    return result;
-  } catch (error) {
-    // Bun's build aggregator errors expose details on `error.errors` (an
-    // array of resolution / parse failures), not `error.stack`. Print
-    // both so CI logs surface the real cause instead of "undefined".
-    console.error('Failed to build static site:', error.message);
-    if (error.errors?.length) {
-      for (const e of error.errors) {
-        console.error('  -', e.message || e);
-      }
-    }
-    if (error.logs?.length) {
-      for (const log of error.logs) {
-        console.error(log.message || log);
-      }
-    }
-    if (error.stack) console.error(error.stack);
-    process.exit(1);
-  }
-}
 
 /**
  * Prepare a visible bundle README and optional Codex plugin metadata
@@ -443,16 +324,6 @@ function generateApiData(buildDir, skills, patterns) {
   }
 
   console.log(`✓ Generated static API data (${skillsData.length} skills, ${commandsData.length} commands)`);
-}
-
-/**
- * Copy dist files to build output for Cloudflare Pages Functions access.
- * Download functions use env.ASSETS.fetch() to read these files.
- */
-function copyDistToBuild(distDir, buildDir) {
-  const destDir = path.join(buildDir, '_data', 'dist');
-  copyDirSync(distDir, destDir);
-  console.log('✓ Copied dist files to build output');
 }
 
 /**
@@ -540,34 +411,14 @@ function generateCFConfig(buildDir) {
 async function build() {
   console.log('🔨 Building Codex CLI design skills...\n');
 
-  // Pre-generate sub-pages (skills, slop, tutorials, designing) from source
-  console.log('📝 Generating sub-pages...');
-  const { files: subPageFiles } = await generateSubPages(ROOT_DIR);
-  console.log(`✓ Generated ${subPageFiles.length} sub-page(s)\n`);
-
-  // Bundle HTML, JS, and CSS with Bun (including generated sub-pages)
-  await buildStaticSite(subPageFiles);
-
-  // Copy root-level static assets that need stable (unhashed) URLs
-  const staticAssets = ['og-image.jpg', 'robots.txt', 'sitemap.xml', 'favicon.svg', 'apple-touch-icon.png'];
-  const buildDir = path.join(ROOT_DIR, 'build');
-  for (const asset of staticAssets) {
-    const src = path.join(ROOT_DIR, 'public', asset);
-    if (fs.existsSync(src)) {
-      fs.copyFileSync(src, path.join(buildDir, asset));
-    }
-  }
-
-  // Copy antipattern examples (self-contained HTML, not Bun entrypoints)
-  const examplesDir = path.join(ROOT_DIR, 'public', 'antipattern-examples');
-  if (fs.existsSync(examplesDir)) {
-    copyDirSync(examplesDir, path.join(buildDir, 'antipattern-examples'));
-  }
+  // Astro owns website rendering. This script prepares generated public
+  // assets, Codex dist files, static API data, and Cloudflare config.
+  const publicDir = path.join(ROOT_DIR, 'public');
 
   // Copy browser detector script (referenced by antipattern examples at /js/...)
   const detectorSrc = path.join(ROOT_DIR, 'src', 'detect-antipatterns-browser.js');
   if (fs.existsSync(detectorSrc)) {
-    const jsDir = path.join(buildDir, 'js');
+    const jsDir = path.join(publicDir, 'js');
     fs.mkdirSync(jsDir, { recursive: true });
     fs.copyFileSync(detectorSrc, path.join(jsDir, 'detect-antipatterns-browser.js'));
   }
@@ -594,10 +445,10 @@ async function build() {
   // Create the canonical Codex distribution ZIP.
   await createAllZips(DIST_DIR);
 
-  // Generate static API data and Cloudflare Pages config
-  generateApiData(buildDir, skills, patterns);
-  copyDistToBuild(DIST_DIR, buildDir);
-  generateCFConfig(buildDir);
+  // Generate static API data and Cloudflare Pages config into public/ so
+  // Astro copies them into build/. Astro wipes build/ at the start of its run.
+  generateApiData(publicDir, skills, patterns);
+  generateCFConfig(publicDir);
 
   // Copy Codex output to the repo root for local testing.
   const syncConfig = PROVIDERS.codex;
@@ -627,13 +478,13 @@ async function build() {
 
 
   // Generate authoritative counts and validate references
-  const countErrors = generateCounts(ROOT_DIR, skills, buildDir);
+  const countErrors = generateCounts(ROOT_DIR, skills);
 
   // Cross-validate engine rules against impeccable SKILL.md DON'Ts
   const validationErrors = validateAntipatternRules(ROOT_DIR);
 
   // Verify every hand-authored HTML page carries the shared site header
-  const headerErrors = validateSiteHeader(ROOT_DIR);
+  const headerErrors = validateSiteHeader();
 
   // Scan user-facing copy for em dashes
   const emDashErrors = validateNoEmDashes(ROOT_DIR);

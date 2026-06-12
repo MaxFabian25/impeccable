@@ -49,7 +49,7 @@ try {
 if (browserUrlScanningAvailable) {
   before(async () => {
     // Static server: maps /fixtures/* to tests/fixtures/* and /js/* to public/js/*
-    // (mirrors the routes in server/index.js so fixtures can use absolute paths)
+    // so fixtures can use absolute paths just like the deployed site.
     server = http.createServer((req, res) => {
       if (req.url === '/fixtures/antipatterns/async-line-length-data') {
         setTimeout(() => {
