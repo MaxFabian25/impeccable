@@ -258,7 +258,12 @@ The agent should insert variant HTML at insertLine.`);
   console.log(JSON.stringify({
     file: path.relative(process.cwd(), targetFile),
     startLine: startLine + 1,       // 1-indexed for the agent
-    endLine: startLine + wrapperLines.length, // 1-indexed
+    // wrapperLines is an array but one element (the original-content slot)
+    // is a `\n`-joined multi-line string, so the actual file-row count is
+    // wrapperLines.length + (originalLines.length - 1). Without the offset,
+    // endLine pointed inside the wrapper for any picked element that
+    // spanned more than one source line.
+    endLine: startLine + wrapperLines.length + (originalLines.length - 1), // 1-indexed
     insertLine: insertLine + 1,     // 1-indexed: where variants go
     commentSyntax: commentSyntax,
     originalLineCount: originalLines.length,
@@ -471,7 +476,12 @@ function findAllElements(lines, query, tag = null) {
  */
 function filterByText(candidates, lines, text) {
   const trimmed = text.replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 80);
-  if (trimmed.length < 8) return candidates.slice();
+  // Too short to disambiguate. Return [] so the caller's `filtered.length
+  // === 0` branch fires (fall back to first-match) -- the previous
+  // `candidates.slice()` return forced `filtered.length > 1` and surfaced
+  // a spurious `element_ambiguous` error on every short-text picker event
+  // with multiple candidates.
+  if (trimmed.length < 8) return [];
   const targetSpaced = trimmed;
   const targetCompact = trimmed.replace(/\s+/g, '');
 

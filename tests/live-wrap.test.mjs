@@ -572,6 +572,50 @@ describe('live-wrap — JSX / TSX correctness', () => {
     assert.ok(!inside.includes('Hero Three'), 'did not wrap Hero Three');
   });
 
+  it('short --text falls back to first-match instead of erroneously firing element_ambiguous', () => {
+    const tsx = `export default function Page() {
+  return (
+    <main>
+      <aside className="card"><h1 className="hero-title">Hi</h1></aside>
+      <aside className="card"><h1 className="hero-title">Hi</h1></aside>
+    </main>
+  );
+}`;
+    writeFileSync(join(tmp, 'Short.tsx'), tsx);
+
+    execSync(
+      `node source/skills/impeccable/scripts/live-wrap.mjs --id short1 --count 3 --classes "card" --tag "aside" --text "Hi" --file "${join(tmp, 'Short.tsx')}"`,
+      { cwd: process.cwd(), encoding: 'utf-8' }
+    );
+
+    const modified = readFileSync(join(tmp, 'Short.tsx'), 'utf-8');
+    assert.ok(modified.includes('data-impeccable-variants="short1"'),
+      'short --text should wrap via first-match fallback, not fail with element_ambiguous');
+  });
+
+  it('returns endLine that includes the multi-line original content offset', () => {
+    const html = `<main>
+  <section class="multiline-target">
+    <h1>Multi</h1>
+    <p>Line</p>
+    <span>Element</span>
+  </section>
+</main>`;
+    writeFileSync(join(tmp, 'multi.html'), html);
+
+    const result = JSON.parse(execSync(
+      `node source/skills/impeccable/scripts/live-wrap.mjs --id ml1 --count 3 --classes "multiline-target" --tag "section" --file "${join(tmp, 'multi.html')}"`,
+      { cwd: process.cwd(), encoding: 'utf-8' }
+    ));
+
+    const modified = readFileSync(join(tmp, 'multi.html'), 'utf-8');
+    const lines = modified.split('\n');
+    assert.match(lines[result.endLine - 1], /impeccable-variants-end ml1/,
+      `endLine ${result.endLine} should point at the variants-end marker line. Got: ${JSON.stringify(lines[result.endLine - 1])}`);
+    assert.match(lines[result.endLine], /<\/main>/,
+      `line after endLine should be </main>; got: ${JSON.stringify(lines[result.endLine])}`);
+  });
+
   it('falls back to first-match when --text is not literally present in source (e.g. {title})', () => {
     // textContent the browser sends is the rendered text, but the source uses
     // a JSX expression. No candidate's source body contains the literal
