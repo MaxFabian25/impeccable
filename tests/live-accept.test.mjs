@@ -225,8 +225,14 @@ describe('live-accept — style-element edge cases', () => {
 
     runAccept(tmp, ['--id', 'INDENTDISC', '--discard']);
     const after = readFileSync(join(tmp, 'App.tsx'), 'utf-8');
+    // The opener should return to 6 spaces and the child should remain at
+    // 8 spaces, proving wrap preserved relative depth before discard restored.
     assert.match(after, /^      <aside className="card">$/m,
       `<aside> opener must be at the original 6-space indent, got:\n${after}`);
+    assert.match(after, /^        <h1 className="hero-title">Hero<\/h1>$/m,
+      `<h1> child must be at 8-space indent, got:\n${after}`);
+    assert.match(after, /^      <\/aside>$/m,
+      `</aside> closer must be back at 6-space indent, got:\n${after}`);
   });
 
   it('accept without carbonize restores at the original indent on JSX', () => {

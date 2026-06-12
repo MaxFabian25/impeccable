@@ -188,9 +188,16 @@ The agent should insert variant HTML at insertLine.`);
   const isJsx = commentSyntax.open === '{/*';
   const indent = lines[startLine].match(/^(\s*)/)[1];
 
-  // Extract the original element
+  // Extract the original element. Reindent under the wrapper while preserving
+  // relative depth between lines. `l.trimStart()` would strip all leading
+  // whitespace and collapse e.g. `<aside>` / `  <h1>` / `</aside>` into a
+  // uniform indent, so wrap+accept would restore the child at parent depth.
   const originalLines = lines.slice(startLine, endLine + 1);
-  const originalIndented = originalLines.map(l => indent + '    ' + l.trimStart()).join('\n');
+  const originalBaseIndent = minLeadingSpaces(originalLines);
+  const reindentOriginal = (extra) => originalLines
+    .map((l) => (l.trim() === '' ? '' : indent + extra + l.slice(originalBaseIndent)))
+    .join('\n');
+  const originalIndented = reindentOriginal('    ');
 
   // Wrapper attributes differ by syntax. HTML allows plain string attrs;
   // JSX requires object-literal style and parses string attrs as HTML (which
@@ -214,7 +221,7 @@ The agent should insert variant HTML at insertLine.`);
     indent + '  ' + commentSyntax.open + ' impeccable-variants-start ' + id + ' ' + commentSyntax.close,
     indent + '  ' + commentSyntax.open + ' Original ' + commentSyntax.close,
     indent + '  <div data-impeccable-variant="original">',
-    originalLines.map(l => indent + '    ' + l.trimStart()).join('\n'),
+    reindentOriginal('    '),
     indent + '  </div>',
     indent + '  ' + commentSyntax.open + ' Variants: insert below this line ' + commentSyntax.close,
     indent + '  ' + commentSyntax.open + ' impeccable-variants-end ' + id + ' ' + commentSyntax.close,
@@ -392,6 +399,16 @@ const OPENER_RE = /<([A-Za-z][A-Za-z0-9]*)(?=[\s/>]|$)/;
  * line to find the actual tag opener. When `tag` is provided, opener candidates
  * must match that tag name.
  */
+function minLeadingSpaces(lines) {
+  let min = Infinity;
+  for (const l of lines) {
+    if (l.trim() === '') continue;
+    const m = l.match(/^(\s*)/);
+    if (m && m[1].length < min) min = m[1].length;
+  }
+  return min === Infinity ? 0 : min;
+}
+
 function findElement(lines, query, tag = null) {
   // Iterate all matches — the first substring hit isn't always the right one.
   for (let i = 0; i < lines.length; i++) {
