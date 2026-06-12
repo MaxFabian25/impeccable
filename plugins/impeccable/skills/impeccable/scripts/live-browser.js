@@ -868,7 +868,8 @@
     pill.addEventListener('click', (e) => { e.stopPropagation(); toggleActionPicker(); });
     row.appendChild(pill);
 
-    // Freeform input
+    // Freeform input. Keep focus as border-only so the placeholder stays
+    // readable against the floating bar instead of washing out over a fill.
     const input = document.createElement('input');
     input.id = PREFIX + '-input';
     input.type = 'text';
@@ -879,15 +880,19 @@
       border: '1px solid transparent', background: 'transparent',
       fontFamily: FONT, fontSize: '12px', color: C.ink,
       outline: 'none',
-      transition: 'border-color 0.15s ease, background 0.15s ease',
+      transition: 'border-color 0.15s ease',
     });
+    if (!document.getElementById(PREFIX + '-input-style')) {
+      const s = document.createElement('style');
+      s.id = PREFIX + '-input-style';
+      s.textContent = '#' + PREFIX + '-input::placeholder { color: ' + C.ash + '; opacity: 1; }';
+      document.head.appendChild(s);
+    }
     input.addEventListener('focus', () => {
-      input.style.borderColor = C.mist;
-      input.style.background = C.white;
+      input.style.borderColor = C.brand;
     });
     input.addEventListener('blur', () => {
       input.style.borderColor = 'transparent';
-      input.style.background = 'transparent';
     });
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); handleGo(); return; }

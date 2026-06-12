@@ -88,6 +88,9 @@ describe('codex-only build contract', () => {
       expect(script).toContain('Resumed deferred session');
       expect(script).toContain('img.style.cssText = canvas.style.cssText;');
       expect(script).toContain("n.querySelector?.('[data-impeccable-variants],[data-impeccable-variant]')");
+      expect(script).toContain("s.id = PREFIX + '-input-style';");
+      expect(script).toContain("input.style.borderColor = C.brand;");
+      expect(script).not.toContain("input.style.background = C.white;");
       expect(script).not.toContain('window.location.reload();');
       expect(script).not.toContain('Object.assign(img.style, canvas.style');
     }
