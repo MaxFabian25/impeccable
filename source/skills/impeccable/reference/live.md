@@ -54,7 +54,9 @@ Speed matters — the user is watching a spinner. Minimize tool calls by using t
 
 ### 1. Read the screenshot (if present)
 
-When the browser captured the element successfully, `event.screenshotPath` is an absolute path to a PNG showing the element as rendered, including any comment pins and drawn strokes the user placed before Go. **Read it before planning.** Annotations encode user intent not recoverable from `element.outerHTML` alone.
+`event.screenshotPath` is only sent when the user placed at least one comment or stroke before Go. When present, it is an absolute path to a PNG of the element as rendered with the annotations baked in. **Read it before planning.** Annotations encode user intent not recoverable from `element.outerHTML` alone.
+
+When `screenshotPath` is absent, do not ask for one and do not go looking for the current rendering. The omission is deliberate: without annotations, a screenshot would anchor the model on the existing design and fight the three-distinct-directions brief. Work from `element.outerHTML`, the computed styles in `event.element`, and the freeform prompt if present.
 
 `event.comments` and `event.strokes` carry structured metadata alongside the visual. Treat the screenshot as primary; use the structured data for specifics worth quoting (e.g. the exact text of a comment).
 
