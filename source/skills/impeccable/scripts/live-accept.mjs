@@ -260,20 +260,26 @@ function expandReplaceRange(block, lines, isJsx) {
   }
 
   // Walk forward to the matching `</div>` by div-depth tracking from the
-  // wrapper opener. Self-closing `<div … />` doesn't contribute depth.
-  const openRe = /<div\b/g;
-  const selfCloseRe = /<div\b[^>]*\/\s*>/g;
-  const closeRe = /<\/div\s*>/g;
+  // wrapper opener. Operate on joined text instead of per-line matching:
+  // a multi-line self-closing JSX `<div\n  className="spacer"\n/>` would
+  // fool per-line regex tracking because the `<div` line matches as an
+  // open, but the `/>` line never matches a same-line self-close regex.
+  const joined = lines.slice(start).join('\n');
+  const tagRe = /<div\b[^>]*?(\/?)>|<\/div\s*>/g;
   let depth = 0;
-  for (let i = start; i < lines.length; i++) {
-    const line = lines[i];
-    const opens = (line.match(openRe) || []).length;
-    const selfCloses = (line.match(selfCloseRe) || []).length;
-    const closes = (line.match(closeRe) || []).length;
-    depth += opens - selfCloses - closes;
-    if (depth <= 0 && i >= end) {
-      end = i;
-      break;
+  let m;
+  while ((m = tagRe.exec(joined)) !== null) {
+    const isClose = m[0].startsWith('</');
+    const isSelfClose = !isClose && m[1] === '/';
+    if (isClose) depth--;
+    else if (!isSelfClose) depth++;
+    if (depth <= 0) {
+      const linesBefore = joined.slice(0, m.index + m[0].length).split('\n').length - 1;
+      const candidateEnd = start + linesBefore;
+      if (candidateEnd >= end) {
+        end = candidateEnd;
+        break;
+      }
     }
   }
 

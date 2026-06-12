@@ -235,6 +235,44 @@ describe('live-accept — style-element edge cases', () => {
       `</aside> closer must be back at 6-space indent, got:\n${after}`);
   });
 
+  it('expandReplaceRange handles multi-line self-closing <div /> inside the wrapped element', () => {
+    const tsx = `export default function App() {
+  return (
+    <main>
+      <aside className="card">
+        <h1>Hi</h1>
+        <div
+          className="spacer"
+        />
+        <p>Body</p>
+      </aside>
+      <div className="next-card">After</div>
+    </main>
+  );
+}`;
+    writeFileSync(join(tmp, 'App.tsx'), tsx);
+
+    execSync(
+      `node source/skills/impeccable/scripts/live-wrap.mjs --id MULTILINESC --count 3 --classes "card" --tag "aside" --file "${join(tmp, 'App.tsx')}"`,
+      { cwd: process.cwd(), encoding: 'utf-8' }
+    );
+
+    const result = runAccept(tmp, ['--id', 'MULTILINESC', '--discard']);
+    assert.equal(result.handled, true, `discard should succeed: ${JSON.stringify(result)}`);
+
+    const after = readFileSync(join(tmp, 'App.tsx'), 'utf-8');
+    assert.ok(!after.includes('data-impeccable-variants'),
+      `outer wrapper div must be fully removed; got:\n${after}`);
+    assert.ok(!after.includes('data-impeccable-variant'),
+      `original-div wrapper must be fully removed; got:\n${after}`);
+    assert.ok(!after.includes('impeccable-variants-start'),
+      `start marker must be removed; got:\n${after}`);
+    assert.ok(after.includes('<div className="next-card">After</div>'),
+      `unrelated next-card sibling must be preserved; got:\n${after}`);
+    assert.match(after, /<div\s*\n\s*className="spacer"\s*\n\s*\/>/m,
+      `multi-line self-closing <div /> inside original must survive; got:\n${after}`);
+  });
+
   it('accept without carbonize restores at the original indent on JSX', () => {
     const tsx = `export default function App() {
   return (
