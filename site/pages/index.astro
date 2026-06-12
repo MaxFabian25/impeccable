@@ -109,7 +109,7 @@
             </div>
           </div>
         </div>
-        <p class="hero-version-link"><a href="#changelog">v2.1: Streamlined from 21 to 19 commands</a></p>
+        <p class="hero-version-link"><a href="#changelog">Codex update: recoverable live sessions and sharper slop detection</a></p>
       </div>
 
       <!-- Right: Before/After Demo -->
@@ -917,6 +917,18 @@
       </div>
 
       <div class="changelog-list" data-reveal>
+        <div class="changelog-entry">
+          <div class="changelog-version-header">
+            <span class="changelog-version">Codex fork update</span>
+            <span class="changelog-date">June 12, 2026</span>
+          </div>
+          <ul class="changelog-items">
+            <li><strong>Live sessions can be recovered.</strong> Live mode now keeps a local journal under <code>.impeccable/live/sessions/</code>, adds <code>live-status.mjs</code>, <code>live-resume.mjs</code>, and <code>live-complete.mjs</code>, and requeues unacknowledged work after a helper restart.</li>
+            <li><strong>Detector catches more current AI slop.</strong> Italic-serif hero headlines and hero eyebrow chips now have deterministic checks, including the pill-chip variant above a primary hero heading.</li>
+            <li><strong>Astro preview CSS is explicit.</strong> <code>live-wrap.mjs</code> returns a <code>cssAuthoring</code> contract, so Codex can use scoped preview CSS for most files and Astro's inline global-prefixed strategy when that file type needs it.</li>
+          </ul>
+        </div>
+
         <div class="changelog-entry">
           <div class="changelog-version-header">
             <span class="changelog-version">v2.1</span>
