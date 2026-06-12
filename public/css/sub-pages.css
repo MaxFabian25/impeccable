@@ -1563,6 +1563,10 @@ main#main {
   max-width: 760px;
 }
 
+.designing-phase#start .designing-phase-content {
+  max-width: 900px;
+}
+
 .designing-phase-title {
   margin: 0 0 var(--spacing-sm);
   font-family: var(--font-display);
@@ -1587,6 +1591,76 @@ main#main {
   font-size: 0.9375rem;
   line-height: 1.65;
   color: var(--color-charcoal);
+}
+
+.designing-visualize-spread {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: clamp(1.25rem, 3vw, 2rem);
+  max-width: 900px;
+  margin-top: clamp(1.5rem, 4vw, 2.25rem);
+  align-items: start;
+}
+
+.designing-visualize-plate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  margin: 0;
+}
+
+.designing-visualize-plate-frame {
+  overflow: hidden;
+  background: var(--color-cream);
+  border: 1px solid var(--color-mist);
+  border-radius: 8px;
+}
+
+.designing-visualize-plate-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.designing-visualize-plate-cap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  align-items: baseline;
+}
+
+.designing-visualize-plate-kind {
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.designing-visualize-plate-note {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.designing-visualize-foot {
+  max-width: 72ch;
+  margin: var(--spacing-lg) 0 0;
+  padding-top: var(--spacing-md);
+  color: var(--color-ash);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  border-top: 1px solid var(--color-mist);
+}
+
+.designing-visualize-foot strong {
+  color: var(--color-charcoal);
+  font-weight: 500;
 }
 
 .designing-phase-commands {
@@ -1744,6 +1818,11 @@ main#main {
 
   .designing-phase-kicker {
     padding-top: 0;
+  }
+
+  .designing-visualize-spread,
+  .designing-visualize-plate-cap {
+    grid-template-columns: 1fr;
   }
 }
 

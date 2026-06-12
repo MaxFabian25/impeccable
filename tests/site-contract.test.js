@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { commandCategories, commandRelationships } from '../public/js/data.js';
 
@@ -53,6 +53,26 @@ describe('codex-only site contract', () => {
     expect(buildScript).toContain('/anti-patterns /slop#catalog 301');
     expect(buildScript).toContain('/visual-mode /slop#see-it 301');
     expect(buildScript).toContain("fs.rmSync(outdir, { recursive: true, force: true });");
+  });
+
+  test('visualize-first site flow stays Codex-only and has source assets', () => {
+    const homepage = readFileSync(join(REPO_ROOT, 'public', 'index.html'), 'utf8');
+    const subPageBuilder = readFileSync(join(REPO_ROOT, 'scripts', 'build-sub-pages.js'), 'utf8');
+
+    expect(existsSync(join(REPO_ROOT, 'public', 'assets', 'openai_image_2_brand.jpg'))).toBe(true);
+    expect(existsSync(join(REPO_ROOT, 'public', 'assets', 'openai_image_2_hifi.jpg'))).toBe(true);
+    expect(homepage).toContain('Visualize, then build');
+    expect(homepage).toContain('Picture it before Codex builds it.');
+    expect(homepage).toContain('OpenAI image generation via Codex');
+    expect(subPageBuilder).toContain('Start with words, pictures, then code.');
+    expect(subPageBuilder).toContain('OpenAI image generation');
+
+    for (const source of [homepage, subPageBuilder]) {
+      expect(source).not.toContain('Nano Banana');
+      expect(source).not.toContain('Imagen');
+      expect(source).not.toContain('Grok');
+      expect(source).not.toContain('compatible harness');
+    }
   });
 
   test('sitemap includes generated section pages and every current skill detail page', () => {

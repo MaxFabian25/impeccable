@@ -471,19 +471,45 @@ ${cards}
  * same "start, iterate, polish, maintain" loop, but with $ commands,
  * local /skills links, and no multi-provider install or slash-command copy.
  */
+function renderDesigningStartVisual() {
+  return `
+        <div class="designing-visualize-spread" aria-label="Visualize-first workflow with image generation">
+          <figure class="designing-visualize-plate designing-visualize-plate--brand">
+            <div class="designing-visualize-plate-frame">
+              <img src="../assets/openai_image_2_brand.jpg" alt="Auto-generated brand toolkit plate: identity lockups, palette, type specimens, icon system, and application mocks for a fictional AI design conference." loading="lazy" width="1536" height="1024" />
+            </div>
+            <figcaption class="designing-visualize-plate-cap">
+              <span class="designing-visualize-plate-kind">Shape</span>
+              <p class="designing-visualize-plate-note">Brand toolkit. Identity, palette, type, icon language, applications, social tiles, UI direction. One plate, reviewable at a glance.</p>
+            </figcaption>
+          </figure>
+
+          <figure class="designing-visualize-plate designing-visualize-plate--hifi">
+            <div class="designing-visualize-plate-frame">
+              <img src="../assets/openai_image_2_hifi.jpg" alt="Auto-generated hi-fi landing-page mock in editorial warm-paper style." loading="lazy" width="864" height="1821" />
+            </div>
+            <figcaption class="designing-visualize-plate-cap">
+              <span class="designing-visualize-plate-kind">Craft</span>
+              <p class="designing-visualize-plate-note">Hi-fi reference. The destination before the first line of CSS. Craft codes toward a concrete image, not an abstract paragraph.</p>
+            </figcaption>
+          </figure>
+        </div>
+        <p class="designing-visualize-foot">Plates generated with <strong>OpenAI image generation</strong> through Codex. The point is not a separate handoff; the visual reference stays inside the same Impeccable workflow.</p>`;
+}
+
 function renderDesigningMain() {
   const phases = [
     {
       id: 'start',
       eyebrow: '01',
-      title: 'Start with context.',
-      summary: 'Teach Codex what the product is, what register it should use, and which design system it should respect before asking it to redesign anything.',
+      title: 'Start with words, pictures, then code.',
+      summary: 'Three commands, one arc. Teach writes the project brief, shape drafts a reference you can look at, and craft codes toward what you can see.',
       commands: [
         { label: '$impeccable teach', href: '/skills/impeccable#teach' },
+        { label: '$shape', href: '/skills/shape' },
         { label: '$impeccable craft', href: '/skills/impeccable#craft' },
-        { label: '$clarify', href: '/skills/clarify' },
       ],
-      body: 'The first pass is not decoration. It is shared vocabulary: goals, audience, brand or product register, constraints, and the DESIGN.md rules later commands will read.',
+      body: 'Image generation is good enough to serve as a concrete design reference. The first pass becomes shared vocabulary, a visible north star, and then real code in the repository.',
     },
     {
       id: 'iterate',
@@ -524,18 +550,22 @@ function renderDesigningMain() {
     },
   ];
 
-  const phaseCards = phases.map((phase) => `
+  const phaseCards = phases.map((phase) => {
+    const startVisual = phase.id === 'start' ? renderDesigningStartVisual() : '';
+    return `
     <section class="designing-phase" id="${phase.id}">
       <div class="designing-phase-kicker">${phase.eyebrow}</div>
       <div class="designing-phase-content">
         <h2 class="designing-phase-title">${escapeHtml(phase.title)}</h2>
         <p class="designing-phase-summary">${escapeHtml(phase.summary)}</p>
         <p class="designing-phase-body">${escapeHtml(phase.body)}</p>
+${startVisual}
         <div class="designing-phase-commands" aria-label="${escapeAttr(phase.title)} commands">
 ${phase.commands.map((command) => `          <a href="${command.href}" class="designing-command">${escapeHtml(command.label)}</a>`).join('\n')}
         </div>
       </div>
-    </section>`).join('\n');
+    </section>`;
+  }).join('\n');
 
   return `
 <div class="designing-page">
