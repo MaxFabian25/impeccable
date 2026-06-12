@@ -9,7 +9,7 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ACCEPT = resolve(__dirname, '..', 'source/skills/impeccable/scripts/live-accept.mjs');
@@ -204,6 +204,56 @@ describe('live-accept — style-element edge cases', () => {
     assert.equal(openCount, 1, `expected one {\` opener, got ${openCount}`);
     assert.equal(closeCount, 1, `expected one \`} closer, got ${closeCount}`);
     assert.ok(inner.includes('@scope ([data-impeccable-variant="1"])'), 'variant-1 scope kept');
+  });
+
+  it('discard restores JSX content at the original indent', () => {
+    const tsx = `export default function App() {
+  return (
+    <main>
+      <aside className="card">
+        <h1 className="hero-title">Hero</h1>
+      </aside>
+    </main>
+  );
+}`;
+    writeFileSync(join(tmp, 'App.tsx'), tsx);
+
+    execSync(
+      `node source/skills/impeccable/scripts/live-wrap.mjs --id INDENTDISC --count 3 --classes "card" --tag "aside" --file "${join(tmp, 'App.tsx')}"`,
+      { cwd: process.cwd(), encoding: 'utf-8' }
+    );
+
+    runAccept(tmp, ['--id', 'INDENTDISC', '--discard']);
+    const after = readFileSync(join(tmp, 'App.tsx'), 'utf-8');
+    assert.match(after, /^      <aside className="card">$/m,
+      `<aside> opener must be at the original 6-space indent, got:\n${after}`);
+  });
+
+  it('accept without carbonize restores at the original indent on JSX', () => {
+    const tsx = `export default function App() {
+  return (
+    <main>
+      <div data-impeccable-variants="INDENTACC" data-impeccable-variant-count="3" style={{ display: "contents" }}>
+        {/* impeccable-variants-start INDENTACC */}
+        {/* Original */}
+        <div data-impeccable-variant="original">
+          <aside className="card">
+            <h1 className="hero-title">Hero</h1>
+          </aside>
+        </div>
+        {/* Variants: insert below this line */}
+        <div data-impeccable-variant="1"><aside className="card variant-one"><h1 className="hero-title">Hero</h1></aside></div>
+        {/* impeccable-variants-end INDENTACC */}
+      </div>
+    </main>
+  );
+}`;
+    writeFileSync(join(tmp, 'App.tsx'), tsx);
+
+    runAccept(tmp, ['--id', 'INDENTACC', '--variant', '1']);
+    const after = readFileSync(join(tmp, 'App.tsx'), 'utf-8');
+    assert.match(after, /^      <aside className="card variant-one">/m,
+      `accepted <aside> must land at the wrapper's 6-space indent, got:\n${after}`);
   });
 
   // Discard must restore the original element after a self-closing <style />,

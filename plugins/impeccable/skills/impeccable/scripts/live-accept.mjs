@@ -105,11 +105,14 @@ function handleDiscard(id, lines, targetFile) {
   if (!block) return { handled: false, error: 'Markers not found' };
 
   const original = extractOriginal(lines, block);
-  const indent = lines[block.start].match(/^(\s*)/)[1];
   const isJsx = detectCommentSyntax(targetFile).open === '{/*';
   const replaceRange = expandReplaceRange(block, lines, isJsx);
 
-  // De-indent the original content back to the marker's indentation level
+  // Restore at the line we're actually replacing from, not the marker line.
+  // For JSX wrappers the marker comments live inside the outer <div>, so
+  // block.start sits 2 spaces deeper than the original element. The expanded
+  // replace range starts at the wrapper line, which is the original indent.
+  const indent = lines[replaceRange.start].match(/^(\s*)/)[1];
   const restored = deindentContent(original, indent);
 
   const newLines = [
@@ -129,9 +132,13 @@ function handleAccept(id, variantNum, lines, targetFile, paramValues) {
   const block = findMarkerBlock(id, lines);
   if (!block) return { handled: false, error: 'Markers not found' };
 
-  const indent = lines[block.start].match(/^(\s*)/)[1];
   const commentSyntax = detectCommentSyntax(targetFile);
   const isJsx = commentSyntax.open === '{/*';
+  // Anchor indent on the line we're replacing from, not block.start. For JSX
+  // wrappers block.start is the marker comment 2 spaces deeper than the
+  // original element. See handleDiscard for the full rationale.
+  const replaceRange = expandReplaceRange(block, lines, isJsx);
+  const indent = lines[replaceRange.start].match(/^(\s*)/)[1];
 
   // Extract the chosen variant's inner content
   const variantContent = extractVariant(lines, block, variantNum);
@@ -187,7 +194,6 @@ function handleAccept(id, variantNum, lines, targetFile, paramValues) {
     replacement.push(...restored);
   }
 
-  const replaceRange = expandReplaceRange(block, lines, isJsx);
   const newLines = [
     ...lines.slice(0, replaceRange.start),
     ...replacement,
