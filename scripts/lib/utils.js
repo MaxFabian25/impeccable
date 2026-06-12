@@ -465,7 +465,7 @@ export const PROVIDER_PLACEHOLDERS = {
   'codex': {
     model: 'GPT',
     config_file: 'AGENTS.md',
-    ask_instruction: 'ask the user directly to clarify what you cannot infer.',
+    ask_instruction: "STOP and use Codex's structured user-input/question tool when available; if unavailable, ask directly in chat to clarify what you cannot infer.",
     command_prefix: '$'
   }
 };

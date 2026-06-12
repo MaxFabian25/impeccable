@@ -12,6 +12,25 @@ This skill guides creation of distinctive, production-grade frontend interfaces 
 
 Design skills produce generic output without project context. This protocol runs once at the start of a session before design work.
 
+Before design work or file edits, pass these gates:
+
+| Gate | Required check | If fail |
+|---|---|---|
+| Context | The PRODUCT.md / DESIGN.md loader result is known from `node {{scripts_path}}/load-context.mjs`. | Run the loader before continuing. |
+| Product | PRODUCT.md exists and is not empty or placeholder-only (`[TODO]` markers, under 200 characters). | Run `{{command_prefix}}impeccable teach`, refresh context, then resume. Never synthesize PRODUCT.md from the user's original prompt alone. |
+| Command | The matching standalone skill or command reference is loaded when a sub-command is used. | Load the reference before continuing. |
+| Craft | `{{command_prefix}}impeccable craft` has a user-confirmed shape brief for this task. Teach answers and PRODUCT.md never count as shape. | Run `{{command_prefix}}shape` and wait for explicit brief confirmation. |
+| Image | Required visual probes / mocks are generated or skipped with a reason. | Resolve the image-generation gate in `{{command_prefix}}shape` or [reference/craft.md](reference/craft.md) before code. |
+| Mutation | All active gates above pass. | Do not edit project files yet. |
+
+Codex agents must state this before editing files for an Impeccable design task:
+
+```text
+IMPECCABLE_PREFLIGHT: context=pass product=pass command_reference=pass shape=pass|not_required image_gate=pass|skipped:<reason> mutation=open
+```
+
+For `{{command_prefix}}impeccable craft`, `shape=pass` is only valid after a separate user response approving the shape design brief, or when the user provided an already-confirmed brief in the request. Do not mark `shape=pass` after writing PRODUCT.md, summarizing assumptions, or drafting an unconfirmed brief yourself.
+
 ### Context Files
 
 - **PRODUCT.md** (strategic, required): default register, target users, product purpose, jobs to be done, brand personality, anti-references, and design principles. Use it for "who, what, and why".
@@ -42,7 +61,7 @@ Consume the full JSON output. Do not pipe it through `head`, `tail`, `grep`, or 
 
 - If `hasProduct` is true and `product` is substantive (more than 200 characters and not mostly `[TODO]` placeholders), proceed.
 - If `hasDesign` is false and the current task needs visual consistency, say once: "Note: no DESIGN.md found. I'll use Impeccable's built-in design principles for now. For more on-brand output, run `{{command_prefix}}impeccable document` to generate DESIGN.md from the existing code."
-- If `hasProduct` is false, empty, or placeholder-only, tell the user: "I need PRODUCT.md before I can do this well. Running `{{command_prefix}}impeccable teach` now; I'll resume [original task] after." Then run `{{command_prefix}}impeccable teach`, reload context, and resume the original task.
+- If `hasProduct` is false, empty, or placeholder-only, tell the user: "I need PRODUCT.md before I can do this well. Running `{{command_prefix}}impeccable teach` now; I'll resume [original task] after." Then run `{{command_prefix}}impeccable teach`, reload context, and resume the original task. If the original task was `{{command_prefix}}impeccable craft`, resume into `{{command_prefix}}shape` before any implementation work.
 
 ### Register
 
@@ -356,6 +375,8 @@ Use the result to choose the path:
 
 Never silently overwrite existing PRODUCT.md or DESIGN.md.
 
+If teach was invoked as a setup blocker by another command, such as `{{command_prefix}}impeccable craft landing page`, pause that command here. Complete teach, re-run the loader, then resume the original command with the freshly loaded context. For craft, resume into shape next; teach creates project context, but it is not a substitute for the task-specific shape interview and confirmed design brief.
+
 ### Step 2: Explore the Codebase
 
 Before asking questions, thoroughly scan the project to discover what you can:
@@ -378,7 +399,19 @@ Note what you've learned and what remains unclear.
 
 ### Step 3: Ask Strategic Questions
 
-Ask only about what you could not infer from the codebase:
+Use Codex's structured user-input/question tool when available; otherwise ask directly in chat and stop. Ask only about what you could not infer from the codebase.
+
+#### Interview Mode, Not Confirmation Mode
+
+If the repo is empty or the user's brief is sparse, run a short interview before proposing PRODUCT.md. Do not turn a one-sentence request into a complete inferred PRODUCT.md and ask for blanket confirmation.
+
+- Ask 2 to 3 questions per round, then wait for answers.
+- Use inferred answers as hypotheses or options, not finished facts.
+- Complete at least one real user-answer round before drafting PRODUCT.md, unless every required answer is directly discoverable from repo docs.
+- Round 1 should establish register, users or purpose, and desired outcome.
+- Round 2 should establish brand personality or references, anti-references, and accessibility needs.
+
+Ask enough to complete PRODUCT.md. At minimum, cover register confirmation, users and purpose, brand personality, anti-references, and accessibility needs unless each answer is directly discoverable from repo context. After at least one interview round, you may propose inferred answers, but the user must confirm them before you write PRODUCT.md. Never synthesize PRODUCT.md from the original task prompt alone.
 
 #### Register
 - Should the primary surface be treated as **editorial** (design is the product) or **product** (design serves a task)?
@@ -403,6 +436,8 @@ Ask only about what you could not infer from the codebase:
 Skip questions where the answer is already clear from the codebase exploration. Do not ask about colors, fonts, radii, shadows, or component styling here. Those belong in DESIGN.md.
 
 ### Step 4: Write PRODUCT.md
+
+Write PRODUCT.md only after the user has confirmed the strategic answers from Step 3. If an inferred answer is uncertain or unconfirmed, ask before writing.
 
 Synthesize your findings and the user's answers into a project-root `PRODUCT.md`:
 
@@ -445,7 +480,7 @@ Confirm what was written, summarize the 3-5 strategic principles, and note wheth
 
 Run `node {{scripts_path}}/load-context.mjs` one final time and consume the full JSON output so the freshly written PRODUCT.md is in session context for any follow-up command.
 
-If teach was invoked because another command needed context first, resume that original command now with the fresh PRODUCT.md loaded.
+If teach was invoked because another command needed context first, resume that original command now with the fresh PRODUCT.md loaded. For craft, resume into shape before implementation.
 
 ---
 

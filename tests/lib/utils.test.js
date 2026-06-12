@@ -704,7 +704,7 @@ describe('replacePlaceholders', () => {
 
   test('should replace {{ask_instruction}} with provider-specific value', () => {
     const result = replacePlaceholders('{{ask_instruction}}', 'codex');
-    expect(result).toBe('ask the user directly to clarify what you cannot infer.');
+    expect(result).toBe("STOP and use Codex's structured user-input/question tool when available; if unavailable, ask directly in chat to clarify what you cannot infer.");
   });
 
   test('should replace {{available_commands}} with command list', () => {
@@ -729,7 +729,7 @@ describe('replacePlaceholders', () => {
 
   test('should replace multiple placeholders in the same string', () => {
     const result = replacePlaceholders('{{model}} uses {{config_file}} and {{ask_instruction}}', 'codex');
-    expect(result).toBe('GPT uses AGENTS.md and ask the user directly to clarify what you cannot infer.');
+    expect(result).toBe("GPT uses AGENTS.md and STOP and use Codex's structured user-input/question tool when available; if unavailable, ask directly in chat to clarify what you cannot infer.");
   });
 
   test('should replace multiple occurrences of the same placeholder', () => {

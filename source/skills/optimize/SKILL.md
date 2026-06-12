@@ -116,10 +116,10 @@ elements.forEach((el, i) => {
 - Virtual scrolling for very long lists (react-window, react-virtualized)
 
 **Reduce Paint & Composite**:
-- Use `transform` and `opacity` for animations (GPU-accelerated)
-- Avoid animating layout properties (width, height, top, left)
+- Use `transform` and `opacity` for reliable movement, but allow blur, filters, masks, clip paths, shadows, and color shifts when they create meaningful polish
+- Avoid casual animation of layout-driving properties (`width`, `height`, `top`, `left`, margins)
 - Use `will-change` sparingly for known expensive operations
-- Minimize paint areas (smaller is faster)
+- Bound expensive paint areas for blur/filter/shadow effects (smaller and isolated is faster)
 
 ### Animation Performance
 
@@ -263,4 +263,3 @@ Test that optimizations worked:
 - **User perception**: Does it *feel* faster?
 
 Remember: Performance is a feature. Fast experiences feel more responsive, more polished, more professional. Optimize systematically, measure ruthlessly, and prioritize user-perceived performance.
-
