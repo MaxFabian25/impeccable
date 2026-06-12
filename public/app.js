@@ -259,6 +259,17 @@ function initWhyTabs() {
 	let autoRotate = !reducedMotion;
 	let visible = false;
 
+	const tabStrip = container.querySelector('.why-tabs');
+
+	const centerActiveInStrip = (active) => {
+		if (!tabStrip || tabStrip.scrollWidth <= tabStrip.clientWidth + 1) return;
+		const tabRect = active.getBoundingClientRect();
+		const stripRect = tabStrip.getBoundingClientRect();
+		const offset = (tabRect.left + tabRect.width / 2) - (stripRect.left + stripRect.width / 2);
+		if (Math.abs(offset) < 2) return;
+		tabStrip.scrollLeft += offset;
+	};
+
 	container.style.setProperty("--why-cycle-ms", `${cycleMs}ms`);
 	panels.forEach((panel, i) => {
 		const active = i === current;
@@ -289,6 +300,7 @@ function initWhyTabs() {
 			void active.offsetWidth;
 			active.classList.add("is-cycling");
 		}
+		centerActiveInStrip(tabs[index]);
 	};
 
 	const scheduleNext = () => {
