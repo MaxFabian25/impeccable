@@ -22,11 +22,12 @@ Craft is not a first pass. It is a loop with these required artifacts:
 
 1. Confirmed design brief from `{{command_prefix}}shape`.
 2. Approved visual direction, from generated probes or mocks when image generation is available.
-3. Semantic, functional implementation using the project's real stack and conventions.
-4. Browser evidence across relevant viewports.
-5. At least one critique-and-fix pass after the first browser inspection, unless the first pass has no material defects.
+3. Mock fidelity inventory: the visible ingredients from the approved direction that must survive into code.
+4. Semantic, functional implementation using the project's real stack and conventions.
+5. Browser evidence across relevant viewports.
+6. At least one critique-and-fix pass after the first browser inspection, unless the first pass has no material defects.
 
-Do not let generated mockups replace interface structure, copy, accessibility, responsive behavior, or state design. Use them to set composition, hierarchy, density, atmosphere, and distinctive visual moves.
+Do not let generated mockups replace interface structure, copy, accessibility, responsive behavior, or state design. But do treat the approved mock as a concrete visual contract for composition, hierarchy, density, atmosphere, signature motifs, image needs, and distinctive visual moves. "North star" means "preserve the important visible ingredients in semantic code," not "use it as loose mood."
 
 ## Step 1: Shape the Design
 
@@ -74,6 +75,7 @@ Generate 1 to 3 high-fidelity north-star comps based on the confirmed brief. If 
 
 - For brand work, push visual identity, composition, and mood aggressively.
 - For product work, still push hierarchy, topology, density, and tone, but keep the comps grounded in realistic product structure and states.
+- For landing pages and long-form brand surfaces, show enough of the next section or second fold to establish the system beyond the hero.
 
 The comps must be genuinely different in primary visual direction, not just color variants.
 
@@ -88,11 +90,24 @@ Before moving to implementation, summarize:
 - What to carry into code
 - What not to literalize from the mock
 
-This summary is required before Step 5. It is the handoff between visual exploration and semantic implementation.
+This summary is required before Step 4. It is the handoff between visual exploration and semantic implementation.
 
-Treat the mock as a north star, not a screenshot to trace. Do not let it override the confirmed brief.
+### Mock Fidelity Inventory
 
-## Step 4: Asset Extraction (Optional)
+Before building, inventory the approved mock's major visible ingredients:
+
+- Hero silhouette and dominant composition.
+- Signature motifs: planets, devices, portraits, charts, route lines, insets, badges, or other memorable objects.
+- Nav and primary CTA treatment.
+- Section sequence visible in the mock, especially the second fold.
+- Image-native content the concept depends on.
+- Typography, density, color/material treatment, and motion cues.
+
+For each ingredient, decide how it will be implemented: semantic HTML/CSS/SVG, generated asset, sourced project asset, icon library, canvas/WebGL, or an explicitly accepted omission. Do not substitute a different hero composition or new visual driver after approval unless the user approves the change.
+
+Treat the mock as a north star, not a screenshot to trace. Do not rasterize core UI text or let the mock override the confirmed brief. But if the live result lacks the mock's major visible ingredients, the implementation is wrong.
+
+## Step 4: Asset Extraction (Need-Gated)
 
 If the chosen direction includes image-native visual ingredients that would materially improve the implementation, generate them as separate assets before building.
 
@@ -108,9 +123,11 @@ Good candidates:
 - decorative marks
 - non-semantic scene elements
 
+For travel, editorial, portfolio, venue, product showcase, entertainment, education, or any other image-led brand surface, visual assets are usually core content, not decoration. Do not ship abstract CSS panels where the approved mock or subject matter calls for real imagery, generated plates, illustrations, maps, product/object renders, or destination scenes.
+
 Do not export assets for core UI text, navigation, body copy, or any structure that should stay semantic and editable in code.
 
-Usually 1 to 5 extracted assets is enough. If the design can be built cleanly in HTML/CSS/SVG, prefer that over raster assets.
+Usually 1 to 5 extracted assets is enough. If the design can be built cleanly in HTML/CSS/SVG, prefer that over raster assets. If the mock contains major visual content that cannot be built credibly in code, asset extraction is not optional.
 
 ## Step 5: Build to Production Quality
 
@@ -119,6 +136,7 @@ Implement the feature following the design brief. Build in passes so structure, 
 ### Production Bar
 
 - Use real or realistic content. Remove placeholder copy, placeholder images, dead links, fake controls, and unused scaffold before presenting.
+- Preserve the approved mock's major ingredients. Missing hero objects, missing world/product imagery, different section structure, downgraded CTA/nav treatment, or generic replacements for distinctive motifs are blocking defects unless the user accepted the change.
 - Build semantically first: real headings, landmarks, labels, form associations, button/link semantics, accessible names, and state announcements where needed.
 - Calibrate spacing, alignment, grid placement, and vertical rhythm deliberately. Do not accept default gaps, arbitrary margins, unbalanced whitespace, or accidental optical misalignment.
 - Make typography intentional: chosen font loading strategy, clear hierarchy, readable measure, stable line breaks, tuned wrapping, and no overflow at mobile or large desktop sizes.
@@ -152,12 +170,13 @@ For each viewport, capture or inspect the rendered state and look for visual def
 After the first browser pass, write a short critique for yourself and patch the implementation. Repeat browser inspection after fixes. Continue until no material issues remain against this checklist:
 
 1. **Does it match the brief?** Compare the live result against every section of the design brief. Fix discrepancies.
-2. **Does it pass the AI slop test?** If someone saw this and said "AI made this," would they believe it immediately? If yes, it needs more design intention.
-3. **Check against impeccable's DON'T guidelines.** Fix any anti-pattern violations.
-4. **Check every state.** Navigate through empty, error, loading, and edge case states. Each one should feel intentional, not like an afterthought.
-5. **Check responsive behavior.** The design should adapt compositionally, not merely shrink.
-6. **Check craft details.** Spacing consistency, optical alignment, type hierarchy, color contrast, image quality, icon coherence, interactive feedback, motion timing, and focus treatment.
-7. **Check performance basics.** No obviously oversized images, avoidable layout thrash, blocking animations, or heavy assets without a reason.
+2. **Does it match the approved mock?** Compare screenshots against the mock fidelity inventory: hero silhouette, major motifs, imagery, nav/CTA, section sequence, density, color/materials, and second-fold substance. Missing major ingredients are P0 defects.
+3. **Does it pass the AI slop test?** If someone saw this and said "AI made this," would they believe it immediately? If yes, it needs more design intention.
+4. **Check against impeccable's DON'T guidelines.** Fix any anti-pattern violations.
+5. **Check every state.** Navigate through empty, error, loading, and edge case states. Each one should feel intentional, not like an afterthought.
+6. **Check responsive behavior.** The design should adapt compositionally, not merely shrink.
+7. **Check craft details.** Spacing consistency, optical alignment, type hierarchy, color contrast, image quality, icon coherence, interactive feedback, motion timing, and focus treatment.
+8. **Check performance basics.** No obviously oversized images, avoidable layout thrash, blocking animations, or heavy assets without a reason.
 
 The exit bar is not "it works." It is: the rendered result looks intentional at all checked viewports, all expected states are handled, no placeholders remain unless explicitly accepted, and the implementation quality would be defensible in a high-end studio review.
 
@@ -167,7 +186,7 @@ Present the result to the user:
 - Show the feature in its primary state
 - Summarize the browser/viewports checked and the most important fixes made after inspection
 - Walk through the key states (empty, error, responsive)
-- Explain design decisions that connect back to the design brief and, when used, the chosen north-star mock
+- Explain design decisions that connect back to the design brief and, when used, the chosen north-star mock. Include any accepted deviations from the mock; do not hide unimplemented mock ingredients.
 - Note any remaining limitations or follow-up risks honestly
 - Ask: "What's working? What isn't?"
 
