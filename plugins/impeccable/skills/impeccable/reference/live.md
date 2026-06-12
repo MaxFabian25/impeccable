@@ -154,17 +154,14 @@ If you are unsure, use default mode. The cost of being wrong about default is th
 
 Three variants means three different axes. The trio reads as the same brand at three angles. Do not introduce new fonts, new palette hues, or new aesthetic-family signals; those belong to departure mode.
 
-**Departure mode.** Each variant anchors to a different **aesthetic lane**, drawn from non-monoculture options. Lanes are illustrative, not exhaustive:
+**Departure mode.** Each variant anchors to a different **aesthetic direction**, derived from the brand's stated voice and register in PRODUCT.md. Do not pick from a fixed catalog of lane categories. The right three directions for this brand are not the same as the right three for another brand, and picking from a list is itself the training-data reflex.
 
-- Tech-minimal (Stripe / Linear / Vercel restraint)
-- Brutalist-utility (system fonts, raw HTML defaults, Craigslist energy)
-- Terminal-native (actual code surface, syntax-highlighted UI as the design)
-- Industrial-signage (dimensional type, arrow systems, ISO standards, wayfinding)
-- Technical-drawing (isometric line art, callout numbers, blueprint blue, exploded-view diagrams)
-- Drenched-saturated (Liquid Death / Mailchimp full-palette / single-hue commitment)
-- Swiss-grid-rigorous (visible grid as voice, tight type, accumulated systems)
+Instead, work from the brand:
 
-Avoid SKILL.md's **reflex-reject aesthetic lanes**. Do not trade one monoculture for another. Editorial-typographic is currently a reflex-reject lane; three variants that all read as "magazine cover" are the second-order training reflex.
+1. Read PRODUCT.md's Brand Personality words. What physical, spatial, or material experiences would embody those words if design were not involved? A personality described as "specific, earned, unmistakable" might evoke a hand-stamped letter, a numbered print, or a watchmaker's loupe. A personality described as "restless, loud, unfiltered" might evoke a concert poster, a spray-painted wall, or a megaphone.
+2. From those physical experiences, derive three visual directions that are genuinely different from each other and from the current surface you are departing.
+3. Avoid SKILL.md's **reflex-reject aesthetic lanes**. Do not trade one monoculture for another. If you find yourself reaching for "Swiss-grid", "Terminal", or "Industrial-signage" by reflex, you are pattern-matching a catalog in your training data, not reading the brand. Start over from the personality words.
+4. Each direction must be expressible in one concrete sentence that names a real-world referent, such as "a museum exhibition label system for a contemporary art gallery", not "clean and minimal". If the sentence contains only adjectives, it is not concrete enough.
 
 #### Phase D: Squint Test
 
@@ -172,7 +169,7 @@ Avoid SKILL.md's **reflex-reject aesthetic lanes**. Do not trade one monoculture
 
 **Departure mode squint.** Two passes, family before sentence:
 
-1. **Family pass.** Label each variant with one design-family word: editorial, brutalist, terminal, signage, drenched, swiss, technical-drawing, tech-minimal. If any two variants share a family label, rework. This pass is non-negotiable in departure mode.
+1. **Family pass.** Label each variant with one design-family word of your own choosing, such as exhibition, storefront, cockpit, recipe-card, playbill, or field-manual. If any two variants share a label, or if the label could apply to the other variants equally well, rework. Do not use a fixed vocabulary list for the labels. This pass is non-negotiable in departure mode.
 2. **Sentence pass.** Write three one-sentence descriptions side by side. If two of them rhyme ("both feature big type" / "both are stacks of sections" / "both center the CTA"), rework the offender.
 
 **When the primary axis is color or theme, forbid the trio from sharing theme plus dominant hue.** Two dark variants plus one more dark variant is not distinct. Aim for three color worlds, not three shades of the same.
@@ -197,7 +194,7 @@ Avoid SKILL.md's **reflex-reject aesthetic lanes**. Do not trade one monoculture
 
 In **default mode**, the prompt narrows the axes you choose, not the identity. "Make it feel more confident" can become: variant 1 amplifies hierarchy, variant 2 commits the existing accent color, and variant 3 tightens density and removes decorative slack. Three different axes, same brand.
 
-In **departure mode**, the prompt narrows the lanes you draw from, not the families. "Make it feel like a newspaper front page" is a departure prompt; honor it by choosing meaningfully different newspaper-adjacent lanes, such as broadsheet, tabloid, and trade journal, then run the family pass to confirm they do not collapse into one.
+In **departure mode**, the prompt narrows the directions you derive, not the families. "Make it feel like a newspaper front page" is a departure prompt; honor it by choosing meaningfully different newspaper-adjacent directions, such as broadsheet, tabloid, and trade journal, then run the family pass to confirm they do not collapse into one.
 
 When the prompt and PRODUCT.md anti-references conflict, the anti-references win. They describe the brand's standing position; the prompt is one moment.
 
