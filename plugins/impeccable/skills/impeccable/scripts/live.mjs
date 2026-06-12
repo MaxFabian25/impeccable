@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadContext } from './load-context.mjs';
+import { resolveFiles } from './live-inject.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PID_FILE = path.join(process.cwd(), '.impeccable-live.json');
@@ -82,12 +83,17 @@ The agent should then:
   // 4. Load PRODUCT.md + DESIGN.md context (auto-migrates legacy .impeccable.md)
   const ctx = loadContext(process.cwd());
 
-  // 5. Emit everything the agent needs
+  // 5. Check for HTML files that exist but are not covered by config.files.
+  const resolvedFiles = resolveFiles(process.cwd(), checkResult.config);
+  const configDrift = scanForDrift(process.cwd(), resolvedFiles, checkResult.config);
+
+  // 6. Emit everything the agent needs
   console.log(JSON.stringify({
     ok: true,
     serverPort: serverInfo.port,
     serverToken: serverInfo.token,
-    pageFiles: checkResult.config.files,
+    pageFiles: resolvedFiles,
+    configDrift,
     hasProduct: ctx.hasProduct,
     product: ctx.product,
     productPath: ctx.productPath,
@@ -96,6 +102,85 @@ The agent should then:
     designPath: ctx.designPath,
     migrated: ctx.migrated,
   }, null, 2));
+}
+
+function scanForDrift(rootDir, resolvedFiles, config) {
+  const scanRoots = ['public', 'src', 'app', 'pages'];
+  const ignoreDirs = new Set([
+    'node_modules', '.git', '.next', '.nuxt', '.svelte-kit', '.astro',
+    '.turbo', '.vercel', '.cache', 'coverage', 'dist', 'build',
+  ]);
+  const resolvedSet = new Set(resolvedFiles.map((file) => file.split(path.sep).join('/')));
+  const userExcludeRegexes = (Array.isArray(config.exclude) ? config.exclude : [])
+    .map((pattern) => globToRegex(pattern));
+  const isUserExcluded = (relPath) => userExcludeRegexes.some((re) => re.test(relPath));
+  const orphans = [];
+
+  const walk = (dir, relBase) => {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      const rel = relBase ? `${relBase}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        if (ignoreDirs.has(entry.name) || entry.name.startsWith('.')) continue;
+        walk(path.join(dir, entry.name), rel);
+      } else if (entry.isFile() && entry.name.endsWith('.html')) {
+        if (resolvedSet.has(rel) || isUserExcluded(rel)) continue;
+        orphans.push(rel);
+      }
+    }
+  };
+
+  for (const root of scanRoots) {
+    const abs = path.join(rootDir, root);
+    if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
+      walk(abs, root);
+    }
+  }
+
+  if (orphans.length === 0) return null;
+  return {
+    orphans: orphans.slice(0, 20),
+    orphanCount: orphans.length,
+    hint: `${orphans.length} HTML file(s) exist but aren't in config.files. Consider adding them, or use a glob pattern like "public/**/*.html".`,
+  };
+}
+
+function globToRegex(pattern) {
+  let re = '';
+  let i = 0;
+  while (i < pattern.length) {
+    const c = pattern[i];
+    if (c === '*') {
+      if (pattern[i + 1] === '*') {
+        if (pattern[i + 2] === '/') {
+          re += '(?:.*/)?';
+          i += 3;
+        } else {
+          re += '.*';
+          i += 2;
+        }
+      } else {
+        re += '[^/]*';
+        i += 1;
+      }
+    } else if (c === '?') {
+      re += '[^/]';
+      i += 1;
+    } else if (/[.+^${}()|[\]\\]/.test(c)) {
+      re += '\\' + c;
+      i += 1;
+    } else {
+      re += c;
+      i += 1;
+    }
+  }
+  return new RegExp('^' + re + '$');
 }
 
 // ---------------------------------------------------------------------------

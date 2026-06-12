@@ -1,6 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 
+const PER_PROJECT_ARTIFACTS = new Set([
+  'config.json',
+]);
+
 /**
  * Parse frontmatter from markdown content
  * Returns { frontmatter: object, body: string }
@@ -162,7 +166,7 @@ export function readSourceFiles(rootDir) {
           const scriptsDir = path.join(entryPath, 'scripts');
           if (fs.existsSync(scriptsDir)) {
             const scriptFiles = fs.readdirSync(scriptsDir)
-              .filter(f => fs.statSync(path.join(scriptsDir, f)).isFile())
+              .filter(f => fs.statSync(path.join(scriptsDir, f)).isFile() && !PER_PROJECT_ARTIFACTS.has(f))
               .sort((a, b) => a.localeCompare(b));
             for (const scriptFile of scriptFiles) {
               const scriptPath = path.join(scriptsDir, scriptFile);

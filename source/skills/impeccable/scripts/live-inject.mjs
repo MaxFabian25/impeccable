@@ -21,6 +21,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = process.env.IMPECCABLE_LIVE_CONFIG || path.join(__dirname, 'config.json');
 const MARKER_OPEN_TEXT = 'impeccable-live-start';
 const MARKER_CLOSE_TEXT = 'impeccable-live-end';
+const HARD_EXCLUDES = [
+  '**/node_modules/**',
+  '**/.git/**',
+];
 
 export async function injectCli() {
   const args = process.argv.slice(2);
@@ -70,9 +74,10 @@ Output (JSON):
   }
   const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
   validateConfig(config);
+  const resolvedFiles = resolveFiles(process.cwd(), config);
 
   if (args.includes('--remove')) {
-    const results = config.files.map((relFile) => {
+    const results = resolvedFiles.map((relFile) => {
       const absFile = path.resolve(process.cwd(), relFile);
       if (!fs.existsSync(absFile)) return { file: relFile, error: 'file_not_found' };
       const content = fs.readFileSync(absFile, 'utf-8');
@@ -93,7 +98,7 @@ Output (JSON):
     process.exit(1);
   }
 
-  const results = config.files.map((relFile) => {
+  const results = resolvedFiles.map((relFile) => {
     const absFile = path.resolve(process.cwd(), relFile);
     if (!fs.existsSync(absFile)) return { file: relFile, error: 'file_not_found' };
     const content = fs.readFileSync(absFile, 'utf-8');
@@ -108,6 +113,89 @@ Output (JSON):
   if (!anyInserted) process.exit(1);
 }
 
+/**
+ * Expand config.files literal paths and globs into existing file paths relative
+ * to rootDir. Literal entries pass through so callers can report file_not_found.
+ * Glob entries honor hard excludes plus config.exclude. Duplicate matches keep
+ * their first appearance.
+ */
+export function resolveFiles(rootDir, config) {
+  const patterns = config.files;
+  const userExcludes = Array.isArray(config.exclude) ? config.exclude : [];
+  const excludeRegexes = [...HARD_EXCLUDES, ...userExcludes].map(globToRegex);
+  const isExcluded = (relPath) => excludeRegexes.some((re) => re.test(relPath));
+  const isGlob = (value) => /[*?[]/.test(value);
+
+  const seen = new Set();
+  const resolved = [];
+
+  for (const pattern of patterns) {
+    if (!isGlob(pattern)) {
+      if (!seen.has(pattern)) {
+        seen.add(pattern);
+        resolved.push(pattern);
+      }
+      continue;
+    }
+
+    let matches;
+    try {
+      matches = fs.globSync(pattern, { cwd: rootDir });
+    } catch {
+      continue;
+    }
+
+    for (const match of matches) {
+      const rel = String(match).split(path.sep).join('/');
+      const abs = path.join(rootDir, rel);
+      let stat;
+      try {
+        stat = fs.statSync(abs);
+      } catch {
+        continue;
+      }
+      if (!stat.isFile()) continue;
+      if (isExcluded(rel) || seen.has(rel)) continue;
+      seen.add(rel);
+      resolved.push(rel);
+    }
+  }
+
+  return resolved;
+}
+
+function globToRegex(pattern) {
+  let re = '';
+  let i = 0;
+  while (i < pattern.length) {
+    const c = pattern[i];
+    if (c === '*') {
+      if (pattern[i + 1] === '*') {
+        if (pattern[i + 2] === '/') {
+          re += '(?:.*/)?';
+          i += 3;
+        } else {
+          re += '.*';
+          i += 2;
+        }
+      } else {
+        re += '[^/]*';
+        i += 1;
+      }
+    } else if (c === '?') {
+      re += '[^/]';
+      i += 1;
+    } else if (/[.+^${}()|[\]\\]/.test(c)) {
+      re += '\\' + c;
+      i += 1;
+    } else {
+      re += c;
+      i += 1;
+    }
+  }
+  return new RegExp('^' + re + '$');
+}
+
 // ---------------------------------------------------------------------------
 // Core operations
 // ---------------------------------------------------------------------------
@@ -119,6 +207,14 @@ function validateConfig(cfg) {
   }
   if (!cfg.files.every((f) => typeof f === 'string' && f.length > 0)) {
     throw new Error('config.files must contain only non-empty strings');
+  }
+  if (cfg.exclude !== undefined) {
+    if (!Array.isArray(cfg.exclude)) {
+      throw new Error('config.exclude, if present, must be a string array');
+    }
+    if (!cfg.exclude.every((f) => typeof f === 'string' && f.length > 0)) {
+      throw new Error('config.exclude must contain only non-empty strings');
+    }
   }
   if (typeof cfg.insertBefore !== 'string' && typeof cfg.insertAfter !== 'string') {
     throw new Error('config.insertBefore or config.insertAfter (string) required');

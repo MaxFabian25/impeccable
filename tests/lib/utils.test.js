@@ -517,6 +517,22 @@ Impeccable design instructions.`;
     expect(skills[0].references[0].name).toBe('typography');
   });
 
+  test('should skip per-project script artifacts', () => {
+    const skillDir = path.join(testRootDir, 'source/skills/impeccable');
+    ensureDir(skillDir);
+    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), '---\nname: impeccable\n---\nBody');
+
+    const scriptsDir = path.join(skillDir, 'scripts');
+    ensureDir(scriptsDir);
+    fs.writeFileSync(path.join(scriptsDir, 'live.mjs'), 'console.log("live");');
+    fs.writeFileSync(path.join(scriptsDir, 'config.json'), '{"files":["public/index.html"]}');
+
+    const { skills } = readSourceFiles(testRootDir);
+
+    expect(skills).toHaveLength(1);
+    expect(skills[0].scripts.map((script) => script.name)).toEqual(['live.mjs']);
+  });
+
   test('should handle missing skills directory', () => {
     const { skills } = readSourceFiles(testRootDir);
     expect(skills).toEqual([]);

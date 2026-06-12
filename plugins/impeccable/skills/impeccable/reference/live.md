@@ -298,16 +298,23 @@ Schema:
 
 ```json
 {
-  "files": ["<path>", "<path>", ...],
+  "files": ["<path-or-glob>", "<path-or-glob>", ...],
+  "exclude": ["<optional-glob>", ...],
   "insertBefore": "</body>",
   "commentSyntax": "html",
   "cspChecked": true
 }
 ```
 
+`files` is the inject target: **the HTML files the browser actually loads**, not necessarily source. Each entry is either a literal path (`"public/index.html"`) or a glob pattern (`"public/**/*.html"`). Tracked or generated does not matter here; wrap has its own generated-file guard and routes accepts through the fallback flow.
+
+`exclude` is optional. Use it for files a `files` glob would otherwise include but Live should skip: email templates, demo fixtures, generated examples, or any HTML that is not a live page.
+
 `cspChecked` tracks whether the CSP detection step below has already run. Absent on first setup; set to `true` after CSP is checked (whether patched, declined, or not needed).
 
-`files` is the inject target — **the HTML files the browser actually loads**, not necessarily source. Tracked or generated doesn't matter here; wrap has its own generated-file guard and routes accepts through the fallback flow.
+Hard-excluded paths cannot be overridden. `**/node_modules/**` and `**/.git/**` never match, even if the user includes them. Those are vendor/metadata directories and should never receive the tracking script.
+
+Glob syntax: `**` matches any number of path segments including zero, `*` matches any characters except `/`, and `?` matches one character except `/`. Paths are always relative to the project root with forward slashes.
 
 | Framework | `files` | `insertBefore` | `commentSyntax` |
 |-----------|---------|----------------|-----------------|
@@ -317,11 +324,40 @@ Schema:
 | Nuxt | `["app.vue"]` | `</body>` | `html` |
 | Svelte / SvelteKit | `["src/app.html"]` | `</body>` | `html` |
 | Astro | `[" <root layout .astro>"]` | `</body>` | `html` |
-| Multi-page (separate HTML per route) | Every HTML file the dev server serves — glob the output dir, e.g. `public/**/*.html` | `</body>` | `html` |
+| Multi-page (separate HTML per route) | `["public/**/*.html"]`, a glob covering the served directory | `</body>` | `html` |
 
 Pick an anchor that exists in every file (`</body>` almost always works). Use `insertAfter` if the anchor should match **after** a specific line.
 
+For multi-page sites, prefer a glob over a literal file list. New pages added later are picked up automatically on the next `live-inject.mjs` run.
+
 For multi-page sites whose pages are *rebuilt* by a generator (Astro, static-site generators, custom scripts like `build-sub-pages.js`), the inject survives only until the next regeneration. Re-run `live.mjs` after each build. Accept is unaffected — it writes to true source via the fallback flow.
+
+### Config drift warning
+
+On every `live.mjs` boot, after inject, the project is scanned for HTML files under common page-source roots (`public/`, `src/`, `app/`, `pages/`). If any exist that are not covered by the resolved `files` list, the output includes `configDrift`:
+
+```json
+{
+  "ok": true,
+  "pageFiles": ["public/index.html"],
+  "configDrift": {
+    "orphans": ["public/docs/new-command.html"],
+    "orphanCount": 1,
+    "hint": "1 HTML file(s) exist but aren't in config.files. Consider adding them, or use a glob pattern like \"public/**/*.html\"."
+  }
+}
+```
+
+When `configDrift` is present, surface it to the user once before entering the poll loop:
+
+> Noticed N HTML file(s) in the project that are not in `config.files`:
+>
+> - `public/new-section/index.html`
+> - `public/docs/new-command.html`
+>
+> Add them, or switch `files` to a glob like `["public/**/*.html"]` and let it track new pages automatically?
+
+Do not auto-update config. Let the user decide. `configDrift` is `null` when there is no drift.
 
 ### CSP detection (first-time only)
 
