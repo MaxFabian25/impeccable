@@ -238,20 +238,28 @@ chrome.runtime.onConnect.addListener((port) => {
   }
 });
 
-// Re-scan on navigation (only if DevTools is open AND user was actively scanning)
+// On navigation, reset content-script state for any tracked tab. A page reload
+// destroys the content script regardless of whether popup or DevTools started it.
+// Auto-rescan remains gated to DevTools below.
 chrome.webNavigation?.onCompleted?.addListener((details) => {
   if (details.frameId !== 0) return;
-  if (!devtoolsTabs.has(details.tabId)) return;
   const state = tabState.get(details.tabId);
   if (!state) return;
-  // Only re-scan if the user has actively engaged (had findings or injected previously)
+
+  // Capture engagement before clearing so the DevTools auto-rescan branch can
+  // still distinguish active tabs from untouched tabs.
   const wasActive = state.injected || state.findings.length > 0;
+
+  // Always clear: popup-only scans also inject the content script, and reloads
+  // remove it. Leaving csInjected=true makes the next popup scan send a message
+  // to a tab with no listener, which leaves the popup stuck on "Scanning...".
   state.findings = [];
   state.injected = false;
-  state.csInjected = false; // page reload destroys the content script
+  state.csInjected = false;
   updateBadge(details.tabId);
   notifyPanels(details.tabId, { action: 'navigated' });
-  if (wasActive) {
+
+  if (devtoolsTabs.has(details.tabId) && wasActive) {
     setTimeout(() => sendScanToTab(details.tabId), 300);
   }
 });
