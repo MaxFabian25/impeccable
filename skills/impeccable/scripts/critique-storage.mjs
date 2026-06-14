@@ -27,7 +27,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { getCritiqueDir } from './impeccable-paths.mjs';
 
 const SLUG_MAX = 50;
@@ -222,8 +222,19 @@ function main(argv) {
   }
 }
 
-// Windows passes process.argv[1] with backslashes while import.meta.url uses a
-// normalized file URL. Convert argv path before comparing so CLI mode runs.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+function isMainModule() {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync(fileURLToPath(import.meta.url)) === fs.realpathSync(process.argv[1]);
+  } catch {
+    // Windows passes process.argv[1] with backslashes while import.meta.url uses
+    // a normalized file URL. Convert argv path before comparing as a fallback.
+    return import.meta.url === pathToFileURL(process.argv[1]).href;
+  }
+}
+
+// Generated skills can be reached through symlinked harness paths. Node resolves
+// import.meta.url to the real file while process.argv[1] keeps the symlink path.
+if (isMainModule()) {
   main(process.argv.slice(2));
 }

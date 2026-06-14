@@ -14,6 +14,16 @@ allowed-tools:
 
 Invoke {{command_prefix}}impeccable, which contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding. If no design context exists yet, you MUST run {{command_prefix}}impeccable teach first. Additionally gather: what the interface is trying to accomplish.
 
+### Hard Invariants
+
+- Assessment A (LLM design review) and Assessment B (detector/browser evidence) are both required.
+- Assessment A must finish before detector findings enter the parent synthesis context. Detector output is deterministic, but it can still anchor judgment.
+- If sub-agents are unavailable, fall back sequentially: finish and record Assessment A first, then run Assessment B, then synthesize.
+- A skipped detector is a failed critique run unless `npx impeccable detect` is missing or crashes after a real attempt.
+- Viewable targets require browser inspection when browser automation is available.
+- Any local server started only for critique visualization must run in the background, have a recorded stop method, and be stopped before final reporting unless the user asks to keep it.
+- Do not claim a user-visible overlay exists unless script injection succeeded and the detector ran in the page.
+
 ### Step 2: Resolve Target and Load Ignore List
 
 Before gathering assessments, do the bookkeeping that makes critique iterative across runs:
@@ -34,7 +44,14 @@ Launch two independent assessments. **Neither may see the other's output**. This
 
 Delegate each assessment to a separate sub-agent when the environment supports it. Use your environment's subagent spawning mechanism. Sub-agents should return their findings as structured text. Do NOT output findings to the user yet.
 
-Fall back to sequential in-head work only if the environment genuinely cannot spawn sub-agents.
+Codex sub-agent gate:
+- If a sub-agent spawn tool is exposed and the user explicitly allowed sub-agents, delegation, or parallel agent work, spawn A and B immediately.
+- If a sub-agent spawn tool is exposed but the user did not explicitly allow sub-agents, ask exactly once: "Impeccable critique is designed to run two independent sub-agents for an unanchored assessment. May I use sub-agents for this critique?" Then stop until the user answers.
+- If allowed, spawn A and B. If declined, run sequentially and report `Assessment independence: degraded (sub-agents declined by user)`.
+- If no sub-agent spawn tool is exposed, do not ask; run sequentially and report `Assessment independence: degraded (spawn unavailable in this session)`.
+- If spawning fails after permission, run sequentially and report `Assessment independence: degraded (sub-agent spawn failed: <exact error>)`.
+
+Fall back to sequential in-head work only when the environment genuinely cannot spawn sub-agents or the user declines.
 
 **Tab isolation**: When browser automation is available, each assessment MUST create its own new tab. Never reuse an existing tab, even if one is already open at the correct URL. This prevents the two assessments from interfering with each other's page state.
 
@@ -67,7 +84,7 @@ Return structured findings covering: AI slop verdict, heuristic scores, cognitiv
 
 #### Assessment B: Automated Detection
 
-Run the bundled deterministic detector, which flags 25 specific patterns (AI slop tells + general design quality).
+Run the deterministic detector, which flags specific AI slop tells and general design quality issues.
 
 **CLI scan**:
 ```bash
@@ -79,30 +96,33 @@ npx impeccable detect --json [--fast] [target]
 - For large directories (200+ scannable files), use `--fast` (regex-only, skips jsdom)
 - For 500+ files, narrow scope or ask the user
 - Exit code 0 = clean, 2 = findings
+- If the detector entrypoint is missing or fails to load, report deterministic scan unavailable and continue with browser/manual review.
 
 **Browser visualization**: Required when browser automation tools are available AND the target is a viewable page. The **[Human]** overlay tab is the user-facing deliverable; the critique is incomplete without it. Skip only if the target is not a viewable page (CSS-only file, non-browser target).
 
 The overlay is a **visual aid for the user**. It highlights issues directly in their browser. Do NOT scroll through the page to screenshot overlays. Instead, read the console output to get the results programmatically.
 
-1. **Start the live detection server**:
+1. **Create a new tab** and navigate to the page (use dev server URL for local files, or direct URL). Do not reuse existing tabs.
+2. **Preflight mutable injection** by setting `document.title` and appending a harmless `<script>` tag. Read-only evaluate APIs do not count.
+3. If mutation is unavailable, skip live server, browser presentation, and injection; report the fallback signal instead.
+4. **Start the live detection server**:
    ```bash
    npx impeccable live &
    ```
    Note the port printed to stdout (auto-assigned). Use `--port=PORT` to fix it.
-2. **Create a new tab** and navigate to the page (use dev server URL for local files, or direct URL). Do not reuse existing tabs.
-3. **Label the tab** via `javascript_tool` so the user can distinguish it:
+5. **Label the tab** via `javascript_tool` so the user can distinguish it:
    ```javascript
    document.title = '[Human] ' + document.title;
    ```
-4. **Scroll to top** to ensure the page is scrolled to the very top before injection
-5. **Inject** via `javascript_tool` (replace PORT with the port from step 1):
+6. **Scroll to top** to ensure the page is scrolled to the very top before injection
+7. **Inject** via `javascript_tool` (replace PORT with the port from step 1):
    ```javascript
    const s = document.createElement('script'); s.src = 'http://localhost:PORT/detect.js'; document.head.appendChild(s);
    ```
-6. Wait 2-3 seconds for the detector to render overlays
-7. **Read results from console** using `read_console_messages` with pattern `impeccable`. The detector logs all findings with the `[impeccable]` prefix. Do NOT scroll through the page to take screenshots of the overlays.
-8. **If the user captures annotations** from an overlay, consume the next event from the poll command printed by `npx impeccable live`. The event includes `{screenshotPath, comments, strokes, element}`. Read `screenshotPath` first when present; comment `{x, y}` positions are element-local CSS pixels and should be applied to the sub-element at that point.
-9. **Cleanup**: Stop the live server when done:
+8. Wait 2-3 seconds for the detector to render overlays
+9. **Read results from console** using `read_console_messages` with pattern `impeccable`. The detector logs all findings with the `[impeccable]` prefix. Do NOT scroll through the page to take screenshots of the overlays.
+10. **If the user captures annotations** from an overlay, consume the next event from the poll command printed by `npx impeccable live`. The event includes `{screenshotPath, comments, strokes, element}`. Read `screenshotPath` first when present; comment `{x, y}` positions are element-local CSS pixels and should be applied to the sub-element at that point.
+11. **Cleanup**: Stop the live server when done:
    ```bash
    npx impeccable live stop
    ```
@@ -111,9 +131,15 @@ For multi-view targets, inject on 3-5 representative pages. If injection fails, 
 
 Return: CLI findings (JSON), browser console findings (if applicable), and any false positives noted.
 
+After Assessment B returns usable CLI findings, reuse them. Do not rerun `npx impeccable detect` in the parent unless Assessment B failed, was truncated, or omitted count, rule names, or file locations.
+
+Final Run Notes must include target slug, ignore list, assessment independence, CLI detector, browser visibility, overlay injection, live-server cleanup, temp-file cleanup, and any fallback signal used. Do not run repo status checks, late API spelunking, or unrelated verification after the report is assembled.
+
 ### Step 4: Generate Combined Critique Report
 
 Synthesize both assessments into a single report. Do NOT simply concatenate. Weave the findings together, noting where the LLM review and detector agree, where the detector caught issues the LLM missed, and where detector findings are false positives.
+
+The chat response is the primary user-facing deliverable. Present the full structured critique below in chat; do not replace it with a summary and a link. The persisted snapshot is only an archive/backlog for later commands.
 
 Structure your feedback as a design director would:
 
@@ -146,7 +172,7 @@ Be honest with scores. A 4 means genuinely excellent. Most real interfaces score
 
 **Deterministic scan**: Summarize what the automated detector found, with counts and file locations. Note any additional issues the detector caught that you missed, and flag any false positives.
 
-**Visual overlays** (if browser was used): Tell the user that overlays are now visible in the **[Human]** tab in their browser, highlighting the detected issues. Summarize what the console output reported.
+**Visual overlays** (if injection succeeded): Tell the user that overlays are now visible in the **[Human]** tab in their browser, highlighting the detected issues. Summarize what the console output reported. If browser visualization was attempted but injection failed, say that no reliable user-visible overlay is available and report the fallback signal instead.
 
 #### Overall Impression
 A brief gut reaction: what works, what doesn't, and the single biggest opportunity.
@@ -185,6 +211,12 @@ Provocative questions that might unlock better solutions:
 - "Does this need to feel this complex?"
 - "What would a confident version of this look like?"
 
+#### Run Notes
+
+Keep this compact. Include status for target slug, ignore list, assessment independence, CLI detector, browser visibility, overlay injection, live server cleanup, temp-file cleanup, snapshot write, trend read, and any fallback signal used. For failed or skipped steps, give the concrete observed reason.
+
+Run Notes are final-chat only. Do not include this section in the persisted snapshot body, because persistence, trend read, and temp cleanup happen after the snapshot write and would otherwise archive stale status.
+
 **Remember**:
 - Be direct. Vague feedback wastes everyone's time.
 - Be specific. "The submit button," not "some elements."
@@ -199,7 +231,7 @@ Once the report above is finalized, write it to `.impeccable/critique/` so the u
 
 Skip this step if the target slug was null.
 
-1. **Write the report body to a temp file**. Use the full report through Persona Red Flags, but stop before the Ask the User and Recommended Actions sections.
+1. **Write the report body to a temp file**. Use the full report through Persona Red Flags, Minor Observations, and Questions to Consider, but stop before Run Notes, Ask the User, and Recommended Actions.
 
 2. **Pass structured metadata through `IMPECCABLE_CRITIQUE_META`**, then run:
    ```bash
@@ -208,12 +240,14 @@ Skip this step if the target slug was null.
    ```
    The helper prints the absolute path it wrote.
 
-3. **Read the trend**:
+3. **Delete the temp body file** after the write attempt completes, whether the write succeeded or failed. If deletion fails, mention `temp-file cleanup failed: <reason>` briefly in the final output, but do not block the critique.
+
+4. **Read the trend**:
    ```bash
    node {{impeccable_scripts_path}}/critique-storage.mjs trend <slug> 5
    ```
 
-4. **Append a single line to the user-visible output**, after the report and before questions:
+5. **Append a single line to the user-visible output**, after the report and before questions:
 
    > **Trend for `<slug>` (last 5 runs): 24 -> 28 -> 32 -> 29 -> 32**
    > Wrote `.impeccable/critique/<filename>`.
@@ -241,6 +275,7 @@ Ask questions along these lines (adapt to the specific findings; do NOT ask gene
 - Keep it to 2-4 questions maximum. Respect the user's time.
 - Offer concrete options, not open-ended prompts.
 - If findings are straightforward (e.g., only 1-2 clear issues), skip questions and go directly to Recommended Actions.
+- The user-visible response must either include targeted questions or explicitly say `Questions skipped: <reason>` because the findings were straightforward. Each question must include 2-3 concrete answer options tied to the actual critique findings.
 
 ### Step 7: Recommended Actions
 

@@ -65,6 +65,10 @@ describe('codex-only build contract', () => {
     expect(generatedCritique).toContain('.impeccable/critique/ignore.md');
     expect(generatedCritique).toContain('.impeccable/critique/<filename>');
     expect(generatedCritique).not.toContain('.impeccable$critique');
+    expect(generatedCritique).toContain('Assessment independence: degraded');
+    expect(generatedCritique).toContain('overlay injection');
+    expect(generatedCritique).toContain('Run Notes are final-chat only');
+    expect(generatedCritique).toContain('Questions skipped: <reason>');
   });
 
   test('craft flow keeps native-image gates before implementation', () => {

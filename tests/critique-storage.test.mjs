@@ -5,7 +5,7 @@
 
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -171,6 +171,19 @@ describe('CLI entry point', () => {
 
     assert.equal(result.status, 1);
     assert.match(result.stderr, /no stable slug/);
+  });
+
+  it('runs when invoked through a symlinked harness path', () => {
+    const linkedScript = join(cwd, 'linked-critique-storage.mjs');
+    symlinkSync(SCRIPT, linkedScript);
+
+    const result = spawnSync(process.execPath, [linkedScript, 'slug', 'index.html'], {
+      cwd,
+      encoding: 'utf-8',
+    });
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout.trim(), 'index-html');
   });
 
   it('latest subcommand exits 2 when no snapshot exists', () => {
