@@ -84,4 +84,32 @@ describe('live-browser.js regression guards', () => {
       'shader resume after reload must pass the paper tone into the restarted overlay',
     );
   });
+
+  it('detect mode shows an empty result toast once per requested scan', () => {
+    assert.match(
+      SOURCE,
+      /const DETECT_EMPTY_MESSAGE = 'No detector issues found\.';/,
+      'live detector zero-result copy should live in one named constant',
+    );
+    assert.match(
+      SOURCE,
+      /function requestDetectScan\(\)[\s\S]{0,240}?const scanId = String\(\+\+detectScanSeq\);[\s\S]{0,120}?activeDetectScanId = scanId;[\s\S]{0,160}?config: \{ scanId \}/,
+      'Detect scans must send a fresh scan id to the detector',
+    );
+    assert.match(
+      SOURCE,
+      /if \(!detectActive\) return;[\s\S]{0,80}?if \(activeDetectScanId && e\.data\.scanId !== activeDetectScanId\) return;/,
+      'live detector results must ignore inactive and stale scan ids',
+    );
+    assert.match(
+      SOURCE,
+      /if \(pendingDetectScanId && detectCount === 0\) \{[\s\S]{0,80}?showToast\(DETECT_EMPTY_MESSAGE, 3200\);[\s\S]{0,120}?pendingDetectScanId = null;/,
+      'a matching zero-result scan must use the existing toast UI and clear the pending scan id',
+    );
+    assert.match(
+      SOURCE,
+      /window\.postMessage\(\{ source: 'impeccable-command', action: 'remove' \}, '\*'\);[\s\S]{0,80}?activeDetectScanId = null;[\s\S]{0,80}?pendingDetectScanId = null;/,
+      'turning Detect off must clear scan ids',
+    );
+  });
 });

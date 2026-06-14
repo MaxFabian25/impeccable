@@ -13,11 +13,20 @@ import {
 
 const FIXTURES = path.join(import.meta.dir, 'fixtures', 'antipatterns');
 const SCRIPT = path.join(import.meta.dir, '..', 'cli', 'engine', 'detect-antipatterns.mjs');
+const DETECTOR_SOURCE = fs.readFileSync(SCRIPT, 'utf8');
 
 
 // ---------------------------------------------------------------------------
 // Core: checkElementBorders (computed style simulation)
 // ---------------------------------------------------------------------------
+
+describe('browser detector source contracts', () => {
+  test('extension-mode result messages echo the requested scan id', () => {
+    expect(DETECTOR_SOURCE).toContain('function scanResultMeta(options = {})');
+    expect(DETECTOR_SOURCE).toContain('...scanResultMeta(options)');
+    expect(DETECTOR_SOURCE).toContain("scan(e.data.config || {})");
+  });
+});
 
 describe('checkElementBorders', () => {
   function mockStyle(overrides) {

@@ -2791,6 +2791,10 @@ void main() {
 
   let globalBarEl = null;
   let detectActive = false;
+  let detectScanSeq = 0;
+  let activeDetectScanId = null;
+  let pendingDetectScanId = null;
+  const DETECT_EMPTY_MESSAGE = 'No detector issues found.';
   let pickActive = true;
   let detectCount = 0;
   let detectScriptLoaded = false;
@@ -3099,6 +3103,17 @@ void main() {
   let detectReady = false; // true once detect script posts 'impeccable-ready'
   let detectPendingScan = false; // scan requested before script was ready
 
+  function requestDetectScan() {
+    const scanId = String(++detectScanSeq);
+    activeDetectScanId = scanId;
+    pendingDetectScanId = scanId;
+    window.postMessage({
+      source: 'impeccable-command',
+      action: 'scan',
+      config: { scanId },
+    }, '*');
+  }
+
   function toggleDetect() {
     detectActive = !detectActive;
     updateGlobalBarState();
@@ -3108,12 +3123,14 @@ void main() {
         detectPendingScan = true;
         loadDetectScript();
       } else if (detectReady) {
-        window.postMessage({ source: 'impeccable-command', action: 'scan' }, '*');
+        requestDetectScan();
       } else {
         detectPendingScan = true;
       }
     } else {
       window.postMessage({ source: 'impeccable-command', action: 'remove' }, '*');
+      activeDetectScanId = null;
+      pendingDetectScanId = null;
       detectCount = 0;
       updateGlobalBarState();
     }
@@ -3153,12 +3170,18 @@ void main() {
       detectReady = true;
       if (detectPendingScan && detectActive) {
         detectPendingScan = false;
-        window.postMessage({ source: 'impeccable-command', action: 'scan' }, '*');
+        requestDetectScan();
       }
     }
     // Scan results arrived
     if (e.data.source === 'impeccable-results') {
+      if (!detectActive) return;
+      if (activeDetectScanId && e.data.scanId !== activeDetectScanId) return;
       detectCount = e.data.count || 0;
+      if (pendingDetectScanId && detectCount === 0) {
+        showToast(DETECT_EMPTY_MESSAGE, 3200);
+      }
+      pendingDetectScanId = null;
       updateGlobalBarState();
     }
   }

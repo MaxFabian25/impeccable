@@ -3923,7 +3923,13 @@ if (IS_BROWSER) {
   };
 
   let firstScanDone = false;
-  const scan = function() {
+  function scanResultMeta(options = {}) {
+    const scanId = options.scanId;
+    if (typeof scanId !== 'string' && typeof scanId !== 'number') return {};
+    return { scanId: String(scanId) };
+  }
+
+  const scan = function(options = {}) {
     if (annotState.overlay?.dataset.open === 'true') closeAnnotation();
     for (const o of overlays) o.remove();
     overlays.length = 0;
@@ -4022,6 +4028,7 @@ if (IS_BROWSER) {
         source: 'impeccable-results',
         findings: serializeFindings(allFindings),
         count: allFindings.length,
+        ...scanResultMeta(options),
       }, '*');
     }
 
@@ -4037,7 +4044,7 @@ if (IS_BROWSER) {
       if (e.source !== window || !e.data || e.data.source !== 'impeccable-command') return;
       if (e.data.action === 'scan') {
         if (e.data.config) window.__IMPECCABLE_CONFIG__ = e.data.config;
-        scan();
+        scan(e.data.config || {});
       }
       if (e.data.action === 'toggle-overlays') {
         const visible = !document.body.classList.contains('impeccable-hidden');
