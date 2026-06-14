@@ -535,7 +535,7 @@
                   </div>
                 </div>
               </div>
-              <p class="why-panel-meta"><code>--json</code> / <code>--fast</code> / exit codes for automation.</p>
+              <p class="why-panel-meta"><code>--json</code> output and exit codes for automation.</p>
             </article>
 
             <article class="why-panel" id="why-panel-7" role="tabpanel" data-index="7" aria-labelledby="why-tab-7" hidden>
@@ -949,7 +949,7 @@
             <li><strong>Renamed <code>frontend-design</code> to <code>impeccable</code>.</strong> The core skill now shares its name with the project, and the teach subcommand moved from <code>$teach-impeccable</code> to <code>$impeccable teach</code>. One skill, one namespace.</li>
             <li><strong>Skill rewrite against eval runs.</strong> The core skill was rebuilt against an internal eval framework: same brief, with and without the skill loaded, then reviewed for font variety, color variety, and overall design quality. The new anti-attractor procedure makes the model list its first guesses, reject the generic ones, and then choose. Validated on gpt-5.4 and Qwen 3.6 Plus across 15 niches.</li>
             <li><strong>Anti-pattern detection engine.</strong> 29 deterministic rules across typography, color, layout, motion, and quality. Handles oklch, oklab, lch, and lab color formats, CSS variables inside border shorthands, gradient-backed text, and emoji-only nodes.</li>
-            <li><strong>CLI: <code>npx impeccable detect</code>.</strong> Scans HTML, CSS, JSX/TSX, Vue, Svelte, and CSS-in-JS. Framework detection, multi-file import tracking, agent-browser-backed live URL scanning, CI-ready JSON output, and a <code>--fast</code> regex mode for huge codebases.</li>
+            <li><strong>CLI: <code>npx impeccable detect</code>.</strong> Scans HTML, CSS, JSX/TSX, Vue, Svelte, and CSS-in-JS. Framework detection, multi-file import tracking, agent-browser-backed live URL scanning, CI-ready JSON output, and deterministic exit codes for automation.</li>
             <li><strong>Chrome DevTools extension.</strong> One-click detection on any page: yours, staging, production, or someone else's. Reads live computed styles, surfaces findings in an interactive panel, and highlights elements on the page. In Chrome Web Store review.</li>
             <li><strong><code>$critique</code> got teeth.</strong> Persona sub-agents review in parallel, score against Nielsen's heuristics, run the detector automatically, and open a live browser overlay so you can walk each finding in place.</li>
             <li><strong>New ways to create with Impeccable.</strong> <code>$shape</code> runs a structured discovery interview about purpose, audience, and goals, then produces a design brief before any code is written. <code>$impeccable craft</code> chains that brief straight into the full implementation flow so you ship a designed feature instead of a reflex card grid.</li>

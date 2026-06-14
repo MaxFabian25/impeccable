@@ -88,13 +88,12 @@ Run the deterministic detector, which flags specific AI slop tells and general d
 
 **CLI scan**:
 ```bash
-npx impeccable detect --json [--fast] [target]
+npx impeccable detect --json [target]
 ```
 
 - Pass HTML/JSX/TSX/Vue/Svelte files or directories as `[target]` (anything with markup). Do not pass CSS-only files.
 - For URLs, use the CLI scan when you want deterministic findings from the live page. It runs through agent-browser and needs a working local browser install.
-- For large directories (200+ scannable files), use `--fast` (regex-only, skips jsdom)
-- For 500+ files, narrow scope or ask the user
+- For large trees (500+ scannable files), narrow scope or ask the user
 - Exit code 0 = clean, 2 = findings
 - If the detector entrypoint is missing or fails to load, report deterministic scan unavailable and continue with browser/manual review.
 

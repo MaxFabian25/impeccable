@@ -771,9 +771,10 @@ describe('CLI', () => {
     expect(JSON.parse(stdout.trim())).toEqual([]);
   });
 
-  test('--fast mode works', () => {
-    const { code } = run('--fast', path.join(FIXTURES, 'should-flag.html'));
+  test('--fast is accepted but deprecated and ignored', () => {
+    const { code, stderr } = run('--fast', path.join(FIXTURES, 'should-flag.html'));
     expect(code).toBe(2);
+    expect(stderr).toContain('--fast is deprecated');
   });
 
   test('linked stylesheet detected (jsdom default)', () => {

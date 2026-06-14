@@ -10,7 +10,7 @@
  * Node usage:
  *   node detect-antipatterns.mjs [file-or-dir...]   # jsdom for HTML, regex for rest
  *   node detect-antipatterns.mjs https://...         # agent-browser (auto)
- *   node detect-antipatterns.mjs --fast [files...]   # regex-only (skip jsdom)
+ *   node detect-antipatterns.mjs --json [files...]   # JSON output for CI
  *   node detect-antipatterns.mjs --json              # JSON output
  *
  * Browser usage:
@@ -5416,7 +5416,6 @@ function printUsage() {
 Scan files or URLs for UI anti-patterns and design quality issues.
 
 Options:
-  --fast    Regex-only mode (skip jsdom, faster but misses linked stylesheets)
   --json    Output results as JSON
   --help    Show this help message
 
@@ -5424,20 +5423,23 @@ Detection modes:
   HTML files     jsdom with computed styles (default, catches linked CSS)
   Non-HTML files Regex pattern matching (CSS, JSX, TSX, etc.)
   URLs           agent-browser full browser rendering (auto-detected)
-  --fast         Forces regex for all files
 
 Examples:
   impeccable detect src/
   impeccable detect index.html
   impeccable detect https://example.com
-  impeccable detect --fast --json .`);
+  impeccable detect --json .`);
 }
 
 async function main() {
   const args = process.argv.slice(2);
   const jsonMode = args.includes('--json');
   const helpMode = args.includes('--help');
-  const fastMode = args.includes('--fast');
+  if (args.includes('--fast')) {
+    process.stderr.write(
+      'Note: --fast is deprecated and ignored. The full scan runs every rule.\n',
+    );
+  }
   const targets = args.filter(a => !a.startsWith('--'));
 
   if (helpMode) { printUsage(); process.exit(0); }
@@ -5496,7 +5498,7 @@ async function main() {
           process.stderr.write(
             `\nFound ${files.length} files (${htmlCount} HTML) in ${target}.\n` +
             `Scanning may take a while${htmlCount > 10 ? ' (jsdom processes each HTML file individually)' : ''}.\n` +
-            `Use --fast to skip jsdom, or target a specific subdirectory.\n`
+            `Target a specific subdirectory to narrow scope.\n`
           );
           const ok = await confirm('Continue?');
           if (!ok) { process.stderr.write('Aborted.\n'); process.exit(0); }
@@ -5516,7 +5518,7 @@ async function main() {
         for (const file of files) {
           const ext = path.extname(file).toLowerCase();
           let fileFindings;
-          if (!fastMode && HTML_EXTENSIONS.has(ext)) {
+          if (HTML_EXTENSIONS.has(ext)) {
             fileFindings = await detectHtml(file);
           } else {
             fileFindings = detectText(fs.readFileSync(file, 'utf-8'), file);
@@ -5533,7 +5535,7 @@ async function main() {
         }
       } else if (stat.isFile()) {
         const ext = path.extname(resolved).toLowerCase();
-        if (!fastMode && HTML_EXTENSIONS.has(ext)) {
+        if (HTML_EXTENSIONS.has(ext)) {
           allFindings.push(...await detectHtml(resolved));
         } else {
           allFindings.push(...detectText(fs.readFileSync(resolved, 'utf-8'), resolved));

@@ -22,7 +22,7 @@ if (typeof window === 'undefined') return;
  * Node usage:
  *   node detect-antipatterns.mjs [file-or-dir...]   # jsdom for HTML, regex for rest
  *   node detect-antipatterns.mjs https://...         # agent-browser (auto)
- *   node detect-antipatterns.mjs --fast [files...]   # regex-only (skip jsdom)
+ *   node detect-antipatterns.mjs --json [files...]   # JSON output for CI
  *   node detect-antipatterns.mjs --json              # JSON output
  *
  * Browser usage:

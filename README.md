@@ -61,7 +61,6 @@ Impeccable also ships a standalone detector:
 npx impeccable detect src/
 npx impeccable detect https://example.com
 npx impeccable detect --json src/
-npx impeccable detect --fast src/
 ```
 
 Useful follow-up commands:
