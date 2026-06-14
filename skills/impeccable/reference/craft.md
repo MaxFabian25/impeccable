@@ -16,6 +16,19 @@ Craft cannot build until all of these are true:
 
 Invalid image-skip reasons include: "the final implementation will be semantic HTML/CSS/SVG", "the diagram should stay editable", "a raster mock would not be used directly", or "the product is fictional." Generated probes and mocks are direction artifacts; they are not implementation assets.
 
+## Stop Points Before Code
+
+When native image generation is available, craft has four separate user-facing gates before implementation:
+
+1. The shape brief is confirmed.
+2. Direction questions are answered.
+3. The palette is confirmed.
+4. One mock direction is approved or explicitly delegated.
+
+Stop at every gate. Shape confirmation alone is the signal to continue visual-direction work, not the signal to start coding. Do not mention implementation file paths, patch plans, or code structure until the direction questions, palette, and mock approval are complete.
+
+When native image generation is unavailable, gates 2 through 4 collapse into the confirmed brief plus the explicit image-skip reason.
+
 ## Craft Contract
 
 Craft is not a first pass. It is a loop with these required artifacts:
@@ -38,6 +51,8 @@ Wait for the design brief to be fully confirmed by the user before proceeding. T
 If this craft run resumed after `{{command_prefix}}impeccable teach` created `PRODUCT.md`, run shape now. Do not treat the teach interview, `PRODUCT.md`, `DESIGN.md`, or a summary of project context as a substitute for shape. Shape is task-specific and must cover scope, content/states, visual direction, constraints, anti-goals, probes when applicable, and explicit brief confirmation.
 
 If the user has already run {{command_prefix}}shape and has a confirmed design brief, skip this step and use the existing brief.
+
+If the brief is compact, its confirmation still advances only to Step 3. Phrase the pause accordingly: "Confirm or override; once the brief is locked, I will ask a couple of visual-direction and palette questions before generating any mocks." Do not let compact brief approval read as code approval.
 
 ## Step 2: Load References
 
@@ -64,6 +79,16 @@ Before implementation, generate high-fidelity visual comps when all of these are
 When those conditions are met, this step is mandatory for both brand and product work in Codex and any environment with built-in image generation. Use native image generation; in Codex, use the built-in `image_gen` tool via the imagegen skill. If image generation is unavailable, do not ask the user to install APIs or tooling. State in one line that the image step is skipped because the environment lacks native image generation, then proceed.
 
 Do not skip this step because the eventual UI should be semantic, editable, code-native, responsive, or accessible. Those are implementation requirements, not reasons to avoid visual exploration.
+
+### Direction And Palette Gates
+
+Before generating mocks, ask 2 or 3 targeted questions grounded in the confirmed brief. Cover visual lane, color strategy, atmosphere, and named references only where they are still unresolved. Do not ask generic menu questions; tie each question to the task and the loaded context.
+
+Stop and wait for answers unless the user already answered those exact visual-direction questions in this same craft run.
+
+Then generate a compact palette proposal before the mocks: 5 to 8 named tokens with roles, contrast intent, and how the palette supports the brief. Show it to the user and ask: "This is the palette I will use for the mocks. Confirm it, or call out what to shift?"
+
+Stop and wait for palette confirmation. Do not generate mocks against an unconfirmed palette.
 
 ### Purpose
 
@@ -130,6 +155,8 @@ Do not export assets for core UI text, navigation, body copy, or any structure t
 Usually 1 to 5 extracted assets is enough. If the design can be built cleanly in HTML/CSS/SVG, prefer that over raster assets. If the mock contains major visual content that cannot be built credibly in code, asset extraction is not optional.
 
 ## Step 5: Build to Production Quality
+
+Precondition: when native image generation is available, Step 3's direction questions, palette confirmation, and mock approval or delegation must be complete before any implementation. Do not discuss implementation file paths, patch plans, or code structure before those gates are complete.
 
 Implement the feature following the design brief. Build in passes so structure, visual system, states, motion/media, and responsive behavior each get deliberate attention. The list below is the definition of done, not inspiration.
 

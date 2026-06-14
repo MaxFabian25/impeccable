@@ -67,6 +67,26 @@ describe('codex-only build contract', () => {
     expect(generatedCritique).not.toContain('.impeccable$critique');
   });
 
+  test('craft flow keeps native-image gates before implementation', () => {
+    const authored = fs.readFileSync(
+      path.join(process.cwd(), 'skills/impeccable/reference/craft.md'),
+      'utf8'
+    );
+    const generated = fs.readFileSync(
+      path.join(process.cwd(), 'plugins/impeccable/skills/impeccable/reference/craft.md'),
+      'utf8'
+    );
+
+    for (const craft of [authored, generated]) {
+      expect(craft).toContain('## Stop Points Before Code');
+      expect(craft).toContain('Direction questions are answered.');
+      expect(craft).toContain('The palette is confirmed.');
+      expect(craft).toContain('One mock direction is approved or explicitly delegated.');
+      expect(craft).toContain('Do not mention implementation file paths, patch plans, or code structure');
+      expect(craft).toContain('Do not generate mocks against an unconfirmed palette.');
+    }
+  });
+
   test('live browser accept fallback preserves variant attributes for scoped styles', () => {
     const authored = fs.readFileSync(
       path.join(process.cwd(), 'skills/impeccable/scripts/live-browser.js'),
