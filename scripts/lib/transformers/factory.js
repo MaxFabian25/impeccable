@@ -138,7 +138,9 @@ export function createTransformer(config) {
 
       // Replace {{scripts_path}} with provider-aware path to skill's scripts directory
       const scriptsPath = `${skillsPath}/${skillName}/scripts`;
+      const impeccableScriptsPath = `${skillsPath}/impeccable/scripts`;
       skillBody = skillBody.replace(/\{\{scripts_path\}\}/g, scriptsPath);
+      skillBody = skillBody.replace(/\{\{impeccable_scripts_path\}\}/g, impeccableScriptsPath);
       if (bodyTransform) skillBody = bodyTransform(skillBody, skill);
 
       const content = `${frontmatter}\n\n${skillBody}`;
@@ -151,6 +153,7 @@ export function createTransformer(config) {
         for (const ref of skill.references) {
           let refContent = replacePlaceholders(ref.content, placeholderKey, [], allSkillNames);
           refContent = refContent.replace(/\{\{scripts_path\}\}/g, scriptsPath);
+          refContent = refContent.replace(/\{\{impeccable_scripts_path\}\}/g, impeccableScriptsPath);
           writeFile(path.join(refDir, `${ref.name}.md`), refContent);
           refCount++;
         }

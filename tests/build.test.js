@@ -45,6 +45,24 @@ describe('codex-only build contract', () => {
     )).toBe(true);
   });
 
+  test('standalone critique commands call shared impeccable scripts', () => {
+    const generatedCritique = fs.readFileSync(
+      path.join(process.cwd(), 'plugins/impeccable/skills/critique/SKILL.md'),
+      'utf8'
+    );
+    const generatedPolish = fs.readFileSync(
+      path.join(process.cwd(), 'plugins/impeccable/skills/polish/SKILL.md'),
+      'utf8'
+    );
+
+    for (const generated of [generatedCritique, generatedPolish]) {
+      expect(generated).toContain('node skills/impeccable/scripts/critique-storage.mjs');
+      expect(generated).not.toContain('{{impeccable_scripts_path}}');
+      expect(generated).not.toContain('skills/critique/scripts/critique-storage.mjs');
+      expect(generated).not.toContain('skills/polish/scripts/critique-storage.mjs');
+    }
+  });
+
   test('live browser accept fallback preserves variant attributes for scoped styles', () => {
     const authored = fs.readFileSync(
       path.join(process.cwd(), 'skills/impeccable/scripts/live-browser.js'),

@@ -11,7 +11,21 @@ argument-hint: "[area (feature, page, component...)]"
 
 Invoke $impeccable, which contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding. If no design context exists yet, you MUST run $impeccable teach first. Additionally gather: what the interface is trying to accomplish.
 
-### Step 2: Gather Assessments
+### Step 2: Resolve Target and Load Ignore List
+
+Before gathering assessments, do the bookkeeping that makes critique iterative across runs:
+
+1. **Resolve the primary artifact**. The user's phrasing ("the homepage", "the pricing flow") is not stable enough to track. Resolve it to a concrete file path or URL: the same one you will scan or open in a browser. Prefer the source file path over a dev-server URL when both exist, because ports drift and file paths do not.
+
+2. **Compute the slug**:
+   ```bash
+   node skills/impeccable/scripts/critique-storage.mjs slug "<resolved-path-or-url>"
+   ```
+   Keep the printed slug. If the command exits non-zero, skip persistence for this run and tell the user the trend will not update.
+
+3. **Read `.impeccable$critique/ignore.md` if it exists**. Each non-empty, non-comment line is a user-accepted deferral, intentional deviation, or false positive. When a finding's text matches a line here as a case-insensitive substring against the rule name or snippet, drop it silently. This is the only prior-run input critique consumes; do not anchor the assessment on previous reports.
+
+### Step 3: Gather Assessments
 
 Launch two independent assessments. **Neither may see the other's output**. This isolation is what makes the combined score honest. Running both in one head silently anchors them to each other; do not shortcut it for cost, speed, or context-size reasons.
 
@@ -54,7 +68,7 @@ Run the bundled deterministic detector, which flags 25 specific patterns (AI slo
 
 **CLI scan**:
 ```bash
-npx impeccable --json [--fast] [target]
+npx impeccable detect --json [--fast] [target]
 ```
 
 - Pass HTML/JSX/TSX/Vue/Svelte files or directories as `[target]` (anything with markup). Do not pass CSS-only files.
@@ -94,7 +108,7 @@ For multi-view targets, inject on 3-5 representative pages. If injection fails, 
 
 Return: CLI findings (JSON), browser console findings (if applicable), and any false positives noted.
 
-### Step 3: Generate Combined Critique Report
+### Step 4: Generate Combined Critique Report
 
 Synthesize both assessments into a single report. Do NOT simply concatenate. Weave the findings together, noting where the LLM review and detector agree, where the detector caught issues the LLM missed, and where detector findings are false positives.
 
@@ -176,7 +190,36 @@ Provocative questions that might unlock better solutions:
 - Prioritize ruthlessly. If everything is important, nothing is.
 - Don't soften criticism. Developers need honest feedback to ship great design.
 
-### Step 4: Ask the User
+### Step 5: Persist the Snapshot
+
+Once the report above is finalized, write it to `.impeccable$critique/` so the user can refer back and so $polish can pick up priority issues without copy-paste.
+
+Skip this step if the target slug was null.
+
+1. **Write the report body to a temp file**. Use the full report through Persona Red Flags, but stop before the Ask the User and Recommended Actions sections.
+
+2. **Pass structured metadata through `IMPECCABLE_CRITIQUE_META`**, then run:
+   ```bash
+   IMPECCABLE_CRITIQUE_META='{"target":"<user phrasing>","total_score":<n>,"p0_count":<n>,"p1_count":<n>}' \
+     node skills/impeccable/scripts/critique-storage.mjs write <slug> <body-file>
+   ```
+   The helper prints the absolute path it wrote.
+
+3. **Read the trend**:
+   ```bash
+   node skills/impeccable/scripts/critique-storage.mjs trend <slug> 5
+   ```
+
+4. **Append a single line to the user-visible output**, after the report and before questions:
+
+   > **Trend for `<slug>` (last 5 runs): 24 -> 28 -> 32 -> 29 -> 32**
+   > Wrote `.impeccable$critique/<filename>`.
+
+   If this is the first run for the slug, say: "First run for this target, no trend yet."
+
+This is fire-and-forget. Do not show raw helper JSON. If persistence fails, state the failure briefly and continue.
+
+### Step 6: Ask the User
 
 **After presenting findings**, ask targeted follow-up questions based on what was actually found. These answers will shape the action plan.
 
@@ -196,7 +239,7 @@ Ask questions along these lines (adapt to the specific findings; do NOT ask gene
 - Offer concrete options, not open-ended prompts.
 - If findings are straightforward (e.g., only 1-2 clear issues), skip questions and go directly to Recommended Actions.
 
-### Step 5: Recommended Actions
+### Step 7: Recommended Actions
 
 **After receiving the user's answers**, present a prioritized action summary reflecting the user's priorities and scope from Ask the User.
 

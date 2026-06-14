@@ -43,6 +43,11 @@ extension/detector/
 .impeccable/live/annotations/
 .impeccable/live/cache/
 .impeccable/history/
+# Per-run critique snapshots are local artifacts. ignore.md carries deferrals
+# the user may want to share, so it is explicitly re-included below.
+!.impeccable/critique/
+.impeccable/critique/*
+!.impeccable/critique/ignore.md
 
 # Legacy live annotation captures
 .impeccable-live.json
