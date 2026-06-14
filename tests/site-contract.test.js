@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { commandCategories, commandRelationships } from '../public/js/data.js';
+import { commandCategories, commandRelationships } from '../site/public/js/data.js';
 
 const REPO_ROOT = join(import.meta.dir, '..');
 const CURRENT_COMMANDS = [
@@ -59,8 +59,8 @@ describe('codex-only site contract', () => {
     const homepage = readFileSync(join(REPO_ROOT, 'site', 'pages', 'index.astro'), 'utf8');
     const designingPage = readFileSync(join(REPO_ROOT, 'site', 'pages', 'designing', 'index.astro'), 'utf8');
 
-    expect(existsSync(join(REPO_ROOT, 'public', 'assets', 'openai_image_2_brand.jpg'))).toBe(true);
-    expect(existsSync(join(REPO_ROOT, 'public', 'assets', 'openai_image_2_hifi.jpg'))).toBe(true);
+    expect(existsSync(join(REPO_ROOT, 'site', 'public', 'assets', 'openai_image_2_brand.jpg'))).toBe(true);
+    expect(existsSync(join(REPO_ROOT, 'site', 'public', 'assets', 'openai_image_2_hifi.jpg'))).toBe(true);
     expect(homepage).toContain('Visualize, then build');
     expect(homepage).toContain('Picture it before Codex builds it.');
     expect(homepage).toContain('OpenAI image generation via Codex');
@@ -76,7 +76,7 @@ describe('codex-only site contract', () => {
   });
 
   test('sitemap includes generated section pages and every current skill detail page', () => {
-    const sitemap = readFileSync(join(REPO_ROOT, 'public', 'sitemap.xml'), 'utf8');
+    const sitemap = readFileSync(join(REPO_ROOT, 'site', 'public', 'sitemap.xml'), 'utf8');
 
     expect(sitemap).toContain('<loc>https://impeccable.style/designing</loc>');
     expect(sitemap).toContain('<loc>https://impeccable.style/slop</loc>');
@@ -87,8 +87,8 @@ describe('codex-only site contract', () => {
   });
 
   test('landing-page client no longer carries retired command ids and includes the extract mode guide', () => {
-    const demoRenderer = readFileSync(join(REPO_ROOT, 'public', 'js', 'demo-renderer.js'), 'utf8');
-    const glassTerminal = readFileSync(join(REPO_ROOT, 'public', 'js', 'components', 'glass-terminal.js'), 'utf8');
+    const demoRenderer = readFileSync(join(REPO_ROOT, 'site', 'public', 'js', 'demo-renderer.js'), 'utf8');
+    const glassTerminal = readFileSync(join(REPO_ROOT, 'site', 'public', 'js', 'components', 'glass-terminal.js'), 'utf8');
 
     expect(demoRenderer).toContain('$impeccable extract');
     expect(glassTerminal).not.toContain('teach-impeccable');

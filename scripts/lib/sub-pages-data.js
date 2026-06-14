@@ -3,9 +3,9 @@
  * generators.
  *
  * Single source of truth:
- * - source/skills/{id}/SKILL.md          → skill frontmatter + body
- * - source/skills/{id}/reference/*.md     → skill reference files
- * - src/detect-antipatterns.mjs           → ANTIPATTERNS array (parsed)
+ * - skills/{id}/SKILL.md          → skill frontmatter + body
+ * - skills/{id}/reference/*.md     → skill reference files
+ * - cli/engine/detect-antipatterns.mjs           → ANTIPATTERNS array (parsed)
  * - site/content/skills/{id}.md           → optional editorial wrapper
  * - site/content/tutorials/{slug}.md       → full tutorial content
  */
@@ -19,13 +19,13 @@ import {
   VISUAL_EXAMPLES,
   LLM_ONLY_RULES,
   GALLERY_ITEMS,
-} from '../../site/content/anti-patterns-catalog.js';
+} from '../../site/data/anti-patterns-catalog.js';
 
 export {
   LAYER_LABELS,
   LAYER_DESCRIPTIONS,
   GALLERY_ITEMS,
-} from '../../site/content/anti-patterns-catalog.js';
+} from '../../site/data/anti-patterns-catalog.js';
 
 /**
  * Skills that should be excluded from the index and not get a detail page.
@@ -41,7 +41,7 @@ const EXCLUDED_SKILLS = new Set([
 
 /**
  * Hand-curated category map for user-invocable skills.
- * Mirrors public/js/data.js commandCategories. Validated below: the
+ * Mirrors site/public/js/data.js commandCategories. Validated below: the
  * generator fails if any user-invocable skill is missing from this map.
  */
 export const SKILL_CATEGORIES = {
@@ -92,12 +92,12 @@ export const CATEGORY_DESCRIPTIONS = {
 };
 
 /**
- * Parse the ANTIPATTERNS array out of src/detect-antipatterns.mjs.
+ * Parse the ANTIPATTERNS array out of cli/engine/detect-antipatterns.mjs.
  * Mirrors the trick in scripts/build.js validateAntipatternRules() so we
  * don't have to run the browser-only module.
  */
 export function readAntipatternRules(rootDir) {
-  const detectPath = path.join(rootDir, 'src/detect-antipatterns.mjs');
+  const detectPath = path.join(rootDir, 'cli/engine/detect-antipatterns.mjs');
   const src = fs.readFileSync(detectPath, 'utf-8');
   const match = src.match(/const ANTIPATTERNS = \[([\s\S]*?)\n\];/);
   if (!match) {
@@ -119,13 +119,13 @@ export function readEditorialWrapper(contentDir, kind, slug) {
 }
 
 /**
- * Load the per-command before/after demo data from public/js/demos/commands.
+ * Load the per-command before/after demo data from site/public/js/demos/commands.
  * Returns a { [skillId]: { id, caption, before, after } } map.
  * Skills without a demo file are simply missing from the map; the caller
  * should treat a missing entry as "no demo".
  */
 export async function loadCommandDemos(rootDir) {
-  const demosDir = path.join(rootDir, 'public/js/demos/commands');
+  const demosDir = path.join(rootDir, 'site/public/js/demos/commands');
   if (!fs.existsSync(demosDir)) return {};
 
   const demos = {};

@@ -8,13 +8,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe('Windows path doubling fix', () => {
   test('fileURLToPath handles POSIX file URLs correctly', () => {
-    const posixUrl = new URL('file:///home/user/src/detect-antipatterns.mjs');
-    assert.equal(fileURLToPath(posixUrl), '/home/user/src/detect-antipatterns.mjs');
+    const posixUrl = new URL('file:///home/user/cli/engine/detect-antipatterns.mjs');
+    assert.equal(fileURLToPath(posixUrl), '/home/user/cli/engine/detect-antipatterns.mjs');
   });
 
   test('source file no longer uses raw URL pathname for local path construction', () => {
     const src = fs.readFileSync(
-      path.join(__dirname, '..', 'src', 'detect-antipatterns.mjs'),
+      path.join(__dirname, '..', 'cli', 'engine', 'detect-antipatterns.mjs'),
       'utf8'
     );
 

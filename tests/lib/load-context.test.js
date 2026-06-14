@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import fs from 'fs';
 import path from 'path';
-import { loadContext } from '../../source/skills/impeccable/scripts/load-context.mjs';
+import { loadContext } from '../../skills/impeccable/scripts/load-context.mjs';
 
 const TEST_DIR = path.join(process.cwd(), 'test-tmp-load-context');
 

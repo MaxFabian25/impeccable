@@ -4,7 +4,7 @@ This fork targets Codex CLI only.
 
 ## Architecture
 
-- `source/skills/` is the canonical authored source.
+- `skills/` is the canonical authored source.
 - `scripts/build.js` transforms the source into the Codex runtime format.
 - `plugins/impeccable/skills/` is the tracked generated Codex plugin output.
 - `plugins/impeccable/.codex-plugin/plugin.json` provides Codex plugin metadata for the bundle.
@@ -23,9 +23,9 @@ That command:
 
 1. regenerates sub-pages for the site
 2. bundles the static site
-3. transforms authored skills into Codex and prefixed-Codex outputs
+3. transforms authored skills into Codex output
 4. prepares the Codex bundle metadata
-5. creates `codex.zip` and `codex-prefixed.zip`
+5. creates `codex.zip`
 6. syncs the generated skills back into `plugins/impeccable/skills/`
 
 ## Editing Skills
@@ -33,15 +33,15 @@ That command:
 Add or update skills in:
 
 ```text
-source/skills/<skill-name>/SKILL.md
-source/skills/<skill-name>/reference/*.md
-source/skills/<skill-name>/scripts/*
+skills/<skill-name>/SKILL.md
+skills/<skill-name>/reference/*.md
+skills/<skill-name>/scripts/*
 ```
 
 Important conventions:
 
 - use Codex command syntax in generated output: `$command`
-- keep `source/skills` provider-agnostic where possible, and let the Codex placeholder replacement handle command prefixes and config references
+- keep `skills/` provider-agnostic where possible, and let the Codex placeholder replacement handle command prefixes and config references
 - do not add alternate provider frontmatter or directory formats
 
 ## Testing
@@ -59,11 +59,11 @@ If Bun is unavailable locally, use targeted Node-based verification scripts befo
 
 - `README.md`: Codex-facing repository docs
 - `README.npm.md`: npm package docs
-- `public/index.html`: landing page / download UI
-- `public/privacy.html`: privacy policy
+- `site/pages/index.astro`: landing page / download UI
+- `site/pages/privacy.astro`: privacy policy
 - `functions/api/download/`: download endpoints
-- `bin/commands/skills.mjs`: install/update/check flows
+- `cli/bin/commands/skills.mjs`: install/update/check flows
 
 ## Hard-Cut Rule
 
-Do not preserve old multi-provider surfaces. If a path, doc, or script still mentions Claude Code, Cursor, Gemini, OpenCode, Pi, Trae, Kiro, Rovo Dev, or `.agents`, remove or rewrite it instead of layering compatibility on top.
+Do not preserve old multi-provider surfaces. If a path, doc, or script still mentions Claude Code, Cursor, Gemini, OpenCode, Pi, Trae, Kiro, or Rovo Dev, remove or rewrite it instead of layering compatibility on top. Keep `.agents/plugins/marketplace.json`; that is Codex marketplace metadata for this fork.

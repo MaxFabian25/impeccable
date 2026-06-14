@@ -31,7 +31,7 @@ Avoid the exact habits Impeccable teaches Codex to notice:
 ## Design Principles
 
 1. **Practice what the plugin teaches.** The public site, docs, and examples should avoid the anti-patterns that the detector and skills flag.
-2. **Codex-first clarity.** Use Codex-native `$` commands and the local plugin layout consistently: `source/skills` as authored source and `plugins/impeccable/skills` as generated installable output.
+2. **Codex-first clarity.** Use Codex-native `$` commands and the local plugin layout consistently: `skills/` as authored source and `plugins/impeccable/skills` as generated installable output.
 3. **Show quality through execution.** The site and examples should demonstrate design taste directly, not merely describe it.
 4. **Editorial over marketing.** Favor considered typography, confident hierarchy, useful examples, and precise prose over conversion-page decoration.
 5. **Hard cutovers over compatibility clutter.** Remove old provider assumptions and outdated command surfaces rather than preserving confusing shims.

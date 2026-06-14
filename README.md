@@ -81,14 +81,13 @@ Use the public repo for Codex plugin issues, focused pull requests, and local fo
 ## Repository Layout
 
 ```text
-source/skills/                  canonical authored skills
+skills/                  canonical authored skills
 plugins/impeccable/skills/      tracked Codex plugin output used in the repo
 plugins/impeccable/.codex-plugin/plugin.json Codex plugin manifest
 .agents/plugins/marketplace.json Git-backed Codex marketplace metadata
 scripts/build.js                Codex bundle build pipeline
 functions/api/download/         download routes for Codex bundles and files
-server/                         local dev server
-src/                            anti-pattern detector and CLI runtime
+cli/                            anti-pattern detector and CLI runtime
 ```
 
 ## Contributing

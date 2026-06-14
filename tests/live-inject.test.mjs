@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { patchCspMeta, resolveFiles, revertCspMeta, validateConfig } from '../source/skills/impeccable/scripts/live-inject.mjs';
+import { patchCspMeta, resolveFiles, revertCspMeta, validateConfig } from '../skills/impeccable/scripts/live-inject.mjs';
 
 function withTempProject(fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'impeccable-live-inject-'));

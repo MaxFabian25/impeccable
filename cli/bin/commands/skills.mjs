@@ -25,7 +25,7 @@ import { tmpdir } from 'node:os';
 import extract from 'extract-zip';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PACKAGE_ROOT = join(__dirname, '..', '..');
+const PACKAGE_ROOT = join(__dirname, '..', '..', '..');
 const PACKAGE_PLUGIN_ROOT = join(PACKAGE_ROOT, 'plugins', 'impeccable');
 const API_BASE = 'https://impeccable.style';
 

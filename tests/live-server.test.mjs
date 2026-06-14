@@ -54,7 +54,7 @@ async function stopServer() {
 
 before(async () => {
   cwd = realpathSync(mkdtempSync(path.join(tmpdir(), 'impeccable-live-test-')));
-  child = spawn(process.execPath, [path.join(ROOT, 'bin/cli.js'), 'live', `--port=${PORT}`], {
+  child = spawn(process.execPath, [path.join(ROOT, 'cli/bin/cli.js'), 'live', `--port=${PORT}`], {
     cwd,
     env: { ...process.env },
     stdio: ['ignore', 'pipe', 'pipe'],

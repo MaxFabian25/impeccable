@@ -3062,135 +3062,169 @@ if (IS_BROWSER) {
       appendText(designPanel, 'p', payload?.error || 'No DESIGN.md or DESIGN.json was found in the project root.');
       return;
     }
-    if (payload.error) {
+    const error = payload.error || payload.parseError || payload.sidecarError;
+    if (error) {
       appendText(designPanel, 'h2', 'Design context error');
-      appendText(designPanel, 'p', payload.error);
+      appendText(designPanel, 'p', error);
       return;
     }
 
-    if (payload.mode === 'sidecar' && payload.model) {
-      renderSidecarDesign(payload.model, payload);
-      return;
-    }
-    renderParsedDesign(payload.parsedMd || {});
+    renderUnifiedDesign(payload);
   }
 
-  function renderSidecarDesign(model, meta) {
-    appendText(designPanel, 'h2', model.title || 'Design System');
+  function renderUnifiedDesign(payload) {
+    const sidecar = payload.sidecar || {};
+    const parsed = payload.parsed || {};
+    const frontmatter = parsed.frontmatter || sidecar.frontmatter || {};
+    const title = sidecar.title || parsed.title || frontmatter.name || 'Design System';
+
+    appendText(designPanel, 'h2', title);
     const metaRow = document.createElement('div');
     metaRow.className = 'impeccable-design-meta';
-    addChip(metaRow, 'DESIGN.json');
-    if (meta.mdNewerThanJson) addChip(metaRow, 'DESIGN.md is newer');
+    if (payload.hasMd) addChip(metaRow, 'DESIGN.md');
+    if (payload.hasSidecar) addChip(metaRow, 'DESIGN.json');
+    if (payload.hasMd && !payload.hasSidecar) addChip(metaRow, 'basic view');
+    if (payload.mdNewerThanJson) addChip(metaRow, 'DESIGN.md is newer');
     designPanel.appendChild(metaRow);
 
-    const colors = model.tokens?.colors || [];
-    if (colors.length) {
-      appendText(designPanel, 'h3', 'Colors');
-      const grid = document.createElement('div');
-      grid.className = 'impeccable-design-grid';
-      for (const color of colors) {
-        const card = document.createElement('div');
-        card.className = 'impeccable-design-card';
-        const swatch = document.createElement('div');
-        swatch.className = 'impeccable-design-swatch';
-        swatch.style.background = safeCssValue(color.value);
-        card.appendChild(swatch);
-        appendText(card, 'div', color.name || color.role || 'Color', 'impeccable-design-name');
-        appendText(card, 'div', color.value || '', 'impeccable-design-value');
-        if (Array.isArray(color.tonalRamp) && color.tonalRamp.length) {
-          const ramp = document.createElement('div');
-          ramp.className = 'impeccable-design-ramp';
-          for (const value of color.tonalRamp) {
-            const stop = document.createElement('span');
-            stop.style.background = safeCssValue(value);
-            ramp.appendChild(stop);
-          }
-          card.appendChild(ramp);
-        }
-        grid.appendChild(card);
-      }
-      designPanel.appendChild(grid);
-    }
-
-    const type = model.tokens?.typography || [];
-    if (type.length) {
-      appendText(designPanel, 'h3', 'Typography');
-      for (const item of type) {
-        const card = document.createElement('div');
-        card.className = 'impeccable-design-card';
-        const sample = document.createElement('div');
-        sample.textContent = item.name || item.role || 'Aa';
-        Object.assign(sample.style, {
-          fontFamily: [item.family, item.fallback].filter(Boolean).join(', '),
-          fontWeight: String(item.weight || 400),
-          fontStyle: item.style || 'normal',
-          fontSize: item.sampleSize || '24px',
-          lineHeight: String(item.lineHeight || 1.2),
-          letterSpacing: item.letterSpacing || 'normal',
-          textTransform: item.textTransform || 'none',
-        });
-        card.appendChild(sample);
-        appendText(card, 'div', item.purpose || item.family || '', 'impeccable-design-value');
-        designPanel.appendChild(card);
-      }
-    }
-
-    const components = model.components || [];
-    if (components.length) {
-      appendText(designPanel, 'h3', 'Components');
-      for (const component of components) {
-        const card = document.createElement('div');
-        card.className = 'impeccable-design-component';
-        const host = document.createElement('div');
-        const shadow = host.attachShadow({ mode: 'open' });
-        const style = document.createElement('style');
-        style.textContent = component.css || '';
-        shadow.appendChild(style);
-        const body = document.createElement('div');
-        body.innerHTML = component.html || '';
-        shadow.appendChild(body);
-        card.appendChild(host);
-        appendText(card, 'div', component.name || component.kind || 'Component', 'impeccable-design-name');
-        if (component.description) appendText(card, 'p', component.description);
-        designPanel.appendChild(card);
-      }
-    }
-
-    renderNarrative(model.narrative || {});
+    renderUnifiedColors(frontmatter, parsed, sidecar);
+    renderUnifiedTypography(frontmatter, parsed, sidecar);
+    renderUnifiedComponents(sidecar);
+    renderNarrative(sidecar.narrative || narrativeFromParsedDesign(parsed));
   }
 
-  function renderParsedDesign(parsed) {
-    appendText(designPanel, 'h2', parsed.title || 'DESIGN.md');
-    const metaRow = document.createElement('div');
-    metaRow.className = 'impeccable-design-meta';
-    addChip(metaRow, 'parsed DESIGN.md');
-    addChip(metaRow, 'basic view');
-    designPanel.appendChild(metaRow);
-
-    const groups = parsed.colors?.groups || [];
-    if (groups.length) {
-      appendText(designPanel, 'h3', 'Colors');
-      const grid = document.createElement('div');
-      grid.className = 'impeccable-design-grid';
-      for (const group of groups) {
-        for (const color of group.colors || []) {
-          const card = document.createElement('div');
-          card.className = 'impeccable-design-card';
-          const swatch = document.createElement('div');
-          swatch.className = 'impeccable-design-swatch';
-          swatch.style.background = safeCssValue(color.value);
-          card.appendChild(swatch);
-          appendText(card, 'div', color.name || group.role, 'impeccable-design-name');
-          appendText(card, 'div', color.value || '', 'impeccable-design-value');
-          grid.appendChild(card);
-        }
-      }
-      designPanel.appendChild(grid);
+  function renderUnifiedColors(frontmatter, parsed, sidecar) {
+    const colorMeta = sidecar.extensions?.colorMeta || {};
+    let colors = [];
+    if (frontmatter.colors && typeof frontmatter.colors === 'object') {
+      colors = Object.entries(frontmatter.colors).map(([key, value]) => ({
+        role: colorMeta[key]?.role || key,
+        name: colorMeta[key]?.displayName || humanizeDesignKey(key),
+        value,
+        tonalRamp: colorMeta[key]?.tonalRamp || null,
+      }));
+    } else if (Array.isArray(sidecar.tokens?.colors)) {
+      colors = sidecar.tokens.colors;
+    } else {
+      colors = (parsed.colors?.groups || []).flatMap((group) =>
+        (group.colors || []).map((color) => ({ role: group.role, ...color }))
+      );
     }
 
-    renderNarrative({
-      northStar: parsed.overview?.northStar,
-      overview: parsed.overview?.overview,
+    if (!colors.length) return;
+    appendText(designPanel, 'h3', 'Colors');
+    const grid = document.createElement('div');
+    grid.className = 'impeccable-design-grid';
+    for (const color of colors) {
+      const card = document.createElement('div');
+      card.className = 'impeccable-design-card';
+      const swatch = document.createElement('div');
+      swatch.className = 'impeccable-design-swatch';
+      swatch.style.background = safeCssValue(color.value);
+      card.appendChild(swatch);
+      appendText(card, 'div', color.name || color.role || 'Color', 'impeccable-design-name');
+      appendText(card, 'div', color.value || '', 'impeccable-design-value');
+      if (Array.isArray(color.tonalRamp) && color.tonalRamp.length) {
+        const ramp = document.createElement('div');
+        ramp.className = 'impeccable-design-ramp';
+        for (const value of color.tonalRamp) {
+          const stop = document.createElement('span');
+          stop.style.background = safeCssValue(value);
+          ramp.appendChild(stop);
+        }
+        card.appendChild(ramp);
+      }
+      grid.appendChild(card);
+    }
+    designPanel.appendChild(grid);
+  }
+
+  function renderUnifiedTypography(frontmatter, parsed, sidecar) {
+    const typographyMeta = sidecar.extensions?.typographyMeta || {};
+    let items = [];
+    if (frontmatter.typography && typeof frontmatter.typography === 'object') {
+      items = Object.entries(frontmatter.typography).map(([role, spec]) => {
+        const { family, fallback } = splitDesignFontFamily(spec?.fontFamily);
+        return {
+          role,
+          name: typographyMeta[role]?.displayName || humanizeDesignKey(role),
+          family,
+          fallback,
+          weight: spec?.fontWeight || 400,
+          style: spec?.fontStyle || typographyMeta[role]?.style || 'normal',
+          sampleSize: spec?.fontSize || '24px',
+          lineHeight: spec?.lineHeight || 1.2,
+          letterSpacing: spec?.letterSpacing || 'normal',
+          purpose: typographyMeta[role]?.purpose || '',
+        };
+      });
+    } else if (Array.isArray(sidecar.tokens?.typography)) {
+      items = sidecar.tokens.typography;
+    } else {
+      items = Object.entries(parsed.typography?.fonts || {}).map(([role, font]) => ({
+        role,
+        name: font.family || humanizeDesignKey(role),
+        family: font.family || '',
+        fallback: font.fallback || '',
+        weight: 400,
+        style: 'normal',
+        sampleSize: '24px',
+        lineHeight: 1.2,
+        letterSpacing: 'normal',
+        purpose: font.purpose || '',
+      }));
+    }
+
+    if (!items.length) return;
+    appendText(designPanel, 'h3', 'Typography');
+    for (const item of items) {
+      const card = document.createElement('div');
+      card.className = 'impeccable-design-card';
+      const sample = document.createElement('div');
+      sample.textContent = item.name || item.role || 'Aa';
+      Object.assign(sample.style, {
+        fontFamily: [item.family, item.fallback].filter(Boolean).join(', '),
+        fontWeight: String(item.weight || 400),
+        fontStyle: item.style || 'normal',
+        fontSize: item.sampleSize || '24px',
+        lineHeight: String(item.lineHeight || 1.2),
+        letterSpacing: item.letterSpacing || 'normal',
+        textTransform: item.textTransform || 'none',
+      });
+      card.appendChild(sample);
+      appendText(card, 'div', item.purpose || item.family || '', 'impeccable-design-value');
+      designPanel.appendChild(card);
+    }
+  }
+
+  function renderUnifiedComponents(sidecar) {
+    const components = sidecar.components || [];
+    if (!components.length) return;
+    appendText(designPanel, 'h3', 'Components');
+    for (const component of components) {
+      const card = document.createElement('div');
+      card.className = 'impeccable-design-component';
+      const host = document.createElement('div');
+      const shadow = host.attachShadow({ mode: 'open' });
+      const style = document.createElement('style');
+      style.textContent = component.css || '';
+      shadow.appendChild(style);
+      const body = document.createElement('div');
+      body.innerHTML = component.html || '';
+      shadow.appendChild(body);
+      card.appendChild(host);
+      appendText(card, 'div', component.name || component.kind || 'Component', 'impeccable-design-name');
+      if (component.description) appendText(card, 'p', component.description);
+      designPanel.appendChild(card);
+    }
+  }
+
+  function narrativeFromParsedDesign(parsed) {
+    return {
+      northStar: parsed.overview?.creativeNorthStar || parsed.overview?.northStar,
+      overview: Array.isArray(parsed.overview?.philosophy)
+        ? parsed.overview.philosophy.join(' ')
+        : parsed.overview?.overview,
       keyCharacteristics: parsed.overview?.keyCharacteristics,
       rules: [
         ...(parsed.colors?.rules || []),
@@ -3199,7 +3233,19 @@ if (IS_BROWSER) {
       ],
       dos: parsed.dosDonts?.dos || [],
       donts: parsed.dosDonts?.donts || [],
-    });
+    };
+  }
+
+  function splitDesignFontFamily(stack) {
+    if (!stack || typeof stack !== 'string') return { family: '', fallback: '' };
+    const parts = stack.split(',').map((part) => part.trim().replace(/^['"]|['"]$/g, ''));
+    return { family: parts[0] || '', fallback: parts.slice(1).join(', ') };
+  }
+
+  function humanizeDesignKey(value) {
+    return String(value || '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   }
 
   function renderNarrative(narrative) {

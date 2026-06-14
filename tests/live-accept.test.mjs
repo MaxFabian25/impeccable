@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync, execSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ACCEPT = resolve(__dirname, '..', 'source/skills/impeccable/scripts/live-accept.mjs');
+const ACCEPT = resolve(__dirname, '..', 'skills/impeccable/scripts/live-accept.mjs');
 
 function runAccept(cwd, args) {
   try {
@@ -219,7 +219,7 @@ describe('live-accept — style-element edge cases', () => {
     writeFileSync(join(tmp, 'App.tsx'), tsx);
 
     execSync(
-      `node source/skills/impeccable/scripts/live-wrap.mjs --id INDENTDISC --count 3 --classes "card" --tag "aside" --file "${join(tmp, 'App.tsx')}"`,
+      `node skills/impeccable/scripts/live-wrap.mjs --id INDENTDISC --count 3 --classes "card" --tag "aside" --file "${join(tmp, 'App.tsx')}"`,
       { cwd: process.cwd(), encoding: 'utf-8' }
     );
 
@@ -253,7 +253,7 @@ describe('live-accept — style-element edge cases', () => {
     writeFileSync(join(tmp, 'App.tsx'), tsx);
 
     execSync(
-      `node source/skills/impeccable/scripts/live-wrap.mjs --id MULTILINESC --count 3 --classes "card" --tag "aside" --file "${join(tmp, 'App.tsx')}"`,
+      `node skills/impeccable/scripts/live-wrap.mjs --id MULTILINESC --count 3 --classes "card" --tag "aside" --file "${join(tmp, 'App.tsx')}"`,
       { cwd: process.cwd(), encoding: 'utf-8' }
     );
 

@@ -52,16 +52,16 @@ extension/detector/
 evals/
 
 # Generated site data copied by Astro
-public/_data/
-public/_headers
-public/_redirects
-public/_routes.json
-public/js/detect-antipatterns-browser.js
+site/public/_data/
+site/public/_headers
+site/public/_redirects
+site/public/_routes.json
+site/public/js/detect-antipatterns-browser.js
 
-# Legacy generated sub-page artifacts (do not commit)
-public/skills/
-public/anti-patterns/
-public/tutorials/
-public/visual-mode/
-public/slop/
-public/designing/
+# Generated sub-page artifacts (do not commit)
+site/public/skills/
+site/public/anti-patterns/
+site/public/tutorials/
+site/public/visual-mode/
+site/public/slop/
+site/public/designing/

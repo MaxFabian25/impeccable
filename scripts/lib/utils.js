@@ -156,83 +156,77 @@ export function readFilesRecursive(dir, fileList = []) {
 }
 
 /**
- * Read and parse all source files (unified skills architecture)
- * All source lives in source/skills/{name}/SKILL.md
- * Returns { skills } where each skill has userInvocable flag
+ * Read and parse all authored Codex skill sources.
+ * All source lives in skills/{name}/SKILL.md.
  */
 export function readSourceFiles(rootDir) {
-  const skillsDir = path.join(rootDir, 'source/skills');
-
+  const skillsDir = path.join(rootDir, 'skills');
   const skills = [];
 
-  if (fs.existsSync(skillsDir)) {
-    const entries = fs.readdirSync(skillsDir, { withFileTypes: true })
-      .sort((a, b) => a.name.localeCompare(b.name));
+  if (!fs.existsSync(skillsDir)) {
+    return { skills };
+  }
 
-    for (const entry of entries) {
-      const entryPath = path.join(skillsDir, entry.name);
+  const entries = fs.readdirSync(skillsDir, { withFileTypes: true })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
-      if (entry.isDirectory()) {
-        // Directory-based skill with potential references
-        const skillMdPath = path.join(entryPath, 'SKILL.md');
-        if (fs.existsSync(skillMdPath)) {
-          const content = fs.readFileSync(skillMdPath, 'utf-8');
-          const { frontmatter, body } = parseFrontmatter(content);
+  for (const entry of entries) {
+    const entryPath = path.join(skillsDir, entry.name);
+    if (!entry.isDirectory()) continue;
 
-          // Read reference files if they exist
-          const references = [];
-          const referenceDir = path.join(entryPath, 'reference');
-          if (fs.existsSync(referenceDir)) {
-            const refFiles = fs.readdirSync(referenceDir)
-              .filter(f => f.endsWith('.md'))
-              .sort((a, b) => a.localeCompare(b));
-            for (const refFile of refFiles) {
-              const refPath = path.join(referenceDir, refFile);
-              const refContent = fs.readFileSync(refPath, 'utf-8');
-              references.push({
-                name: path.basename(refFile, '.md'),
-                content: refContent,
-                filePath: refPath
-              });
-            }
-          }
+    const skillMdPath = path.join(entryPath, 'SKILL.md');
+    if (!fs.existsSync(skillMdPath)) continue;
 
-          // Read script files if they exist
-          const scripts = [];
-          const scriptsDir = path.join(entryPath, 'scripts');
-          if (fs.existsSync(scriptsDir)) {
-            const scriptFiles = fs.readdirSync(scriptsDir)
-              .filter(f => fs.statSync(path.join(scriptsDir, f)).isFile() && !PER_PROJECT_SCRIPT_ARTIFACTS.has(f))
-              .sort((a, b) => a.localeCompare(b));
-            for (const scriptFile of scriptFiles) {
-              const scriptPath = path.join(scriptsDir, scriptFile);
-              const scriptContent = fs.readFileSync(scriptPath, 'utf-8');
-              scripts.push({
-                name: scriptFile,
-                content: scriptContent,
-                filePath: scriptPath
-              });
-            }
-          }
+    const content = fs.readFileSync(skillMdPath, 'utf-8');
+    const { frontmatter, body } = parseFrontmatter(content);
 
-          skills.push({
-            name: frontmatter.name || entry.name,
-            description: frontmatter.description || '',
-            license: frontmatter.license || '',
-            compatibility: frontmatter.compatibility || '',
-            metadata: frontmatter.metadata || null,
-            allowedTools: frontmatter['allowed-tools'] || '',
-            userInvocable: frontmatter['user-invocable'] === true || frontmatter['user-invocable'] === 'true',
-            argumentHint: frontmatter['argument-hint'] || '',
-            context: frontmatter.context || null,
-            body,
-            filePath: skillMdPath,
-            references,
-            scripts
-          });
-        }
+    const references = [];
+    const referenceDir = path.join(entryPath, 'reference');
+    if (fs.existsSync(referenceDir)) {
+      const refFiles = fs.readdirSync(referenceDir)
+        .filter(f => f.endsWith('.md'))
+        .sort((a, b) => a.localeCompare(b));
+      for (const refFile of refFiles) {
+        const refPath = path.join(referenceDir, refFile);
+        references.push({
+          name: path.basename(refFile, '.md'),
+          content: fs.readFileSync(refPath, 'utf-8'),
+          filePath: refPath
+        });
       }
     }
+
+    const scripts = [];
+    const scriptsDir = path.join(entryPath, 'scripts');
+    if (fs.existsSync(scriptsDir)) {
+      const scriptFiles = fs.readdirSync(scriptsDir)
+        .filter(f => fs.statSync(path.join(scriptsDir, f)).isFile() && !PER_PROJECT_SCRIPT_ARTIFACTS.has(f))
+        .sort((a, b) => a.localeCompare(b));
+      for (const scriptFile of scriptFiles) {
+        const scriptPath = path.join(scriptsDir, scriptFile);
+        scripts.push({
+          name: scriptFile,
+          content: fs.readFileSync(scriptPath, 'utf-8'),
+          filePath: scriptPath
+        });
+      }
+    }
+
+    skills.push({
+      name: frontmatter.name || entry.name,
+      description: frontmatter.description || '',
+      license: frontmatter.license || '',
+      compatibility: frontmatter.compatibility || '',
+      metadata: frontmatter.metadata || null,
+      allowedTools: frontmatter['allowed-tools'] || '',
+      userInvocable: frontmatter['user-invocable'] === true || frontmatter['user-invocable'] === 'true',
+      argumentHint: frontmatter['argument-hint'] || '',
+      context: frontmatter.context || null,
+      body,
+      filePath: skillMdPath,
+      references,
+      scripts
+    });
   }
 
   return { skills };
@@ -362,12 +356,12 @@ export function readPatterns(_rootDir) {
 }
 
 /**
- * Extract full DO/DON'T patterns from source/skills/impeccable/SKILL.md.
+ * Extract full DO/DON'T patterns from skills/impeccable/SKILL.md.
  *
  * This is for detector drift validation, not the homepage teaser.
  */
 export function readSkillPatterns(rootDir) {
-  const skillPath = path.join(rootDir, 'source/skills/impeccable/SKILL.md');
+  const skillPath = path.join(rootDir, 'skills/impeccable/SKILL.md');
 
   if (!fs.existsSync(skillPath)) {
     return { patterns: [], antipatterns: [] };

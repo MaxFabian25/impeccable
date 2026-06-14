@@ -9,10 +9,10 @@ import net from 'node:net';
 import {
   getLiveServerPath,
   getLiveSessionsDir,
-} from '../source/skills/impeccable/scripts/impeccable-paths.mjs';
+} from '../skills/impeccable/scripts/impeccable-paths.mjs';
 
 const ROOT = process.cwd();
-const SERVER_SCRIPT = path.join(ROOT, 'source/skills/impeccable/scripts/live-server.mjs');
+const SERVER_SCRIPT = path.join(ROOT, 'skills/impeccable/scripts/live-server.mjs');
 
 let child = null;
 let cwd = null;

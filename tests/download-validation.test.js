@@ -4,7 +4,7 @@ import {
   DOWNLOAD_PROVIDERS,
   FILE_DOWNLOAD_PROVIDER_SKILLS_DIRS,
   FILE_DOWNLOAD_PROVIDERS,
-} from '../lib/download-providers.js';
+} from '../cli/lib/download-providers.js';
 import { onRequestGet as handleBundleDownload } from '../functions/api/download/bundle/[provider].js';
 
 const isAllowedBundleProvider = provider => BUNDLE_DOWNLOAD_PROVIDERS.includes(provider);

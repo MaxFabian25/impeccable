@@ -4,9 +4,9 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { parseDesignMd } from '../src/design-parser.mjs';
-import { parseDesignMd as parseSkillDesignMd } from '../source/skills/impeccable/scripts/design-parser.mjs';
-import { loadDesignSystemPayload } from '../src/detect-antipatterns.mjs';
+import { parseDesignMd } from '../cli/engine/design-parser.mjs';
+import { parseDesignMd as parseSkillDesignMd } from '../skills/impeccable/scripts/design-parser.mjs';
+import { loadDesignSystemPayload } from '../cli/engine/detect-antipatterns.mjs';
 
 describe('parseDesignMd', () => {
   it('extracts core sections from Stitch-style markdown', () => {

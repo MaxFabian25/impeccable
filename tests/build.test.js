@@ -31,7 +31,7 @@ describe('codex-only build contract', () => {
   });
 
   test('authored and generated impeccable skills omit one-time cleanup bootstrap', () => {
-    const authored = fs.readFileSync(path.join(process.cwd(), 'source/skills/impeccable/SKILL.md'), 'utf8');
+    const authored = fs.readFileSync(path.join(process.cwd(), 'skills/impeccable/SKILL.md'), 'utf8');
     const generated = fs.readFileSync(
       path.join(process.cwd(), 'plugins/impeccable/skills/impeccable/SKILL.md'),
       'utf8'
@@ -39,7 +39,7 @@ describe('codex-only build contract', () => {
 
     expect(authored).not.toContain('<post-update-cleanup>');
     expect(generated).not.toContain('<post-update-cleanup>');
-    expect(fs.existsSync(path.join(process.cwd(), 'source/skills/impeccable/scripts/cleanup-deprecated.mjs'))).toBe(true);
+    expect(fs.existsSync(path.join(process.cwd(), 'skills/impeccable/scripts/cleanup-deprecated.mjs'))).toBe(true);
     expect(fs.existsSync(
       path.join(process.cwd(), 'plugins/impeccable/skills/impeccable/scripts/cleanup-deprecated.mjs')
     )).toBe(true);
@@ -47,7 +47,7 @@ describe('codex-only build contract', () => {
 
   test('live browser accept fallback preserves variant attributes for scoped styles', () => {
     const authored = fs.readFileSync(
-      path.join(process.cwd(), 'source/skills/impeccable/scripts/live-browser.js'),
+      path.join(process.cwd(), 'skills/impeccable/scripts/live-browser.js'),
       'utf8'
     );
     const generated = fs.readFileSync(
@@ -65,23 +65,23 @@ describe('codex-only build contract', () => {
   test('live runtime carries Codex-safe upstream runtime guards', () => {
     const scriptPairs = [
       [
-        'source/skills/impeccable/scripts/live-browser.js',
+        'skills/impeccable/scripts/live-browser.js',
         'plugins/impeccable/skills/impeccable/scripts/live-browser.js',
       ],
       [
-        'source/skills/impeccable/scripts/live-accept.mjs',
+        'skills/impeccable/scripts/live-accept.mjs',
         'plugins/impeccable/skills/impeccable/scripts/live-accept.mjs',
       ],
       [
-        'source/skills/impeccable/scripts/live-inject.mjs',
+        'skills/impeccable/scripts/live-inject.mjs',
         'plugins/impeccable/skills/impeccable/scripts/live-inject.mjs',
       ],
       [
-        'source/skills/impeccable/scripts/live-poll.mjs',
+        'skills/impeccable/scripts/live-poll.mjs',
         'plugins/impeccable/skills/impeccable/scripts/live-poll.mjs',
       ],
       [
-        'source/skills/impeccable/scripts/live-server.mjs',
+        'skills/impeccable/scripts/live-server.mjs',
         'plugins/impeccable/skills/impeccable/scripts/live-server.mjs',
       ],
     ];
@@ -149,7 +149,7 @@ describe('codex-only build contract', () => {
   });
 
   test('transformCodex writes skills into the codex distribution tree', () => {
-    const skillDir = path.join(TEST_DIR, 'source/skills/test-skill');
+    const skillDir = path.join(TEST_DIR, 'skills/test-skill');
     fs.mkdirSync(skillDir, { recursive: true });
     fs.writeFileSync(
       path.join(skillDir, 'SKILL.md'),
@@ -176,7 +176,7 @@ This is a test skill body.`
   });
 
   test('transformCodex applies codex placeholders without prefixing', () => {
-    const auditDir = path.join(TEST_DIR, 'source/skills/audit');
+    const auditDir = path.join(TEST_DIR, 'skills/audit');
     fs.mkdirSync(auditDir, { recursive: true });
     fs.writeFileSync(
       path.join(auditDir, 'SKILL.md'),
@@ -192,7 +192,7 @@ Ask {{model}} for help.
 Then run {{command_prefix}}polish.`
     );
 
-    const impeccableDir = path.join(TEST_DIR, 'source/skills/impeccable');
+    const impeccableDir = path.join(TEST_DIR, 'skills/impeccable');
     fs.mkdirSync(impeccableDir, { recursive: true });
     fs.writeFileSync(
       path.join(impeccableDir, 'SKILL.md'),
@@ -205,7 +205,7 @@ user-invocable: true
 Teach design context.`
     );
 
-    const polishDir = path.join(TEST_DIR, 'source/skills/polish');
+    const polishDir = path.join(TEST_DIR, 'skills/polish');
     fs.mkdirSync(polishDir, { recursive: true });
     fs.writeFileSync(
       path.join(polishDir, 'SKILL.md'),

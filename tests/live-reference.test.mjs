@@ -7,7 +7,7 @@ const ROOT = process.cwd();
 
 describe('live reference authoring contract', () => {
   it('keeps live preview CSS guidance capability-mode driven', () => {
-    const liveMd = readFileSync(join(ROOT, 'source/skills/impeccable/reference/live.md'), 'utf-8');
+    const liveMd = readFileSync(join(ROOT, 'skills/impeccable/reference/live.md'), 'utf-8');
 
     assert.match(
       liveMd,
@@ -32,7 +32,7 @@ describe('live reference authoring contract', () => {
   });
 
   it('passes cssAuthoring through live-wrap output instead of hard-coding scoped CSS', () => {
-    const liveWrap = readFileSync(join(ROOT, 'source/skills/impeccable/scripts/live-wrap.mjs'), 'utf-8');
+    const liveWrap = readFileSync(join(ROOT, 'skills/impeccable/scripts/live-wrap.mjs'), 'utf-8');
 
     assert.match(
       liveWrap,

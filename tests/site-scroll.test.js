@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import { JSDOM } from 'jsdom';
-import { initAnchorScroll, initHashTracking } from '../public/js/utils/scroll.js';
+import { initAnchorScroll, initHashTracking } from '../site/public/js/utils/scroll.js';
 
 function installDom(html, url = 'https://impeccable.test/') {
   const dom = new JSDOM(html, {

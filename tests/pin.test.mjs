@@ -15,7 +15,7 @@ import {
   pinCommand,
   renderShortcut,
   unpinCommand,
-} from '../source/skills/impeccable/scripts/pin.mjs';
+} from '../skills/impeccable/scripts/pin.mjs';
 
 function makeTmpDir() {
   return mkdtempSync(join(tmpdir(), 'impeccable-pin-test-'));

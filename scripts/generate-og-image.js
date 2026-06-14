@@ -4,9 +4,9 @@
  * Generate OG Image
  *
  * Renders the OG image using Playwright with proper Google Fonts.
- * Counts commands dynamically from the source/ directory and composes
+ * Counts commands dynamically from the skills/ directory and composes
  * the wordmark alongside a real screenshot of the Chrome extension
- * detection panel from public/assets/extension-detection.png.
+ * detection panel from site/public/assets/extension-detection.png.
  *
  * Usage: bun run og-image
  */
@@ -19,18 +19,19 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
-const OUTPUT_PATH = path.join(ROOT_DIR, 'public', 'og-image.jpg');
+const OUTPUT_PATH = path.join(ROOT_DIR, 'site', 'public', 'og-image.jpg');
 const EXTENSION_IMAGE_PATH = path.join(
   ROOT_DIR,
+  'site',
   'public',
   'assets',
   'extension-detection.png',
 );
 
-// Count user-invocable, non-deprecated skills from source/skills/
+// Count user-invocable, non-deprecated skills from skills/
 // (In v2.0, commands and skills were unified — every command is a skill.)
 function getCommandCount() {
-  const skillsDir = path.join(ROOT_DIR, 'source', 'skills');
+  const skillsDir = path.join(ROOT_DIR, 'skills');
   if (!fs.existsSync(skillsDir)) return 0;
 
   let count = 0;

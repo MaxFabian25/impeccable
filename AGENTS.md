@@ -2,11 +2,11 @@
 
 ## Purpose
 
-This fork is Codex-only. The repository maintains one authored skill source and one generated Codex distribution surface.
+This fork is Codex-only. The repository maintains authored Codex skill sources and one generated Codex distribution surface.
 
 ## Canonical Flow
 
-1. Author and edit skills in `source/skills/<name>/SKILL.md`
+1. Author and edit skills in `skills/<name>/SKILL.md`
 2. Run the build to generate:
    - `dist/codex/skills/`
    - `dist/codex.zip`
@@ -15,16 +15,17 @@ This fork is Codex-only. The repository maintains one authored skill source and 
 ## Key Paths
 
 ```text
-source/skills/                  canonical authored skills
+skills/                  canonical authored skills
 plugins/impeccable/skills/      tracked Codex plugin output
 plugins/impeccable/.codex-plugin/plugin.json Codex plugin manifest
 .agents/plugins/marketplace.json Git-backed Codex marketplace metadata
 scripts/build.js                build orchestration
 scripts/lib/transformers/       Codex transformer config
-lib/download-providers.js       Codex download registry
+cli/lib/download-providers.js       Codex download registry
 functions/api/download/         download routes
 site/                           Astro site source
-src/                            detector + CLI runtime
+cli/engine/                     detector runtime
+cli/bin/                        CLI entrypoint
 tests/                          contract coverage
 ```
 
@@ -44,5 +45,5 @@ node --test tests/cleanup-deprecated.test.mjs tests/detect-antipatterns-fixtures
 - Do not reintroduce non-Codex provider outputs, docs, or install paths.
 - Keep the command prefix Codex-native: `$audit`, `$polish`, `$impeccable`, and so on.
 - Treat `plugins/impeccable/skills` plus `plugins/impeccable/.codex-plugin/plugin.json` as the installable surface.
-- Keep `source/skills` as the single authored source of truth.
+- Keep `skills/` as the authored source of truth.
 - Follow `STYLE.md` for public copy. `scripts/build.js` enforces the prose denylist for the site and README surfaces.

@@ -8,10 +8,10 @@ import {
   installBundleIntoRoot,
   isAlreadyInstalled,
   isUpToDate,
-} from '../bin/commands/skills.mjs';
+} from '../cli/bin/commands/skills.mjs';
 
 const REPO_ROOT = join(import.meta.dir, '..');
-const CLI_PATH = join(REPO_ROOT, 'bin', 'cli.js');
+const CLI_PATH = join(REPO_ROOT, 'cli', 'bin', 'cli.js');
 
 function createFakeCodexSkills(root, skills = ['audit', 'polish', 'impeccable']) {
   for (const skill of skills) {
