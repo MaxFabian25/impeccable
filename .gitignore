@@ -56,6 +56,9 @@ extension/detector/
 # Evals (private, commercial)
 evals/
 
+# Talk decks & speaker materials (local working files, not for distribution)
+talks/
+
 # Generated site data copied by Astro
 site/public/_data/
 site/public/_headers
