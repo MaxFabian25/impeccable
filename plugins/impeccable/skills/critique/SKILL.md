@@ -23,7 +23,7 @@ Before gathering assessments, do the bookkeeping that makes critique iterative a
    ```
    Keep the printed slug. If the command exits non-zero, skip persistence for this run and tell the user the trend will not update.
 
-3. **Read `.impeccable$critique/ignore.md` if it exists**. Each non-empty, non-comment line is a user-accepted deferral, intentional deviation, or false positive. When a finding's text matches a line here as a case-insensitive substring against the rule name or snippet, drop it silently. This is the only prior-run input critique consumes; do not anchor the assessment on previous reports.
+3. **Read `.impeccable/critique/ignore.md` if it exists**. Each non-empty, non-comment line is a user-accepted deferral, intentional deviation, or false positive. When a finding's text matches a line here as a case-insensitive substring against the rule name or snippet, drop it silently. This is the only prior-run input critique consumes; do not anchor the assessment on previous reports.
 
 ### Step 3: Gather Assessments
 
@@ -192,7 +192,7 @@ Provocative questions that might unlock better solutions:
 
 ### Step 5: Persist the Snapshot
 
-Once the report above is finalized, write it to `.impeccable$critique/` so the user can refer back and so $polish can pick up priority issues without copy-paste.
+Once the report above is finalized, write it to `.impeccable/critique/` so the user can refer back and so $polish can pick up priority issues without copy-paste.
 
 Skip this step if the target slug was null.
 
@@ -213,7 +213,7 @@ Skip this step if the target slug was null.
 4. **Append a single line to the user-visible output**, after the report and before questions:
 
    > **Trend for `<slug>` (last 5 runs): 24 -> 28 -> 32 -> 29 -> 32**
-   > Wrote `.impeccable$critique/<filename>`.
+   > Wrote `.impeccable/critique/<filename>`.
 
    If this is the first run for the slug, say: "First run for this target, no trend yet."
 
@@ -227,7 +227,7 @@ Ask questions along these lines (adapt to the specific findings; do NOT ask gene
 
 1. **Priority direction**: Based on the issues found, ask which category matters most to the user right now. For example: "I found problems with visual hierarchy, color usage, and information overload. Which area should we tackle first?" Offer the top 2-3 issue categories as options.
 
-2. **Design intent**: If the critique found a tonal mismatch, ask whether it was intentional. For example: "The interface feels clinical and corporate. Is that the intended tone, or should it feel warmer$bolder/more playful?" Offer 2-3 tonal directions as options based on what would fix the issues found.
+2. **Design intent**: If the critique found a tonal mismatch, ask whether it was intentional. For example: "The interface feels clinical and corporate. Is that the intended tone, or should it feel warmer/bolder/more playful?" Offer 2-3 tonal directions as options based on what would fix the issues found.
 
 3. **Scope**: Ask how much the user wants to take on. For example: "I found N issues. Want to address everything, or focus on the top 3?" Offer scope options like "Top 3 only", "All issues", "Critical issues only".
 

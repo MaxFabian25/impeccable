@@ -426,7 +426,7 @@ Glob syntax: `**` matches any number of path segments including zero, `*` matche
 | Framework | `files` | `insertBefore` | `commentSyntax` |
 |-----------|---------|----------------|-----------------|
 | SPA with single shell (Vite / React / Plain HTML) | `["index.html"]` | `</body>` | `html` |
-| Next.js (App Router) | `["app$layout.tsx"]` | `</body>` | `jsx` |
+| Next.js (App Router) | `["app/layout.tsx"]` | `</body>` | `jsx` |
 | Next.js (Pages) | `["pages/_document.tsx"]` | `</body>` | `jsx` |
 | Nuxt | `["app.vue"]` | `</body>` | `html` |
 | Svelte / SvelteKit | `["src/app.html"]` | `</body>` | `html` |

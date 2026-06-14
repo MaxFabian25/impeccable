@@ -741,4 +741,15 @@ describe('replacePlaceholders', () => {
     const result = replacePlaceholders('{{model}} {{config_file}}', 'unknown-provider');
     expect(result).toBe('GPT AGENTS.md');
   });
+
+  test('should convert slash commands without rewriting paths or prose slashes', () => {
+    const result = replacePlaceholders(
+      'Run `/critique`, then `/critique.`. Read `.impeccable/critique/ignore.md` and `/critique.md`; warmer/bolder is prose.',
+      'codex',
+      [],
+      ['critique', 'bolder']
+    );
+
+    expect(result).toBe('Run `$critique`, then `$critique.`. Read `.impeccable/critique/ignore.md` and `/critique.md`; warmer/bolder is prose.');
+  });
 });

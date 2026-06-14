@@ -61,6 +61,10 @@ describe('codex-only build contract', () => {
       expect(generated).not.toContain('skills/critique/scripts/critique-storage.mjs');
       expect(generated).not.toContain('skills/polish/scripts/critique-storage.mjs');
     }
+
+    expect(generatedCritique).toContain('.impeccable/critique/ignore.md');
+    expect(generatedCritique).toContain('.impeccable/critique/<filename>');
+    expect(generatedCritique).not.toContain('.impeccable$critique');
   });
 
   test('live browser accept fallback preserves variant attributes for scoped styles', () => {
