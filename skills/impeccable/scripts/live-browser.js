@@ -2115,9 +2115,10 @@
     return '#ffffff';
   }
 
-  // Capture the element (with current annotations baked in) and return a PNG
-  // Blob. Shared between the Go flow (uploads it to the server) and the
-  // debug toggle (displays it as an overlay for side-by-side comparison).
+  // Capture the element (with current annotations baked in) and return
+  // { blob, paper }: the PNG Blob, plus the representative backdrop tone for the
+  // shader's halftone ground. Shared between the Go flow (uploads the blob) and
+  // the shader-resume path.
   async function captureElementToBlob(el, snapshot, rect) {
     try { if (document.fonts?.ready) await document.fonts.ready; } catch {}
     const hasAnnotations = snapshot && (snapshot.comments.length > 0 || snapshot.strokes.length > 0);
@@ -2135,12 +2136,43 @@
     try {
       const ms = await loadModernScreenshot();
       const fontCssText = await collectFontCssText();
-      const backgroundColor = resolveCanvasBackground(el);
-      return await ms.domToBlob(el, {
+      const opts = {
         scale: Math.min(window.devicePixelRatio || 1, 2),
         font: fontCssText ? { cssText: fontCssText } : undefined,
-        ...(backgroundColor ? { backgroundColor } : {}),
-      });
+      };
+      const bg = resolveCanvasBackground(el);
+      // Fast path: the element paints its own background, or an opaque ancestor
+      // color was found. modern-screenshot bakes that color; paper matches it.
+      if (bg !== '#ffffff') {
+        const blob = await ms.domToBlob(el, { ...opts, ...(bg ? { backgroundColor: bg } : {}) });
+        return { blob, paper: bg ? cssColorToRgb01(bg) : resolvePaperRgb(el) };
+      }
+      // Transparent up to the root. The visible backdrop may still come from an
+      // ancestor's background-image or a covering positioned layer that the
+      // color walk cannot see. Capture that ancestor and crop to the element so
+      // the real backdrop is embedded. Fall back to white only when nothing is
+      // actually painted behind the element.
+      const backdrop = findBackdropAncestor(el);
+      if (!backdrop) {
+        const blob = await ms.domToBlob(el, { ...opts, backgroundColor: '#ffffff' });
+        return { blob, paper: SHADER_PAPER_FALLBACK };
+      }
+      const ancestorCanvas = await ms.domToCanvas(backdrop, opts);
+      const S = opts.scale;
+      const er = el.getBoundingClientRect();
+      const ar = backdrop.getBoundingClientRect();
+      const sx = (er.left - ar.left) * S, sy = (er.top - ar.top) * S;
+      const sw = er.width * S, sh = er.height * S;
+      const crop = document.createElement('canvas');
+      crop.width = Math.max(1, Math.round(sw));
+      crop.height = Math.max(1, Math.round(sh));
+      const cctx = crop.getContext('2d', { willReadFrequently: true });
+      cctx.drawImage(ancestorCanvas, sx, sy, sw, sh, 0, 0, crop.width, crop.height);
+      const actx = ancestorCanvas.getContext('2d', { willReadFrequently: true });
+      const paper = sampleSurroundingRgb(actx, sx, sy, sw, sh, ancestorCanvas.width, ancestorCanvas.height)
+        || averageRgb01(cctx, crop.width, crop.height);
+      const blob = await new Promise((res) => crop.toBlob(res, 'image/png'));
+      return { blob, paper };
     } finally {
       if (annotNode) annotNode.remove();
       if (savedPosition !== null) el.style.position = savedPosition;
@@ -2150,15 +2182,16 @@
   async function captureAndEmit(el, basePayload, snapshot, rect) {
     let screenshotPath;
     let blob;
+    let paper;
     try {
-      blob = await captureElementToBlob(el, snapshot, rect);
+      ({ blob, paper } = await captureElementToBlob(el, snapshot, rect));
     } catch (err) {
       console.warn('[impeccable] capture failed, proceeding without screenshot:', err);
     }
     // Light up the shader overlay the moment capture is ready — no reason to
     // wait for the upload to complete before the user sees something alive.
     if (blob && state === 'GENERATING') {
-      showShaderOverlay(el, blob, rect);
+      showShaderOverlay(el, blob, rect, paper);
     }
     // Only upload and forward the screenshot when comments or strokes are
     // present. Without annotations the image is pure visual anchoring, which
@@ -2205,6 +2238,7 @@ uniform sampler2D u_texture;
 uniform float u_time;
 uniform vec2 u_resolution;
 uniform vec3 u_accent;
+uniform vec3 u_paper;
 varying vec2 v_uv;
 
 // Asymmetric roller band. Product of two one-sided smoothsteps — peaks at
@@ -2232,22 +2266,107 @@ void main() {
   vec2 cellUv = fract(gridUv) - 0.5;
   vec2 sampleCenter = (cellId + 0.5) * cellPx / u_resolution;
   vec3 cellImg = texture2D(u_texture, sampleCenter).rgb;
-  float luma = dot(cellImg, vec3(0.299, 0.587, 0.114));
-  // Darker cells → bigger magenta dots (classic risograph halftone curve).
-  float radius = sqrt(clamp(1.0 - luma, 0.0, 1.0)) * 0.56;
+  // Dot size tracks how much the cell differs from the element's own ground
+  // (u_paper), not absolute darkness. Content becomes dots on light and dark
+  // surfaces alike instead of inverting on dark elements.
+  float contrast = clamp(length(cellImg - u_paper) / 1.732, 0.0, 1.0);
+  float radius = min(sqrt(contrast) * 0.6, 0.38);
   float dotMask = smoothstep(radius + 0.06, radius, length(cellUv));
-  vec3 paper = vec3(0.975, 0.965, 0.955);
-  vec3 dotLayer = mix(paper, u_accent, dotMask);
-
-  // Blend the halftone layer in where the roller is passing; leave the
-  // element pristine elsewhere.
-  vec3 base = texture2D(u_texture, uv).rgb;
-  gl_FragColor = vec4(mix(base, dotLayer, band), 1.0);
+  vec4 tex = texture2D(u_texture, uv);
+  vec3 base = tex.rgb;
+  float cover = smoothstep(0.0, 0.35, band);
+  float dotAmt = dotMask * smoothstep(0.15, 0.6, band);
+  vec3 ground = mix(base, u_paper, cover);
+  // Carry the capture's own alpha through, so rounded corners and genuinely
+  // transparent regions keep showing the live backdrop instead of rendering
+  // black.
+  gl_FragColor = vec4(mix(ground, u_accent, dotAmt), tex.a);
 }`;
 
   // Editorial Magenta converted to approximate sRGB 0-1 (matches oklch(60% 0.25 350))
   const SHADER_ACCENT = [0.82, 0.16, 0.47];
+  // Fallback ground when an element and all its ancestors are transparent.
+  const SHADER_PAPER_FALLBACK = [0.975, 0.965, 0.955];
   let shaderState = null; // { canvas, gl, program, texture, rafId, startTime }
+
+  // Rasterize CSS colors through a 1x1 canvas so modern color syntaxes such as
+  // oklch() and color() resolve to sRGB without brittle string parsing.
+  let colorParseCtx = null;
+  function cssColorToRgb01(str) {
+    if (!colorParseCtx) {
+      colorParseCtx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    }
+    // Clear first: the ctx is cached across calls, so a semi-transparent color
+    // would otherwise blend with the previous call's leftover pixel.
+    colorParseCtx.clearRect(0, 0, 1, 1);
+    colorParseCtx.fillStyle = '#000';
+    colorParseCtx.fillStyle = str;
+    colorParseCtx.fillRect(0, 0, 1, 1);
+    const d = colorParseCtx.getImageData(0, 0, 1, 1).data;
+    return [d[0] / 255, d[1] / 255, d[2] / 255];
+  }
+
+  function resolvePaperRgb(el) {
+    let node = el;
+    while (node) {
+      const bg = getComputedStyle(node).backgroundColor;
+      if (!isTransparentColor(bg)) return cssColorToRgb01(bg);
+      node = node.parentElement;
+    }
+    return SHADER_PAPER_FALLBACK;
+  }
+
+  function paintsBackdrop(node) {
+    const s = getComputedStyle(node);
+    if (s.backgroundImage && s.backgroundImage !== 'none') return true;
+    const nr = node.getBoundingClientRect();
+    for (const child of node.children) {
+      const ccs = getComputedStyle(child);
+      if (ccs.position !== 'absolute' && ccs.position !== 'fixed') continue;
+      const paints = !isTransparentColor(ccs.backgroundColor)
+        || (ccs.backgroundImage && ccs.backgroundImage !== 'none');
+      if (!paints) continue;
+      const cr = child.getBoundingClientRect();
+      if (cr.width >= nr.width * 0.9 && cr.height >= nr.height * 0.9) return true;
+    }
+    return false;
+  }
+
+  function findBackdropAncestor(el) {
+    let node = el.parentElement;
+    while (node && node !== node.ownerDocument.documentElement) {
+      if (paintsBackdrop(node)) return node;
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  function averageRgb01(ctx, w, h) {
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < data.length; i += 16) {
+      r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
+    }
+    return n ? [r / n / 255, g / n / 255, b / n / 255] : SHADER_PAPER_FALLBACK;
+  }
+
+  function sampleSurroundingRgb(ctx, sx, sy, sw, sh, W, H) {
+    const pad = Math.max(2, Math.round(Math.min(sw, sh) * 0.12));
+    const fx = [0.2, 0.5, 0.8].map((f) => sx + sw * f);
+    const fy = [0.2, 0.5, 0.8].map((f) => sy + sh * f);
+    const pts = [];
+    for (const x of fx) { pts.push([x, sy - pad], [x, sy + sh + pad]); }
+    for (const y of fy) { pts.push([sx - pad, y], [sx + sw + pad, y]); }
+    let r = 0, g = 0, b = 0, n = 0;
+    for (const [px, py] of pts) {
+      const cx = Math.max(0, Math.min(W - 1, Math.round(px)));
+      const cy = Math.max(0, Math.min(H - 1, Math.round(py)));
+      const d = ctx.getImageData(cx, cy, 1, 1).data;
+      if (d[3] === 0) continue;
+      r += d[0]; g += d[1]; b += d[2]; n++;
+    }
+    return n ? [r / n / 255, g / n / 255, b / n / 255] : null;
+  }
 
   function compileShader(gl, type, source) {
     const sh = gl.createShader(type);
@@ -2279,7 +2398,7 @@ void main() {
     shaderState = null;
   }
 
-  async function showShaderOverlay(el, blob, rect) {
+  async function showShaderOverlay(el, blob, rect, paper) {
     hideShaderOverlay();
     if (!blob || !el) return;
     const canvas = document.createElement('canvas');
@@ -2373,7 +2492,9 @@ void main() {
     const uTime = gl.getUniformLocation(program, 'u_time');
     const uRes = gl.getUniformLocation(program, 'u_resolution');
     const uAccent = gl.getUniformLocation(program, 'u_accent');
+    const uPaper = gl.getUniformLocation(program, 'u_paper');
     const uTex = gl.getUniformLocation(program, 'u_texture');
+    const paperRgb = paper || resolvePaperRgb(el);
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     shaderState = { canvas, gl, program, texture, rafId: 0, startTime: performance.now(), reduced };
@@ -2389,6 +2510,7 @@ void main() {
       gl.uniform1f(uTime, t);
       gl.uniform2f(uRes, canvas.width, canvas.height);
       gl.uniform3f(uAccent, SHADER_ACCENT[0], SHADER_ACCENT[1], SHADER_ACCENT[2]);
+      gl.uniform3f(uPaper, paperRgb[0], paperRgb[1], paperRgb[2]);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       shaderState.rafId = requestAnimationFrame(frame);
     }
@@ -2651,9 +2773,9 @@ void main() {
         try {
           const rect = origEl.getBoundingClientRect();
           if (rect.width === 0 || rect.height === 0) return;
-          const blob = await captureElementToBlob(origEl, null, rect);
+          const { blob, paper } = await captureElementToBlob(origEl, null, rect);
           if (blob && state === 'GENERATING') {
-            showShaderOverlay(origEl, blob, rect);
+            showShaderOverlay(origEl, blob, rect, paper);
           }
         } catch (err) {
           console.warn('[impeccable] shader resume failed:', err);

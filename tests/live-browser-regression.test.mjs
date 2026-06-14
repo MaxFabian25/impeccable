@@ -42,4 +42,46 @@ describe('live-browser.js regression guards', () => {
       'detectPageTheme must keep its readOpaque helper that filters transparent backgrounds before luminance checks',
     );
   });
+
+  it('grounds the generation shader on the captured backdrop tone', () => {
+    assert.match(
+      SOURCE,
+      /uniform vec3 u_paper;/,
+      'generation shader must accept a paper/backdrop uniform instead of assuming fixed white paper',
+    );
+    assert.match(
+      SOURCE,
+      /gl\.uniform3f\(uPaper,\s*paperRgb\[0\],\s*paperRgb\[1\],\s*paperRgb\[2\]\)/,
+      'generation shader must receive the resolved paper/backdrop RGB tone',
+    );
+  });
+
+  it('keeps capture alpha when rendering the generation shader', () => {
+    assert.match(
+      SOURCE,
+      /gl_FragColor = vec4\(mix\(ground, u_accent, dotAmt\), tex\.a\);/,
+      'shader must preserve capture alpha so rounded or transparent areas do not render black',
+    );
+  });
+
+  it('clears the cached CSS color parse canvas before each fill', () => {
+    assert.match(
+      SOURCE,
+      /function cssColorToRgb01\b[\s\S]{0,500}?colorParseCtx\.clearRect\(0, 0, 1, 1\);[\s\S]{0,300}?colorParseCtx\.fillRect\(0, 0, 1, 1\);/,
+      'semi-transparent color parsing must not blend with the previous cached canvas pixel',
+    );
+  });
+
+  it('propagates the capture paper tone through initial and resumed shader overlays', () => {
+    assert.match(
+      SOURCE,
+      /\(\{ blob, paper \} = await captureElementToBlob\(el, snapshot, rect\)\);[\s\S]{0,800}?showShaderOverlay\(el, blob, rect, paper\);/,
+      'initial generation capture must pass the paper tone into the shader overlay',
+    );
+    assert.match(
+      SOURCE,
+      /const \{ blob, paper \} = await captureElementToBlob\(origEl, null, rect\);[\s\S]{0,200}?showShaderOverlay\(origEl, blob, rect, paper\);/,
+      'shader resume after reload must pass the paper tone into the restarted overlay',
+    );
+  });
 });
