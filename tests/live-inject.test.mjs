@@ -3,7 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { patchCspMeta, resolveFiles, revertCspMeta, validateConfig } from '../skills/impeccable/scripts/live-inject.mjs';
+import {
+  insertTag,
+  patchCspMeta,
+  removeTag,
+  resolveFiles,
+  revertCspMeta,
+  validateConfig,
+} from '../skills/impeccable/scripts/live-inject.mjs';
 
 function withTempProject(fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'impeccable-live-inject-'));
@@ -76,5 +83,27 @@ describe('live inject config resolution', () => {
     assert.match(patched, /data-impeccable-csp-original="[^"]+" \/>/);
     assert.equal(patchCspMeta(patched, 8400), patched);
     assert.equal(revertCspMeta(patched), html);
+  });
+
+  it('preserves the character after an insertAfter anchor with no trailing newline', () => {
+    const injected = insertTag('<head>X</head>', {
+      insertAfter: '<head>',
+      commentSyntax: 'html',
+    }, 8400);
+
+    assert.match(injected, /<!-- impeccable-live-end -->\nX<\/head>/);
+  });
+
+  it('round-trips insertAfter content with CRLF newlines', () => {
+    const original = '<html>\r\n<head>\r\n  <title>X</title>\r\n</head>\r\n<body>Content</body>\r\n</html>\r\n';
+    const injected = insertTag(original, {
+      insertAfter: '<head>',
+      commentSyntax: 'html',
+    }, 8400);
+
+    assert.ok(injected.includes(
+      '<head>\r\n<!-- impeccable-live-start -->\r\n<script src="http://localhost:8400/live.js"></script>\r\n<!-- impeccable-live-end -->\r\n  <title>X</title>'
+    ));
+    assert.equal(removeTag(injected, 'html'), original);
   });
 });
