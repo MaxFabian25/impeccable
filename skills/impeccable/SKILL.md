@@ -185,7 +185,7 @@ DO NOT use a tiny uppercase tracked label above the hero headline as default her
 DO NOT use repeated eyebrow or kicker labels as section scaffolding. Let headings, spacing, and structure carry hierarchy instead.
 DO NOT use only one font family for the entire page. Pair a distinctive display font with a refined body font.
 DO NOT use a flat type hierarchy where sizes are too close together. Aim for at least a 1.25 ratio between steps.
-DO NOT set long body passages in uppercase. Reserve all-caps for short labels and headings.
+DO NOT set long body passages in uppercase.
 </typography_rules>
 
 ### Color & Theme

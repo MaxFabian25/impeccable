@@ -28,7 +28,7 @@ Editorial has permission to use Committed, Full palette, and Drenched color stra
 - Name a real reference before picking a strategy: a type foundry specimen page, a magazine feature, a fashion campaign, a concert poster, a museum identity.
 - Treat palette as voice. A calm site and a restless site should not share the same palette mechanics.
 - When the strategy is Committed or Drenched, color carries the surface. Do not hedge with neutral edges everywhere.
-- If the last editorial project used restrained cream and slate, this one should not reflexively do the same.
+- If the last editorial project used one palette mechanic, this one should not reflexively do the same.
 
 ## Layout
 
@@ -51,7 +51,7 @@ These apply in addition to the root skill's absolute bans:
 - Monospace as lazy shorthand for technical or developer tone.
 - Large rounded-corner icons above every heading.
 - Single-font-family pages when the surface needs a brand voice.
-- All-caps body copy. Reserve caps for short labels and headings.
+- All-caps body copy at body sizes.
 - Timid palettes and average layouts on surfaces that exist to persuade or express.
 
 ## Editorial Permissions
