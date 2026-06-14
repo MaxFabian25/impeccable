@@ -27,6 +27,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { getCritiqueDir } from './impeccable-paths.mjs';
 
 const SLUG_MAX = 50;
@@ -221,6 +222,8 @@ function main(argv) {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Windows passes process.argv[1] with backslashes while import.meta.url uses a
+// normalized file URL. Convert argv path before comparing so CLI mode runs.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main(process.argv.slice(2));
 }

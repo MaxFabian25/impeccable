@@ -8,6 +8,10 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const SCRIPT = fileURLToPath(new URL('../skills/impeccable/scripts/critique-storage.mjs', import.meta.url));
 
 import {
   slugFromTarget,
@@ -145,6 +149,37 @@ describe('writeSnapshot + readLatestSnapshot', () => {
     });
     const latest = readLatestSnapshot('x', { cwd });
     assert.equal(latest.meta.target, 'docs: critique # main');
+  });
+});
+
+describe('CLI entry point', () => {
+  it('slug subcommand prints a slug and exits 0', () => {
+    const result = spawnSync(process.execPath, [SCRIPT, 'slug', 'site/pages/index.astro'], {
+      cwd,
+      encoding: 'utf-8',
+    });
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout.trim(), 'site-pages-index-astro');
+  });
+
+  it('slug subcommand exits 1 with a message for empty input', () => {
+    const result = spawnSync(process.execPath, [SCRIPT, 'slug', ''], {
+      cwd,
+      encoding: 'utf-8',
+    });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /no stable slug/);
+  });
+
+  it('latest subcommand exits 2 when no snapshot exists', () => {
+    const result = spawnSync(process.execPath, [SCRIPT, 'latest', 'never-written'], {
+      cwd,
+      encoding: 'utf-8',
+    });
+
+    assert.equal(result.status, 2);
   });
 });
 
