@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, existsSync, readdirSync, readFileSync, mkdirSync, writeFileSync, rmSync } from 'fs';
+import { mkdtempSync, existsSync, readdirSync, readFileSync, mkdirSync, writeFileSync, rmSync, realpathSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import {
@@ -123,6 +123,18 @@ describe('codex-only installer contract', () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('prefixed Codex installs are no longer supported');
     expect(existsSync(join(tmp, 'skills'))).toBe(false);
+  });
+
+  test('cli install reports the project-local Codex targets', () => {
+    const result = runSkillsCli(tmp, ['install', '--yes']);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Installing Codex bundle into this project:');
+    expect(result.stdout).toContain(`Project root: ${realpathSync(tmp)}`);
+    expect(result.stdout).toContain('- skills/');
+    expect(result.stdout).toContain('- .codex-plugin/');
+    expect(existsSync(join(tmp, 'skills', 'impeccable', 'SKILL.md'))).toBe(true);
+    expect(existsSync(join(tmp, '.codex-plugin', 'plugin.json'))).toBe(true);
   });
 
   test('cli install fails atomically when another Codex plugin already owns plugin.json', () => {

@@ -946,9 +946,13 @@ function checkHtmlPatterns(html) {
   // --- Motion ---
 
   // Bounce/elastic animation names
-  const bounceRe = /animation(?:-name)?\s*:\s*[^;]*\b(bounce|elastic|wobble|jiggle|spring)\b/gi;
-  if (bounceRe.test(html)) {
-    findings.push({ id: 'bounce-easing', snippet: 'Bounce/elastic animation in CSS' });
+  const bounceRe = /animation(?:-name)?\s*:\s*([^;{}]*(?:bounce|elastic|wobble|jiggle|spring)[^;{}]*)/gi;
+  const bounceMatch = bounceRe.exec(html);
+  if (bounceMatch) {
+    const animationToken = bounceMatch[1]
+      .split(/[,\s]+/)
+      .find((part) => /bounce|elastic|wobble|jiggle|spring/i.test(part));
+    findings.push({ id: 'bounce-easing', snippet: `animation: ${animationToken || bounceMatch[1].trim()}` });
   }
 
   // Overshoot cubic-bezier
@@ -4926,9 +4930,14 @@ const REGEX_MATCHERS = [
   { id: 'bounce-easing', regex: /\banimate-bounce\b/g,
     test: () => true,
     fmt: () => 'animate-bounce (Tailwind)' },
-  { id: 'bounce-easing', regex: /animation(?:-name)?\s*:\s*[^;]*\b(bounce|elastic|wobble|jiggle|spring)\b/gi,
+  { id: 'bounce-easing', regex: /animation(?:-name)?\s*:\s*([^;{}]*(?:bounce|elastic|wobble|jiggle|spring)[^;{}]*)/gi,
     test: () => true,
-    fmt: (m) => m[0] },
+    fmt: (m) => {
+      const token = m[1]
+        .split(/[,\s]+/)
+        .find((part) => /bounce|elastic|wobble|jiggle|spring/i.test(part));
+      return `animation: ${token || m[1].trim()}`;
+    } },
   { id: 'bounce-easing', regex: /cubic-bezier\(\s*([\d.-]+)\s*,\s*([\d.-]+)\s*,\s*([\d.-]+)\s*,\s*([\d.-]+)\s*\)/g,
     test: (m) => {
       const y1 = parseFloat(m[2]), y2 = parseFloat(m[4]);

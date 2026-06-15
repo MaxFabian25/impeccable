@@ -319,6 +319,29 @@ function getLocalBundleRoot() {
     : PACKAGE_ROOT;
 }
 
+function getBundleTargetLabels(bundleDir) {
+  const labels = [`${SKILLS_DIR_RELATIVE}/`];
+
+  if (existsSync(join(bundleDir, PLUGIN_DIR_RELATIVE))) {
+    labels.push(`${PLUGIN_DIR_RELATIVE}/`);
+  }
+
+  if (existsSync(join(bundleDir, MARKETPLACE_DIR_RELATIVE))) {
+    labels.push(`${MARKETPLACE_DIR_RELATIVE}/`);
+  }
+
+  return labels;
+}
+
+function printInstallTargets(root, bundleDir) {
+  console.log('Installing Codex bundle into this project:');
+  console.log(`  Project root: ${root}`);
+  for (const label of getBundleTargetLabels(bundleDir)) {
+    console.log(`  - ${label}`);
+  }
+  console.log('');
+}
+
 export function isAlreadyInstalled(root) {
   const skillsDir = getSkillsDir(root);
   if (!existsSync(skillsDir)) return null;
@@ -451,15 +474,17 @@ async function install(flags) {
     process.exit(0);
   }
 
-  console.log('Installing Codex bundle...\n');
+  console.log('Preparing Codex bundle...\n');
 
   let bundleDir;
   try {
     if (hasLocalBundle()) {
       const localBundleRoot = getLocalBundleRoot();
+      printInstallTargets(root, localBundleRoot);
       installBundleIntoRoot(root, localBundleRoot);
     } else {
       bundleDir = await downloadAndExtractBundle('codex');
+      printInstallTargets(root, bundleDir);
       installBundleIntoRoot(root, bundleDir);
       rmSync(bundleDir, { recursive: true, force: true });
     }
