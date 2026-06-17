@@ -1,6 +1,6 @@
 {
   "name": "impeccable",
-  "version": "2.1.7",
+  "version": "2.1.7+codex.20260617182944",
   "description": "Design fluency and anti-pattern detection for Codex CLI.",
   "author": {
     "name": "Paul Bakaus",
